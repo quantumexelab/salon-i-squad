@@ -56,7 +56,9 @@ export function LoginForm() {
 
   async function handleGoogleSignIn() {
     if (!isFirebaseConfigured()) {
-      setError("Firebase is not configured. Check your .env.local file.");
+      setError(
+        "Firebase is not configured. Add environment variables in Vercel and redeploy.",
+      );
       return;
     }
 
@@ -86,7 +88,9 @@ export function LoginForm() {
     mobile: string;
   }) {
     if (!isFirebaseConfigured()) {
-      throw new Error("Firebase is not configured. Check your .env.local file.");
+      throw new Error(
+        "Firebase is not configured. Add environment variables in Vercel and redeploy.",
+      );
     }
 
     if (!isValidMobile(mobile)) {
