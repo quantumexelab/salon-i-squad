@@ -4,16 +4,26 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "dev:local": "concurrently -k -n emulators,next -c yellow,cyan \"npm run emulators\" \"next dev\"",
+    "emulators": "powershell -ExecutionPolicy Bypass -File scripts/start-emulators.ps1",
+    "seed:emulator": "node scripts/seed-emulator.mjs",
+    "connect:firebase": "powershell -ExecutionPolicy Bypass -File scripts/connect-firebase.ps1",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "date-fns": "^4.4.0",
+    "firebase": "^12.15.0",
+    "lucide-react": "^1.23.0",
     "next": "16.2.10",
+    "next-pwa": "^5.6.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
+    "firebase-tools": "^14.27.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
