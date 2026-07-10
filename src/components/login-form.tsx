@@ -9,7 +9,7 @@ import {
 } from "firebase/auth";
 import { Loader2, Scissors, UserRound } from "lucide-react";
 import { GuestDetailsModal } from "@/components/guest-details-modal";
-import { getFirebaseAuth, initFirebase, isFirebaseConfigured } from "@/lib/firebase";
+import { getFirebaseAuth, initFirebase } from "@/lib/firebase";
 import {
   createGuestUserProfile,
   isValidMobile,
@@ -55,13 +55,6 @@ export function LoginForm() {
   }, [authLoading, user, router]);
 
   async function handleGoogleSignIn() {
-    if (!isFirebaseConfigured()) {
-      setError(
-        "Firebase is not configured. Add environment variables in Vercel and redeploy.",
-      );
-      return;
-    }
-
     setLoading("google");
     setError(null);
 
@@ -87,12 +80,6 @@ export function LoginForm() {
     name: string;
     mobile: string;
   }) {
-    if (!isFirebaseConfigured()) {
-      throw new Error(
-        "Firebase is not configured. Add environment variables in Vercel and redeploy.",
-      );
-    }
-
     if (!isValidMobile(mobile)) {
       throw new Error("Please enter a valid mobile number.");
     }
