@@ -1,17 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { Loader2, LogOut, Shield } from "lucide-react";
+import { Clock, Loader2, LogOut, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { generateDayTimeOptions, parseSlotMinutes } from "@/lib/calendar-utils";
 import { getFirebaseAuth, initFirebase } from "@/lib/firebase";
+import {
+  DEFAULT_BUSINESS_HOURS,
+  saveBusinessHours,
+  subscribeToBusinessHours,
+} from "@/lib/settings";
+
+const TIME_OPTIONS = generateDayTimeOptions(30);
 
 export function SettingsPageContent() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [hoursLoading, setHoursLoading] = useState(true);
+  const [savingHours, setSavingHours] = useState(false);
+  const [openTime, setOpenTime] = useState<string>(
+    DEFAULT_BUSINESS_HOURS.openTime,
+  );
+  const [closeTime, setCloseTime] = useState<string>(
+    DEFAULT_BUSINESS_HOURS.closeTime,
+  );
+  const [hoursSaved, setHoursSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    return subscribeToBusinessHours(
+      (hours) => {
+        setOpenTime(hours.openTime);
+        setCloseTime(hours.closeTime);
+        setHoursLoading(false);
+      },
+      (err) => {
+        setError(err.message);
+        setHoursLoading(false);
+      },
+    );
+  }, []);
+
+  const openOptions = TIME_OPTIONS;
+  const closeOptions = useMemo(() => {
+    const openMins = parseSlotMinutes(openTime);
+    return TIME_OPTIONS.filter((slot) => {
+      const mins = parseSlotMinutes(slot);
+      return !Number.isNaN(mins) && !Number.isNaN(openMins) && mins > openMins;
+    });
+  }, [openTime]);
+
+  async function handleSaveHours(e: FormEvent) {
+    e.preventDefault();
+    setSavingHours(true);
+    setError(null);
+    setHoursSaved(false);
+    try {
+      await saveBusinessHours({ openTime, closeTime });
+      setHoursSaved(true);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not save business hours.",
+      );
+    } finally {
+      setSavingHours(false);
+    }
+  }
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -36,10 +93,98 @@ export function SettingsPageContent() {
           Settings
         </h1>
         <p className="mt-2 text-sm text-zinc-400">
-          Salon owner session settings. Platform account creation lives in the
-          Master console.
+          Configure business hours and session. Client booking slots follow
+          these open and close times.
         </p>
       </div>
+
+      <section className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+        <div className="mb-4 flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 text-amber-400">
+            <Clock className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-white">Business hours</h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              Bookable time slots are generated between open and close (30 min
+              steps). Services must finish by close time.
+            </p>
+          </div>
+        </div>
+
+        {hoursLoading ? (
+          <div className="flex justify-center py-8 text-zinc-400">
+            <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
+          </div>
+        ) : (
+          <form
+            onSubmit={handleSaveHours}
+            className="grid gap-3 sm:grid-cols-2"
+          >
+            <label className="grid gap-1.5 text-xs text-zinc-400">
+              Open time
+              <select
+                value={openTime}
+                onChange={(e) => {
+                  setOpenTime(e.target.value);
+                  setHoursSaved(false);
+                  const nextOpen = parseSlotMinutes(e.target.value);
+                  const closeMins = parseSlotMinutes(closeTime);
+                  if (
+                    !Number.isNaN(nextOpen) &&
+                    !Number.isNaN(closeMins) &&
+                    !(nextOpen < closeMins)
+                  ) {
+                    const fallback = TIME_OPTIONS.find(
+                      (slot) => parseSlotMinutes(slot) > nextOpen,
+                    );
+                    if (fallback) setCloseTime(fallback);
+                  }
+                }}
+                className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+              >
+                {openOptions.map((slot) => (
+                  <option key={slot} value={slot}>
+                    {slot}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1.5 text-xs text-zinc-400">
+              Close time
+              <select
+                value={closeTime}
+                onChange={(e) => {
+                  setCloseTime(e.target.value);
+                  setHoursSaved(false);
+                }}
+                className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+              >
+                {closeOptions.map((slot) => (
+                  <option key={slot} value={slot}>
+                    {slot}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="submit"
+              disabled={savingHours}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 text-sm font-bold text-zinc-950 disabled:opacity-60 sm:col-span-2"
+            >
+              {savingHours ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : null}
+              Save business hours
+            </button>
+            {hoursSaved ? (
+              <p className="text-xs text-emerald-400 sm:col-span-2">
+                Business hours saved. Booking slots will update immediately.
+              </p>
+            ) : null}
+          </form>
+        )}
+      </section>
 
       <section className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
         <div className="flex items-start gap-3">

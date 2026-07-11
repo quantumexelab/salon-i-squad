@@ -21,6 +21,54 @@ export function parseSlotMinutes(slot: string): number {
   return hours * 60 + minutes;
 }
 
+export function formatMinutesAsSlot(totalMinutes: number): string {
+  const normalized = ((totalMinutes % (24 * 60)) + 24 * 60) % (24 * 60);
+  let hours = Math.floor(normalized / 60);
+  const minutes = normalized % 60;
+  const period = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  return `${hours}:${String(minutes).padStart(2, "0")} ${period}`;
+}
+
+/**
+ * Build bookable start times from open → close (service must finish by closeTime).
+ * Defaults to 30-minute steps.
+ */
+export function generateTimeSlots(
+  openTime: string,
+  closeTime: string,
+  options?: { intervalMinutes?: number; durationMinutes?: number },
+): string[] {
+  const interval = Math.max(options?.intervalMinutes ?? 30, 1);
+  const duration = Math.max(options?.durationMinutes ?? interval, 1);
+  const open = parseSlotMinutes(openTime);
+  const close = parseSlotMinutes(closeTime);
+  if ([open, close].some((n) => Number.isNaN(n)) || !(open < close)) {
+    return [];
+  }
+
+  const slots: string[] = [];
+  for (let t = open; t + duration <= close; t += interval) {
+    slots.push(formatMinutesAsSlot(t));
+  }
+  return slots;
+}
+
+/** Candidate times for admin pickers (e.g. 6:00 AM – 11:30 PM). */
+export function generateDayTimeOptions(intervalMinutes = 30): string[] {
+  const interval = Math.max(intervalMinutes, 1);
+  const open = parseSlotMinutes("06:00 AM");
+  const last = parseSlotMinutes("11:30 PM");
+  if (Number.isNaN(open) || Number.isNaN(last)) return [];
+
+  const slots: string[] = [];
+  for (let t = open; t <= last; t += interval) {
+    slots.push(formatMinutesAsSlot(t));
+  }
+  return slots;
+}
+
 export function rangesOverlap(
   aStart: number,
   aEnd: number,

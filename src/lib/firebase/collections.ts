@@ -3,6 +3,7 @@ export const COLLECTIONS = {
   services: "services",
   bookings: "bookings",
   salonSettings: "salonSettings",
+  settings: "settings",
   dayCloses: "dayCloses",
   closedDays: "closed_days",
   buffers: "buffers",

@@ -23,7 +23,7 @@ import {
   Loader2,
   Scissors,
 } from "lucide-react";
-import { DUMMY_TIME_SLOTS, formatLkr } from "@/lib/booking/dummy-services";
+import { formatLkr } from "@/lib/booking/dummy-services";
 import {
   createBooking,
   subscribeToConfirmedBookings,
@@ -35,8 +35,14 @@ import {
 } from "@/lib/calendar";
 import {
   filterAvailableSlots,
+  generateTimeSlots,
   toDateKey,
 } from "@/lib/calendar-utils";
+import {
+  DEFAULT_BUSINESS_HOURS,
+  subscribeToBusinessHours,
+  type BusinessHours,
+} from "@/lib/settings";
 import { subscribeToServices } from "@/lib/services";
 import { useAuth } from "@/contexts/auth-context";
 import type { ClosedDay, TimeBuffer } from "@/types/calendar";
@@ -51,6 +57,9 @@ export function BookingFlow() {
   const [services, setServices] = useState<Service[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesError, setServicesError] = useState<string | null>(null);
+  const [businessHours, setBusinessHours] = useState<BusinessHours>({
+    ...DEFAULT_BUSINESS_HOURS,
+  });
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
   const [buffers, setBuffers] = useState<TimeBuffer[]>([]);
   const [confirmedBookings, setConfirmedBookings] = useState<SavedBooking[]>(
@@ -81,6 +90,10 @@ export function BookingFlow() {
     );
 
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    return subscribeToBusinessHours(setBusinessHours);
   }, []);
 
   useEffect(() => {
@@ -123,13 +136,24 @@ export function BookingFlow() {
 
   const availableSlots = useMemo(() => {
     if (!selectedService || !selectedDate) return [];
-    return filterAvailableSlots(DUMMY_TIME_SLOTS, {
+    const slots = generateTimeSlots(
+      businessHours.openTime,
+      businessHours.closeTime,
+      { durationMinutes: selectedService.durationMinutes },
+    );
+    return filterAvailableSlots(slots, {
       dateKey: toDateKey(selectedDate),
       durationMinutes: selectedService.durationMinutes,
       buffers,
       bookings: confirmedBookings,
     });
-  }, [selectedService, selectedDate, buffers, confirmedBookings]);
+  }, [
+    selectedService,
+    selectedDate,
+    businessHours,
+    buffers,
+    confirmedBookings,
+  ]);
 
   useEffect(() => {
     if (selectedSlot && !availableSlots.includes(selectedSlot)) {

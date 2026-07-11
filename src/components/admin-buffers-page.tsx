@@ -1,27 +1,56 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
-import { DUMMY_TIME_SLOTS } from "@/lib/booking/dummy-services";
 import {
   createBuffer,
   deleteBuffer,
   subscribeToBuffers,
 } from "@/lib/calendar";
-import { parseSlotMinutes } from "@/lib/calendar-utils";
+import {
+  generateDayTimeOptions,
+  generateTimeSlots,
+  parseSlotMinutes,
+} from "@/lib/calendar-utils";
+import {
+  DEFAULT_BUSINESS_HOURS,
+  subscribeToBusinessHours,
+  type BusinessHours,
+} from "@/lib/settings";
 import { useAuth } from "@/contexts/auth-context";
 import type { TimeBuffer } from "@/types/calendar";
+
+const FALLBACK_OPTIONS = generateDayTimeOptions(30);
 
 export function AdminBuffersPage() {
   const { user } = useAuth();
   const [buffers, setBuffers] = useState<TimeBuffer[]>([]);
+  const [hours, setHours] = useState<BusinessHours>({
+    ...DEFAULT_BUSINESS_HOURS,
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dateValue, setDateValue] = useState("");
-  const [startTime, setStartTime] = useState<string>(DUMMY_TIME_SLOTS[6]);
-  const [endTime, setEndTime] = useState<string>(DUMMY_TIME_SLOTS[8]);
+  const [startTime, setStartTime] = useState<string>(
+    DEFAULT_BUSINESS_HOURS.openTime,
+  );
+  const [endTime, setEndTime] = useState<string>("01:00 PM");
   const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const timeOptions = useMemo(() => {
+    const fromHours = generateTimeSlots(hours.openTime, hours.closeTime, {
+      durationMinutes: 30,
+    });
+    const withClose = fromHours.includes(hours.closeTime)
+      ? fromHours
+      : [...fromHours, hours.closeTime];
+    return withClose.length > 0 ? withClose : FALLBACK_OPTIONS;
+  }, [hours]);
+
+  useEffect(() => {
+    return subscribeToBusinessHours(setHours);
+  }, []);
 
   useEffect(() => {
     return subscribeToBuffers(
@@ -35,6 +64,18 @@ export function AdminBuffersPage() {
       },
     );
   }, []);
+
+  useEffect(() => {
+    if (timeOptions.length === 0) return;
+    setStartTime((prev) =>
+      timeOptions.includes(prev) ? prev : timeOptions[0],
+    );
+    setEndTime((prev) =>
+      timeOptions.includes(prev)
+        ? prev
+        : timeOptions[Math.min(2, timeOptions.length - 1)],
+    );
+  }, [timeOptions]);
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
@@ -93,7 +134,7 @@ export function AdminBuffersPage() {
         <h1 className="mt-2 text-3xl font-semibold text-white">Buffers</h1>
         <p className="mt-2 text-sm text-zinc-400">
           Block part of a day (lunch, short leave). Matching client time slots
-          will be hidden.
+          will be hidden. Times follow Settings → Business hours.
         </p>
       </div>
 
@@ -118,8 +159,8 @@ export function AdminBuffersPage() {
             onChange={(e) => setStartTime(e.target.value)}
             className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
           >
-            {DUMMY_TIME_SLOTS.map((slot) => (
-              <option key={slot} value={slot}>
+            {timeOptions.map((slot) => (
+              <option key={`start-${slot}`} value={slot}>
                 {slot}
               </option>
             ))}
@@ -132,8 +173,8 @@ export function AdminBuffersPage() {
             onChange={(e) => setEndTime(e.target.value)}
             className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
           >
-            {DUMMY_TIME_SLOTS.map((slot) => (
-              <option key={slot} value={slot}>
+            {timeOptions.map((slot) => (
+              <option key={`end-${slot}`} value={slot}>
                 {slot}
               </option>
             ))}
@@ -153,7 +194,11 @@ export function AdminBuffersPage() {
           disabled={saving}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 text-sm font-bold text-zinc-950 disabled:opacity-60 sm:col-span-2"
         >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
           Add buffer
         </button>
       </form>

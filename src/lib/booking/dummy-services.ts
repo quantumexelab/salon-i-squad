@@ -6,7 +6,7 @@ export type DummyService = {
   price: number;
 };
 
-/** Dummy slots — Firestore availability comes later. */
+/** @deprecated Prefer generateTimeSlots() from business hours settings. */
 export const DUMMY_TIME_SLOTS = [
   "09:00 AM",
   "09:30 AM",
