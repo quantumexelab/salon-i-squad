@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Loader2,
   Scissors,
 } from "lucide-react";
 import {
@@ -28,18 +29,24 @@ import {
   formatLkr,
   type DummyService,
 } from "@/lib/booking/dummy-services";
+import { createBooking } from "@/lib/bookings";
+import { useAuth } from "@/contexts/auth-context";
 
 type Step = "service" | "date" | "time";
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 export function BookingFlow() {
+  const { user } = useAuth();
   const [selectedService, setSelectedService] = useState<DummyService | null>(
     null,
   );
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const today = startOfDay(new Date());
 
@@ -58,16 +65,28 @@ export function BookingFlow() {
     });
   }, [monthCursor]);
 
+  function resetBooking() {
+    setSelectedService(null);
+    setSelectedDate(null);
+    setSelectedSlot(null);
+    setMonthCursor(startOfMonth(new Date()));
+    setError(null);
+  }
+
   function selectService(service: DummyService) {
     setSelectedService(service);
     setSelectedDate(null);
     setSelectedSlot(null);
+    setError(null);
+    setSuccessMessage(null);
   }
 
   function selectDate(day: Date) {
     if (isBefore(day, today)) return;
     setSelectedDate(day);
     setSelectedSlot(null);
+    setError(null);
+    setSuccessMessage(null);
   }
 
   function resetFrom(stepToReset: Step) {
@@ -83,11 +102,55 @@ export function BookingFlow() {
     }
   }
 
-  const canConfirm = Boolean(selectedService && selectedDate && selectedSlot);
+  const hasSelection = Boolean(
+    selectedService && selectedDate && selectedSlot && user,
+  );
+  const canConfirm = hasSelection && !saving;
+
+  async function handleConfirmBooking() {
+    if (!user || !selectedService || !selectedDate || !selectedSlot) {
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const booking = await createBooking({
+        userId: user.uid,
+        service: selectedService,
+        selectedDate,
+        selectedTime: selectedSlot,
+      });
+
+      setSuccessMessage(
+        `Booked ${booking.serviceName} on ${format(selectedDate, "MMM d")} at ${selectedSlot}.`,
+      );
+      resetBooking();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not save booking. Please try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-5 pb-28">
       <StepHeader step={step} />
+
+      {successMessage ? (
+        <div
+          role="status"
+          className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
+        >
+          {successMessage}
+        </div>
+      ) : null}
 
       {/* Service selection */}
       <section className="space-y-3">
@@ -121,7 +184,8 @@ export function BookingFlow() {
                   <button
                     type="button"
                     onClick={() => selectService(service)}
-                    className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-3.5 text-left transition active:scale-[0.99] ${
+                    disabled={saving}
+                    className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-3.5 text-left transition active:scale-[0.99] disabled:opacity-60 ${
                       selected
                         ? "border-amber-500/50 bg-amber-500/10 ring-1 ring-amber-500/30"
                         : "border-zinc-800 bg-zinc-900/60 hover:border-zinc-700 hover:bg-zinc-900"
@@ -192,7 +256,7 @@ export function BookingFlow() {
                   type="button"
                   aria-label="Previous month"
                   onClick={() => setMonthCursor((m) => addMonths(m, -1))}
-                  disabled={isSameMonth(monthCursor, today)}
+                  disabled={isSameMonth(monthCursor, today) || saving}
                   className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-30"
                 >
                   <ChevronLeft className="h-5 w-5" />
@@ -204,7 +268,8 @@ export function BookingFlow() {
                   type="button"
                   aria-label="Next month"
                   onClick={() => setMonthCursor((m) => addMonths(m, 1))}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-300 transition hover:bg-zinc-800"
+                  disabled={saving}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-30"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </button>
@@ -229,7 +294,7 @@ export function BookingFlow() {
                     ? isSameDay(day, selectedDate)
                     : false;
                   const isToday = isSameDay(day, today);
-                  const disabled = past || !inMonth;
+                  const disabled = past || !inMonth || saving;
 
                   return (
                     <button
@@ -271,8 +336,13 @@ export function BookingFlow() {
                 <button
                   key={slot}
                   type="button"
-                  onClick={() => setSelectedSlot(slot)}
-                  className={`rounded-xl border px-2 py-3 text-center text-xs font-semibold transition active:scale-[0.98] sm:text-sm ${
+                  disabled={saving}
+                  onClick={() => {
+                    setSelectedSlot(slot);
+                    setError(null);
+                    setSuccessMessage(null);
+                  }}
+                  className={`rounded-xl border px-2 py-3 text-center text-xs font-semibold transition active:scale-[0.98] disabled:opacity-60 sm:text-sm ${
                     selected
                       ? "border-amber-500/50 bg-amber-400 text-zinc-950"
                       : "border-zinc-800 bg-zinc-900/60 text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900"
@@ -286,12 +356,19 @@ export function BookingFlow() {
         </section>
       ) : null}
 
-      {/* Sticky confirm bar — UI only, no Firestore yet */}
+      {/* Sticky confirm bar */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-800 bg-zinc-950/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
         <div className="mx-auto flex w-full max-w-lg flex-col gap-2">
-          {canConfirm ? (
+          {error ? (
+            <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-center text-xs text-red-300">
+              {error}
+            </p>
+          ) : null}
+
+          {hasSelection ? (
             <p className="truncate text-center text-xs text-zinc-400">
-              {selectedService?.name} · {format(selectedDate!, "MMM d")} ·{" "}
+              {selectedService?.name} ·{" "}
+              {selectedDate ? format(selectedDate, "MMM d") : ""} ·{" "}
               {selectedSlot}
             </p>
           ) : (
@@ -304,13 +381,18 @@ export function BookingFlow() {
           <button
             type="button"
             disabled={!canConfirm}
-            className="flex h-12 w-full items-center justify-center rounded-xl bg-amber-400 text-sm font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
+            onClick={handleConfirmBooking}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
           >
-            Confirm booking
+            {saving ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              "Confirm booking"
+            )}
           </button>
-          <p className="text-center text-[10px] text-zinc-600">
-            Booking save comes in the next step — UI preview only
-          </p>
         </div>
       </div>
     </div>
