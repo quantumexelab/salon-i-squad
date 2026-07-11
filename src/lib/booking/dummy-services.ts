@@ -6,37 +6,6 @@ export type DummyService = {
   price: number;
 };
 
-export const DUMMY_SERVICES: DummyService[] = [
-  {
-    id: "haircut",
-    name: "Haircut",
-    description: "Classic cut and finish",
-    durationMinutes: 30,
-    price: 1500,
-  },
-  {
-    id: "beard-trim",
-    name: "Beard Trim",
-    description: "Shape and tidy your beard",
-    durationMinutes: 15,
-    price: 800,
-  },
-  {
-    id: "hair-coloring",
-    name: "Hair Coloring",
-    description: "Full color treatment",
-    durationMinutes: 60,
-    price: 4500,
-  },
-  {
-    id: "haircut-beard",
-    name: "Haircut + Beard",
-    description: "Complete grooming package",
-    durationMinutes: 45,
-    price: 2200,
-  },
-];
-
 /** Dummy slots — Firestore availability comes later. */
 export const DUMMY_TIME_SLOTS = [
   "09:00 AM",

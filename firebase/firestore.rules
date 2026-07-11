@@ -53,8 +53,10 @@ service cloud.firestore {
     }
 
     match /services/{serviceId} {
+      // Public catalog — clients can list services before/after login.
       allow read: if true;
-      allow write: if isStaff();
+      // Salon owners (admin) and platform master can manage offerings.
+      allow create, update, delete: if isStaff();
     }
 
     match /bookings/{bookingId} {

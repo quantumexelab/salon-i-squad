@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   addMonths,
   eachDayOfInterval,
@@ -23,14 +23,11 @@ import {
   Loader2,
   Scissors,
 } from "lucide-react";
-import {
-  DUMMY_SERVICES,
-  DUMMY_TIME_SLOTS,
-  formatLkr,
-  type DummyService,
-} from "@/lib/booking/dummy-services";
+import { DUMMY_TIME_SLOTS, formatLkr } from "@/lib/booking/dummy-services";
 import { createBooking } from "@/lib/bookings";
+import { subscribeToServices } from "@/lib/services";
 import { useAuth } from "@/contexts/auth-context";
+import type { Service } from "@/types/firestore";
 
 type Step = "service" | "date" | "time";
 
@@ -38,15 +35,33 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 export function BookingFlow() {
   const { user } = useAuth();
-  const [selectedService, setSelectedService] = useState<DummyService | null>(
-    null,
-  );
+  const [services, setServices] = useState<Service[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesError, setServicesError] = useState<string | null>(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToServices(
+      (next) => {
+        setServices(next);
+        setServicesLoading(false);
+        setServicesError(null);
+      },
+      (err) => {
+        setServicesError(err.message);
+        setServicesLoading(false);
+      },
+      { activeOnly: true },
+    );
+
+    return unsubscribe;
+  }, []);
 
   const today = startOfDay(new Date());
 
@@ -73,7 +88,7 @@ export function BookingFlow() {
     setError(null);
   }
 
-  function selectService(service: DummyService) {
+  function selectService(service: Service) {
     setSelectedService(service);
     setSelectedDate(null);
     setSelectedSlot(null);
@@ -152,7 +167,6 @@ export function BookingFlow() {
         </div>
       ) : null}
 
-      {/* Service selection */}
       <section className="space-y-3">
         <SectionLabel
           icon={<Scissors className="h-3.5 w-3.5" />}
@@ -175,9 +189,20 @@ export function BookingFlow() {
             title={selectedService.name}
             subtitle={`${selectedService.durationMinutes} min · ${formatLkr(selectedService.price)}`}
           />
+        ) : servicesLoading ? (
+          <ServiceListSkeleton />
+        ) : servicesError ? (
+          <p className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {servicesError}
+          </p>
+        ) : services.length === 0 ? (
+          <p className="rounded-2xl border border-zinc-800 bg-zinc-900/50 px-4 py-6 text-center text-sm text-zinc-400">
+            No services available yet. Ask the salon to add offerings in Admin →
+            Services.
+          </p>
         ) : (
           <ul className="grid gap-3">
-            {DUMMY_SERVICES.map((service) => {
+            {services.map((service) => {
               const selected = selectedService?.id === service.id;
               return (
                 <li key={service.id}>
@@ -198,7 +223,9 @@ export function BookingFlow() {
                           : "border-zinc-600"
                       }`}
                     >
-                      {selected ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+                      {selected ? (
+                        <Check className="h-3 w-3" strokeWidth={3} />
+                      ) : null}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-2">
@@ -210,7 +237,7 @@ export function BookingFlow() {
                         </span>
                       </span>
                       <span className="mt-0.5 block text-xs text-zinc-400">
-                        {service.description}
+                        {service.description || "Salon service"}
                       </span>
                       <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-zinc-800/80 px-2 py-0.5 text-[11px] text-zinc-300">
                         <Clock className="h-3 w-3 text-zinc-400" />
@@ -225,7 +252,6 @@ export function BookingFlow() {
         )}
       </section>
 
-      {/* Calendar */}
       {selectedService ? (
         <section className="space-y-3">
           <SectionLabel
@@ -322,7 +348,6 @@ export function BookingFlow() {
         </section>
       ) : null}
 
-      {/* Time slots */}
       {selectedService && selectedDate ? (
         <section className="space-y-3">
           <SectionLabel
@@ -356,7 +381,6 @@ export function BookingFlow() {
         </section>
       ) : null}
 
-      {/* Sticky confirm bar */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-800 bg-zinc-950/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
         <div className="mx-auto flex w-full max-w-lg flex-col gap-2">
           {error ? (
@@ -399,6 +423,26 @@ export function BookingFlow() {
   );
 }
 
+function ServiceListSkeleton() {
+  return (
+    <ul className="grid gap-3" aria-busy="true" aria-label="Loading services">
+      {[0, 1, 2].map((i) => (
+        <li
+          key={i}
+          className="animate-pulse rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-4"
+        >
+          <div className="mb-3 flex justify-between gap-3">
+            <div className="h-4 w-28 rounded bg-zinc-800" />
+            <div className="h-4 w-16 rounded bg-zinc-800" />
+          </div>
+          <div className="mb-3 h-3 w-48 rounded bg-zinc-800/80" />
+          <div className="h-5 w-20 rounded-full bg-zinc-800" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function StepHeader({ step }: { step: Step }) {
   const steps: { id: Step; label: string }[] = [
     { id: "service", label: "Service" },
@@ -421,7 +465,11 @@ function StepHeader({ step }: { step: Step }) {
             />
             <span
               className={`text-[11px] font-medium ${
-                active ? "text-amber-400" : done ? "text-zinc-300" : "text-zinc-600"
+                active
+                  ? "text-amber-400"
+                  : done
+                    ? "text-zinc-300"
+                    : "text-zinc-600"
               }`}
             >
               {s.label}

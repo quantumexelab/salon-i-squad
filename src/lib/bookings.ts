@@ -11,12 +11,13 @@ import {
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
 import type { DummyService } from "@/lib/booking/dummy-services";
+import type { Service } from "@/types/firestore";
 
 export type BookingStatusUpdate = "completed" | "cancelled";
 
 export type CreateBookingInput = {
   userId: string;
-  service: DummyService;
+  service: Pick<Service, "id" | "name" | "durationMinutes" | "price"> | DummyService;
   selectedDate: Date;
   selectedTime: string;
 };
