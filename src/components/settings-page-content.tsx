@@ -27,6 +27,9 @@ export function SettingsPageContent() {
   const [closeTime, setCloseTime] = useState<string>(
     DEFAULT_BUSINESS_HOURS.closeTime,
   );
+  const [cleanupPadding, setCleanupPadding] = useState<number>(
+    DEFAULT_BUSINESS_HOURS.cleanupPadding,
+  );
   const [hoursSaved, setHoursSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,6 +38,7 @@ export function SettingsPageContent() {
       (hours) => {
         setOpenTime(hours.openTime);
         setCloseTime(hours.closeTime);
+        setCleanupPadding(hours.cleanupPadding);
         setHoursLoading(false);
       },
       (err) => {
@@ -59,7 +63,7 @@ export function SettingsPageContent() {
     setError(null);
     setHoursSaved(false);
     try {
-      await saveBusinessHours({ openTime, closeTime });
+      await saveBusinessHours({ openTime, closeTime, cleanupPadding });
       setHoursSaved(true);
     } catch (err) {
       setError(
@@ -93,8 +97,8 @@ export function SettingsPageContent() {
           Settings
         </h1>
         <p className="mt-2 text-sm text-zinc-400">
-          Configure business hours and session. Client booking slots follow
-          these open and close times.
+          Configure business hours, cleanup padding, and session. Client booking
+          slots follow these settings.
         </p>
       </div>
 
@@ -104,10 +108,10 @@ export function SettingsPageContent() {
             <Clock className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-white">Business hours</h2>
+            <h2 className="text-sm font-semibold text-white">Salon schedule</h2>
             <p className="mt-1 text-xs text-zinc-500">
-              Bookable time slots are generated between open and close (30 min
-              steps). Services must finish by close time.
+              Bookable slots use open/close times (30 min steps). Cleanup padding
+              only affects tomorrow and later.
             </p>
           </div>
         </div>
@@ -167,6 +171,26 @@ export function SettingsPageContent() {
                 ))}
               </select>
             </label>
+            <label className="grid gap-1.5 text-xs text-zinc-400 sm:col-span-2">
+              Cleanup padding (minutes)
+              <input
+                type="number"
+                min={0}
+                max={180}
+                step={5}
+                value={cleanupPadding}
+                onChange={(e) => {
+                  setCleanupPadding(Number(e.target.value));
+                  setHoursSaved(false);
+                }}
+                className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+              />
+              <span className="text-[11px] text-zinc-500">
+                Extra sanitation time after each appointment. Applies from
+                tomorrow onward only — today&apos;s schedule ignores padding so
+                live bookings are not disrupted. Default 0.
+              </span>
+            </label>
             <button
               type="submit"
               disabled={savingHours}
@@ -175,11 +199,12 @@ export function SettingsPageContent() {
               {savingHours ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : null}
-              Save business hours
+              Save settings
             </button>
             {hoursSaved ? (
               <p className="text-xs text-emerald-400 sm:col-span-2">
-                Business hours saved. Booking slots will update immediately.
+                Settings saved. Padding applies to bookings for tomorrow and
+                later.
               </p>
             ) : null}
           </form>

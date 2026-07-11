@@ -115,6 +115,8 @@ export function filterAvailableSlots(
   options: {
     dateKey: string;
     durationMinutes: number;
+    /** Extra minutes after each confirmed booking (cleanup padding). */
+    bookingPaddingMinutes?: number;
     buffers: Array<{ dateKey: string; startTime: string; endTime: string }>;
     bookings: Array<{
       dateKey?: string;
@@ -132,6 +134,7 @@ export function filterAvailableSlots(
     (b) =>
       b.status === "confirmed" && bookingDateKey(b) === options.dateKey,
   );
+  const bookingPadding = Math.max(0, options.bookingPaddingMinutes ?? 0);
 
   return slots.filter((slot) => {
     for (const buffer of dayBuffers) {
@@ -154,7 +157,8 @@ export function filterAvailableSlots(
     for (const booking of dayBookings) {
       const bookingStart = parseSlotMinutes(booking.selectedTime);
       if (Number.isNaN(bookingStart)) continue;
-      const bookingEnd = bookingStart + Math.max(booking.duration, 1);
+      const bookingEnd =
+        bookingStart + Math.max(booking.duration, 1) + bookingPadding;
       if (rangesOverlap(slotStart, slotEnd, bookingStart, bookingEnd)) {
         return false;
       }

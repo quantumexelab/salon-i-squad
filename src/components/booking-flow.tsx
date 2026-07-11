@@ -41,6 +41,7 @@ import {
 } from "@/lib/calendar-utils";
 import {
   DEFAULT_BUSINESS_HOURS,
+  effectiveCleanupPaddingMinutes,
   subscribeToBusinessHours,
   type BusinessHours,
 } from "@/lib/settings";
@@ -153,7 +154,12 @@ export function BookingFlow() {
 
   const availableSlots = useMemo(() => {
     if (!selectedService || !selectedDate) return [];
-    const durationMinutes = getBookableDurationMinutes(selectedService);
+    const serviceMinutes = getBookableDurationMinutes(selectedService);
+    const padding = effectiveCleanupPaddingMinutes(
+      selectedDate,
+      businessHours.cleanupPadding,
+    );
+    const durationMinutes = serviceMinutes + padding;
     const slots = generateTimeSlots(
       businessHours.openTime,
       businessHours.closeTime,
@@ -162,6 +168,7 @@ export function BookingFlow() {
     return filterAvailableSlots(slots, {
       dateKey: toDateKey(selectedDate),
       durationMinutes,
+      bookingPaddingMinutes: padding,
       buffers,
       bookings: confirmedBookings,
     });

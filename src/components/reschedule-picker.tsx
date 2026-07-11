@@ -30,6 +30,7 @@ import {
 } from "@/lib/bookings";
 import {
   DEFAULT_BUSINESS_HOURS,
+  effectiveCleanupPaddingMinutes,
   subscribeToBusinessHours,
   type BusinessHours,
 } from "@/lib/settings";
@@ -86,15 +87,22 @@ export function ReschedulePicker({
 
   const availableSlots = useMemo(() => {
     if (!selectedDate) return [];
+    const serviceMinutes = booking.duration || 30;
+    const padding = effectiveCleanupPaddingMinutes(
+      selectedDate,
+      businessHours.cleanupPadding,
+    );
+    const durationMinutes = serviceMinutes + padding;
     const slots = generateTimeSlots(
       businessHours.openTime,
       businessHours.closeTime,
-      { durationMinutes: booking.duration || 30 },
+      { durationMinutes },
     );
     const others = confirmedBookings.filter((b) => b.id !== booking.id);
     return filterAvailableSlots(slots, {
       dateKey: toDateKey(selectedDate),
-      durationMinutes: booking.duration || 30,
+      durationMinutes,
+      bookingPaddingMinutes: padding,
       buffers,
       bookings: others,
     });
