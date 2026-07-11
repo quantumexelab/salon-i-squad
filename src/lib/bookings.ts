@@ -16,6 +16,7 @@ import type { DummyService } from "@/lib/booking/dummy-services";
 import type { Service } from "@/types/firestore";
 
 export type BookingStatusUpdate = "completed" | "cancelled";
+export type PaymentMethod = "cash" | "card";
 
 export type CreateBookingInput = {
   userId: string;
@@ -42,6 +43,7 @@ export type SavedBooking = {
   phoneNumber?: string;
   customerName?: string;
   customerEmail?: string;
+  paymentMethod?: PaymentMethod;
   status: string;
   createdAt: string;
 };
@@ -84,6 +86,10 @@ function mapBookingDoc(
   const phoneNumber = String(
     data.phoneNumber ?? data.customerMobile ?? data.mobile ?? "",
   );
+  const paymentRaw = String(data.paymentMethod ?? "").toLowerCase();
+  const paymentMethod: PaymentMethod | undefined =
+    paymentRaw === "cash" || paymentRaw === "card" ? paymentRaw : undefined;
+
   return {
     id,
     userId: String(data.userId ?? ""),
@@ -101,6 +107,7 @@ function mapBookingDoc(
     customerEmail: data.customerEmail
       ? String(data.customerEmail)
       : undefined,
+    paymentMethod,
     status: String(data.status ?? "confirmed"),
     createdAt: String(data.createdAt ?? ""),
   };
@@ -151,6 +158,21 @@ export async function updateBookingStatus(
 
   await updateDoc(doc(db, COLLECTIONS.bookings, bookingId), {
     status,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+/** Mark booking completed and record how the client paid. */
+export async function completeBookingWithPayment(
+  bookingId: string,
+  paymentMethod: PaymentMethod,
+): Promise<void> {
+  initFirebase();
+  const db = getFirebaseDb();
+
+  await updateDoc(doc(db, COLLECTIONS.bookings, bookingId), {
+    status: "completed",
+    paymentMethod,
     updatedAt: new Date().toISOString(),
   });
 }

@@ -6,18 +6,19 @@ import {
   CalendarDays,
   Check,
   Clock,
+  CreditCard,
   Loader2,
   RefreshCw,
-  Scissors,
   Wallet,
   X,
 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { formatLkr } from "@/lib/booking/dummy-services";
 import {
+  completeBookingWithPayment,
   subscribeToBookings,
   updateBookingStatus,
-  type BookingStatusUpdate,
+  type PaymentMethod,
   type SavedBooking,
 } from "@/lib/bookings";
 import {
@@ -37,6 +38,10 @@ export function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [completeTarget, setCompleteTarget] = useState<SavedBooking | null>(
+    null,
+  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
 
   useEffect(() => {
     setLoading(true);
@@ -57,28 +62,64 @@ export function AdminDashboard() {
 
   const stats = useMemo(() => {
     const confirmed = bookings.filter((b) => b.status === "confirmed");
-    const revenue = confirmed.reduce((sum, b) => sum + (b.price || 0), 0);
+    const completed = bookings.filter((b) => b.status === "completed");
+
+    const expectedIncome = confirmed.reduce(
+      (sum, b) => sum + (b.price || 0),
+      0,
+    );
+    const realizedIncome = completed.reduce(
+      (sum, b) => sum + (b.price || 0),
+      0,
+    );
+    const cashTotal = completed
+      .filter((b) => b.paymentMethod === "cash")
+      .reduce((sum, b) => sum + (b.price || 0), 0);
+    const cardTotal = completed
+      .filter((b) => b.paymentMethod === "card")
+      .reduce((sum, b) => sum + (b.price || 0), 0);
+
     return {
-      total: bookings.length,
-      confirmed: confirmed.length,
-      revenue,
+      confirmedCount: confirmed.length,
+      expectedIncome,
+      realizedIncome,
+      cashTotal,
+      cardTotal,
     };
   }, [bookings]);
 
-  async function handleStatusUpdate(
-    bookingId: string,
-    status: BookingStatusUpdate,
-  ) {
+  async function handleCancel(bookingId: string) {
     setActionId(bookingId);
     setActionError(null);
 
     try {
-      await updateBookingStatus(bookingId, status);
+      await updateBookingStatus(bookingId, "cancelled");
     } catch (err) {
       setActionError(
         err instanceof Error
           ? err.message
           : "Could not update booking status. Try again.",
+      );
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function handleConfirmComplete() {
+    if (!completeTarget) return;
+
+    setActionId(completeTarget.id);
+    setActionError(null);
+
+    try {
+      await completeBookingWithPayment(completeTarget.id, paymentMethod);
+      setCompleteTarget(null);
+      setPaymentMethod("cash");
+    } catch (err) {
+      setActionError(
+        err instanceof Error
+          ? err.message
+          : "Could not complete booking. Try again.",
       );
     } finally {
       setActionId(null);
@@ -97,8 +138,8 @@ export function AdminDashboard() {
               Bookings
             </h1>
             <p className="mt-2 max-w-xl text-sm text-zinc-400">
-              Live appointments from the client PWA. Newest upcoming bookings
-              appear first.
+              Track appointments and tally expected vs realized income when you
+              complete a visit.
             </p>
           </div>
           <div className="inline-flex items-center gap-2 self-start rounded-full border border-zinc-800 bg-zinc-900/70 px-3 py-1.5 text-xs text-zinc-400">
@@ -109,19 +150,26 @@ export function AdminDashboard() {
 
         <div className="mb-8 grid gap-3 sm:grid-cols-3">
           <StatCard
-            label="Total bookings"
-            value={String(stats.total)}
-            icon={<CalendarDays className="h-4 w-4" />}
-          />
-          <StatCard
             label="Confirmed"
-            value={String(stats.confirmed)}
-            icon={<Scissors className="h-4 w-4" />}
+            value={String(stats.confirmedCount)}
+            icon={<CalendarDays className="h-4 w-4" />}
+            hint="Open appointments"
           />
           <StatCard
-            label="Booked value"
-            value={formatLkr(stats.revenue)}
+            label="Expected income"
+            value={formatLkr(stats.expectedIncome)}
             icon={<Wallet className="h-4 w-4" />}
+            hint="Sum of confirmed bookings"
+          />
+          <StatCard
+            label="Realized income"
+            value={formatLkr(stats.realizedIncome)}
+            icon={<CreditCard className="h-4 w-4" />}
+            hint={
+              stats.realizedIncome > 0
+                ? `Cash ${formatLkr(stats.cashTotal)} · Card ${formatLkr(stats.cardTotal)}`
+                : "Completed bookings"
+            }
           />
         </div>
 
@@ -161,7 +209,6 @@ export function AdminDashboard() {
             </div>
           ) : (
             <>
-              {/* Desktop table */}
               <div className="hidden md:block">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-zinc-950/60 text-xs uppercase tracking-wide text-zinc-500">
@@ -202,13 +249,17 @@ export function AdminDashboard() {
                           {formatLkr(booking.price)}
                         </td>
                         <td className="px-6 py-4">
-                          <StatusPill status={booking.status} />
+                          <StatusPill booking={booking} />
                         </td>
                         <td className="px-6 py-4">
                           <BookingActions
                             booking={booking}
                             busy={actionId === booking.id}
-                            onUpdate={handleStatusUpdate}
+                            onComplete={() => {
+                              setPaymentMethod("cash");
+                              setCompleteTarget(booking);
+                            }}
+                            onCancel={() => handleCancel(booking.id)}
                           />
                         </td>
                       </tr>
@@ -217,7 +268,6 @@ export function AdminDashboard() {
                 </table>
               </div>
 
-              {/* Mobile cards */}
               <ul className="divide-y divide-zinc-800 md:hidden">
                 {bookings.map((booking) => (
                   <li key={booking.id} className="px-4 py-4">
@@ -243,7 +293,7 @@ export function AdminDashboard() {
                           {formatLkr(booking.price)}
                         </p>
                         <div className="mt-2 flex justify-end">
-                          <StatusPill status={booking.status} />
+                          <StatusPill booking={booking} />
                         </div>
                       </div>
                     </div>
@@ -251,7 +301,11 @@ export function AdminDashboard() {
                       <BookingActions
                         booking={booking}
                         busy={actionId === booking.id}
-                        onUpdate={handleStatusUpdate}
+                        onComplete={() => {
+                          setPaymentMethod("cash");
+                          setCompleteTarget(booking);
+                        }}
+                        onCancel={() => handleCancel(booking.id)}
                       />
                     </div>
                   </li>
@@ -260,8 +314,118 @@ export function AdminDashboard() {
             </>
           )}
         </section>
+
+        {completeTarget ? (
+          <CompletePaymentModal
+            booking={completeTarget}
+            paymentMethod={paymentMethod}
+            busy={actionId === completeTarget.id}
+            onPaymentMethodChange={setPaymentMethod}
+            onCancel={() => {
+              if (actionId) return;
+              setCompleteTarget(null);
+            }}
+            onConfirm={handleConfirmComplete}
+          />
+        ) : null}
       </div>
     </AuthGuard>
+  );
+}
+
+function CompletePaymentModal({
+  booking,
+  paymentMethod,
+  busy,
+  onPaymentMethodChange,
+  onCancel,
+  onConfirm,
+}: {
+  booking: SavedBooking;
+  paymentMethod: PaymentMethod;
+  busy: boolean;
+  onPaymentMethodChange: (method: PaymentMethod) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const client = booking.customerName?.trim() || "Client";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="complete-payment-title"
+    >
+      <button
+        type="button"
+        aria-label="Close"
+        className="absolute inset-0 cursor-default"
+        disabled={busy}
+        onClick={onCancel}
+      />
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-950 p-5 shadow-2xl">
+        <h2
+          id="complete-payment-title"
+          className="text-lg font-semibold text-white"
+        >
+          Complete booking
+        </h2>
+        <p className="mt-2 text-sm text-zinc-400">
+          {client} · {booking.serviceName} · {formatLkr(booking.price)}
+        </p>
+        <p className="mt-1 text-xs text-zinc-500">
+          How did the client pay?
+        </p>
+
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onPaymentMethodChange("cash")}
+            className={`rounded-xl border px-3 py-3 text-sm font-semibold transition ${
+              paymentMethod === "cash"
+                ? "border-amber-500/50 bg-amber-400/15 text-amber-300"
+                : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500"
+            }`}
+          >
+            Cash
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onPaymentMethodChange("card")}
+            className={`rounded-xl border px-3 py-3 text-sm font-semibold transition ${
+              paymentMethod === "card"
+                ? "border-amber-500/50 bg-amber-400/15 text-amber-300"
+                : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500"
+            }`}
+          >
+            Card
+          </button>
+        </div>
+
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onCancel}
+            className="flex h-11 flex-1 items-center justify-center rounded-xl border border-zinc-700 text-sm font-semibold text-zinc-300 disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onConfirm}
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-bold text-zinc-950 disabled:opacity-60"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -284,11 +448,13 @@ function ClientCell({ booking }: { booking: SavedBooking }) {
 function BookingActions({
   booking,
   busy,
-  onUpdate,
+  onComplete,
+  onCancel,
 }: {
   booking: SavedBooking;
   busy: boolean;
-  onUpdate: (bookingId: string, status: BookingStatusUpdate) => Promise<void>;
+  onComplete: () => void;
+  onCancel: () => void;
 }) {
   const whatsappUrl = booking.phoneNumber
     ? buildWhatsAppUrl(booking.phoneNumber, bookingStatusMessage(booking))
@@ -321,7 +487,7 @@ function BookingActions({
           <button
             type="button"
             disabled={busy}
-            onClick={() => onUpdate(booking.id, "completed")}
+            onClick={onComplete}
             className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busy ? (
@@ -334,7 +500,7 @@ function BookingActions({
           <button
             type="button"
             disabled={busy}
-            onClick={() => onUpdate(booking.id, "cancelled")}
+            onClick={onCancel}
             className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/15 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busy ? (
@@ -367,10 +533,12 @@ function StatCard({
   label,
   value,
   icon,
+  hint,
 }: {
   label: string;
   value: string;
   icon: ReactNode;
+  hint?: string;
 }) {
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 px-4 py-4">
@@ -381,11 +549,13 @@ function StatCard({
       <p className="mt-3 text-2xl font-semibold tracking-tight text-white">
         {value}
       </p>
+      {hint ? <p className="mt-1.5 text-xs text-zinc-500">{hint}</p> : null}
     </div>
   );
 }
 
-function StatusPill({ status }: { status: string }) {
+function StatusPill({ booking }: { booking: SavedBooking }) {
+  const status = booking.status;
   const styles =
     status === "confirmed"
       ? "bg-emerald-500/15 text-emerald-300"
@@ -396,10 +566,17 @@ function StatusPill({ status }: { status: string }) {
           : "bg-zinc-800 text-zinc-300";
 
   return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ${styles}`}
-    >
-      {status || "unknown"}
+    <span className="inline-flex flex-col items-start gap-1">
+      <span
+        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ${styles}`}
+      >
+        {status || "unknown"}
+      </span>
+      {status === "completed" && booking.paymentMethod ? (
+        <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+          {booking.paymentMethod}
+        </span>
+      ) : null}
     </span>
   );
 }
