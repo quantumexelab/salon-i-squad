@@ -1,4 +1,13 @@
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  query,
+  setDoc,
+  where,
+  type Unsubscribe,
+} from "firebase/firestore";
 import type { User } from "firebase/auth";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
@@ -46,24 +55,38 @@ export function normalizeMobile(mobile: string): string {
   return cleaned;
 }
 
-export async function getUserProfile(uid: string): Promise<UserProfile | null> {
-  initFirebase();
-  const snap = await getDoc(doc(getFirebaseDb(), COLLECTIONS.users, uid));
-  if (!snap.exists()) return null;
+/** Prefer phoneNumber; fall back to legacy mobile. */
+export function getProfilePhone(profile: {
+  phoneNumber?: string;
+  mobile?: string;
+} | null | undefined): string {
+  const value = (profile?.phoneNumber || profile?.mobile || "").trim();
+  return value;
+}
 
-  const data = snap.data();
+function mapUserDoc(uid: string, data: Record<string, unknown>): UserProfile {
+  const mobile = String(data.mobile ?? "");
+  const phoneNumber = String(data.phoneNumber ?? mobile);
   return {
     uid,
     firstName: String(data.firstName ?? "User"),
     lastName: String(data.lastName ?? ""),
     email: data.email ? String(data.email) : undefined,
-    mobile: String(data.mobile ?? ""),
-    gender: data.gender,
+    phoneNumber: phoneNumber || undefined,
+    mobile: mobile || phoneNumber,
+    gender: data.gender as UserProfile["gender"],
     role: normalizeRole(data.role),
     isGuest: Boolean(data.isGuest),
     createdAt: String(data.createdAt ?? new Date().toISOString()),
     updatedAt: String(data.updatedAt ?? new Date().toISOString()),
   };
+}
+
+export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  initFirebase();
+  const snap = await getDoc(doc(getFirebaseDb(), COLLECTIONS.users, uid));
+  if (!snap.exists()) return null;
+  return mapUserDoc(uid, snap.data());
 }
 
 /**
@@ -82,12 +105,22 @@ export async function upsertGoogleUserProfile(user: User) {
     ? normalizeRole(existing.data()?.role)
     : ("client" as UserRole);
 
+  const existingPhone = existing.exists()
+    ? getProfilePhone({
+        phoneNumber: existing.data()?.phoneNumber
+          ? String(existing.data()?.phoneNumber)
+          : undefined,
+        mobile: String(existing.data()?.mobile ?? ""),
+      })
+    : "";
+
   const profile: UserProfile = {
     uid: user.uid,
     firstName: firstName || "User",
     lastName,
     email: user.email ?? undefined,
-    mobile: existing.exists() ? String(existing.data()?.mobile ?? "") : "",
+    phoneNumber: existingPhone || undefined,
+    mobile: existingPhone,
     role: existingRole,
     isGuest: false,
     createdAt: existing.exists()
@@ -106,18 +139,30 @@ export async function upsertEmailUserProfile(user: User) {
   const ref = doc(db, COLLECTIONS.users, user.uid);
   const existing = await getDoc(ref);
   const now = new Date().toISOString();
-  const { firstName, lastName } = parseName(user.displayName ?? user.email ?? "Staff");
+  const { firstName, lastName } = parseName(
+    user.displayName ?? user.email ?? "Staff",
+  );
 
   const existingRole = existing.exists()
     ? normalizeRole(existing.data()?.role)
     : ("client" as UserRole);
+
+  const existingPhone = existing.exists()
+    ? getProfilePhone({
+        phoneNumber: existing.data()?.phoneNumber
+          ? String(existing.data()?.phoneNumber)
+          : undefined,
+        mobile: String(existing.data()?.mobile ?? ""),
+      })
+    : "";
 
   const profile: UserProfile = {
     uid: user.uid,
     firstName: firstName || "Staff",
     lastName,
     email: user.email ?? undefined,
-    mobile: existing.exists() ? String(existing.data()?.mobile ?? "") : "",
+    phoneNumber: existingPhone || undefined,
+    mobile: existingPhone,
     role: existingRole,
     isGuest: false,
     createdAt: existing.exists()
@@ -139,12 +184,14 @@ export async function createGuestUserProfile(
   const db = getFirebaseDb();
   const now = new Date().toISOString();
   const { firstName, lastName } = parseName(name);
+  const phone = normalizeMobile(mobile);
 
   const profile: UserProfile = {
     uid,
     firstName,
     lastName,
-    mobile: normalizeMobile(mobile),
+    phoneNumber: phone,
+    mobile: phone,
     role: "client",
     isGuest: true,
     createdAt: now,
@@ -169,6 +216,7 @@ export async function createStaffUserProfile(input: {
     firstName: input.firstName.trim() || "Staff",
     lastName: input.lastName.trim(),
     email: input.email.trim().toLowerCase(),
+    phoneNumber: "",
     mobile: "",
     role: "admin",
     isGuest: false,
@@ -178,4 +226,56 @@ export async function createStaffUserProfile(input: {
 
   await setDoc(doc(getFirebaseDb(), COLLECTIONS.users, input.uid), profile);
   return profile;
+}
+
+/** Save / update a client's phone on their user profile. */
+export async function updateUserPhoneNumber(
+  uid: string,
+  phoneInput: string,
+): Promise<string> {
+  if (!isValidMobile(phoneInput)) {
+    throw new Error("Please enter a valid phone number.");
+  }
+
+  initFirebase();
+  const phone = normalizeMobile(phoneInput);
+  const now = new Date().toISOString();
+
+  await setDoc(
+    doc(getFirebaseDb(), COLLECTIONS.users, uid),
+    {
+      phoneNumber: phone,
+      mobile: phone,
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+
+  return phone;
+}
+
+export function subscribeToClientUsers(
+  onData: (clients: UserProfile[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  initFirebase();
+  const q = query(
+    collection(getFirebaseDb(), COLLECTIONS.users),
+    where("role", "==", "client"),
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const clients = snapshot.docs
+        .map((docSnap) => mapUserDoc(docSnap.id, docSnap.data()))
+        .sort((a, b) => {
+          const nameA = `${a.firstName} ${a.lastName}`.trim().toLowerCase();
+          const nameB = `${b.firstName} ${b.lastName}`.trim().toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+      onData(clients);
+    },
+    (error) => onError?.(error),
+  );
 }

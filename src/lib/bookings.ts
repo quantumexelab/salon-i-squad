@@ -24,6 +24,9 @@ export type CreateBookingInput = {
     | DummyService;
   selectedDate: Date;
   selectedTime: string;
+  phoneNumber: string;
+  customerName?: string;
+  customerEmail?: string;
 };
 
 export type SavedBooking = {
@@ -36,6 +39,9 @@ export type SavedBooking = {
   selectedDate: string;
   selectedTime: string;
   dateKey?: string;
+  phoneNumber?: string;
+  customerName?: string;
+  customerEmail?: string;
   status: string;
   createdAt: string;
 };
@@ -75,6 +81,9 @@ function mapBookingDoc(
   id: string,
   data: Record<string, unknown>,
 ): SavedBooking {
+  const phoneNumber = String(
+    data.phoneNumber ?? data.customerMobile ?? data.mobile ?? "",
+  );
   return {
     id,
     userId: String(data.userId ?? ""),
@@ -85,6 +94,13 @@ function mapBookingDoc(
     selectedDate: String(data.selectedDate ?? ""),
     selectedTime: String(data.selectedTime ?? ""),
     dateKey: data.dateKey ? String(data.dateKey) : undefined,
+    phoneNumber: phoneNumber || undefined,
+    customerName: data.customerName
+      ? String(data.customerName)
+      : undefined,
+    customerEmail: data.customerEmail
+      ? String(data.customerEmail)
+      : undefined,
     status: String(data.status ?? "confirmed"),
     createdAt: String(data.createdAt ?? ""),
   };
@@ -108,6 +124,9 @@ export async function createBooking(
     selectedDate,
     selectedTime: input.selectedTime,
     dateKey,
+    phoneNumber: input.phoneNumber,
+    customerName: input.customerName ?? "",
+    customerEmail: input.customerEmail ?? "",
     status: "confirmed" as const,
     createdAt: now,
     updatedAt: now,
@@ -118,6 +137,8 @@ export async function createBooking(
   return {
     id: ref.id,
     ...payload,
+    customerName: payload.customerName || undefined,
+    customerEmail: payload.customerEmail || undefined,
   };
 }
 

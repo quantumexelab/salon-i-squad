@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Clock,
   Loader2,
+  Phone,
   Scissors,
 } from "lucide-react";
 import { formatLkr } from "@/lib/booking/dummy-services";
@@ -44,6 +45,11 @@ import {
   type BusinessHours,
 } from "@/lib/settings";
 import { subscribeToServices } from "@/lib/services";
+import {
+  getProfilePhone,
+  isValidMobile,
+  updateUserPhoneNumber,
+} from "@/lib/users";
 import { useAuth } from "@/contexts/auth-context";
 import type { ClosedDay, TimeBuffer } from "@/types/calendar";
 import type { Service } from "@/types/firestore";
@@ -53,7 +59,7 @@ type Step = "service" | "date" | "time";
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 export function BookingFlow() {
-  const { user } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesError, setServicesError] = useState<string | null>(null);
@@ -68,6 +74,7 @@ export function BookingFlow() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [phoneInput, setPhoneInput] = useState("");
   const [monthCursor, setMonthCursor] = useState(() =>
     startOfMonth(new Date()),
   );
@@ -199,10 +206,18 @@ export function BookingFlow() {
     }
   }
 
+  const profilePhone = getProfilePhone(profile);
+  const needsPhone = Boolean(user && !profilePhone);
+  const resolvedPhone = profilePhone || phoneInput.trim();
+
   const hasSelection = Boolean(
     selectedService && selectedDate && selectedSlot && user,
   );
-  const canConfirm = hasSelection && !saving;
+  const canConfirm =
+    hasSelection &&
+    !saving &&
+    Boolean(resolvedPhone) &&
+    (!needsPhone || isValidMobile(phoneInput));
 
   async function handleConfirmBooking() {
     if (!user || !selectedService || !selectedDate || !selectedSlot) {
@@ -214,11 +229,28 @@ export function BookingFlow() {
     setSuccessMessage(null);
 
     try {
+      let phoneNumber = profilePhone;
+      if (!phoneNumber) {
+        if (!isValidMobile(phoneInput)) {
+          throw new Error("Please enter a valid phone number.");
+        }
+        phoneNumber = await updateUserPhoneNumber(user.uid, phoneInput);
+        await refreshProfile();
+        setPhoneInput("");
+      }
+
+      const customerName = profile
+        ? `${profile.firstName} ${profile.lastName}`.trim()
+        : user.displayName ?? "";
+
       const booking = await createBooking({
         userId: user.uid,
         service: selectedService,
         selectedDate,
         selectedTime: selectedSlot,
+        phoneNumber,
+        customerName: customerName || undefined,
+        customerEmail: profile?.email ?? user.email ?? undefined,
       });
 
       setSuccessMessage(
@@ -237,7 +269,11 @@ export function BookingFlow() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-5 pb-28">
+    <div
+      className={`mx-auto flex w-full max-w-lg flex-col gap-5 ${
+        needsPhone ? "pb-36" : "pb-28"
+      }`}
+    >
       <StepHeader step={step} />
 
       {successMessage ? (
@@ -474,6 +510,37 @@ export function BookingFlow() {
         </section>
       ) : null}
 
+      {selectedService && selectedDate && selectedSlot && needsPhone ? (
+        <section className="space-y-3">
+          <SectionLabel
+            icon={<Phone className="h-3.5 w-3.5" />}
+            title="Your phone number"
+          />
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+            <p className="mb-3 text-xs text-zinc-400">
+              The salon needs your number to confirm or reschedule. Saved to
+              your profile for next time.
+            </p>
+            <label className="grid gap-1.5 text-xs text-zinc-400">
+              Phone number
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="07X XXX XXXX"
+                value={phoneInput}
+                disabled={saving}
+                onChange={(e) => {
+                  setPhoneInput(e.target.value);
+                  setError(null);
+                }}
+                className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50 disabled:opacity-60"
+              />
+            </label>
+          </div>
+        </section>
+      ) : null}
+
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-800 bg-zinc-950/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
         <div className="mx-auto flex w-full max-w-lg flex-col gap-2">
           {error ? (
@@ -487,6 +554,9 @@ export function BookingFlow() {
               {selectedService?.name} ·{" "}
               {selectedDate ? format(selectedDate, "MMM d") : ""} ·{" "}
               {selectedSlot}
+              {needsPhone && !phoneInput.trim()
+                ? " · add phone to confirm"
+                : ""}
             </p>
           ) : (
             <p className="text-center text-xs text-zinc-500">

@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/auth-context";
 
 const adminNav = [
   { href: "/admin", label: "Bookings" },
+  { href: "/customers", label: "Customers" },
   { href: "/services", label: "Services" },
   { href: "/buffers", label: "Buffers" },
   { href: "/day-close", label: "Day Close" },

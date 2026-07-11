@@ -162,6 +162,7 @@ export function AdminDashboard() {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-zinc-950/60 text-xs uppercase tracking-wide text-zinc-500">
                     <tr>
+                      <th className="px-6 py-3 font-medium">Client</th>
                       <th className="px-6 py-3 font-medium">Service</th>
                       <th className="px-6 py-3 font-medium">Date</th>
                       <th className="px-6 py-3 font-medium">Time</th>
@@ -176,6 +177,9 @@ export function AdminDashboard() {
                         key={booking.id}
                         className="transition hover:bg-zinc-900/80"
                       >
+                        <td className="px-6 py-4">
+                          <ClientCell booking={booking} />
+                        </td>
                         <td className="px-6 py-4">
                           <p className="font-medium text-white">
                             {booking.serviceName}
@@ -218,7 +222,10 @@ export function AdminDashboard() {
                         <p className="font-semibold text-white">
                           {booking.serviceName}
                         </p>
-                        <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-400">
+                        <div className="mt-2">
+                          <ClientCell booking={booking} />
+                        </div>
+                        <p className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400">
                           <CalendarDays className="h-3.5 w-3.5" />
                           {formatBookingDate(booking.selectedDate)}
                         </p>
@@ -251,6 +258,22 @@ export function AdminDashboard() {
         </section>
       </div>
     </AuthGuard>
+  );
+}
+
+function ClientCell({ booking }: { booking: SavedBooking }) {
+  const name = booking.customerName?.trim() || "Client";
+  const email = booking.customerEmail?.trim();
+  const phone = booking.phoneNumber?.trim();
+
+  return (
+    <div>
+      <p className="font-medium text-white">{name}</p>
+      {email ? (
+        <p className="mt-0.5 text-xs text-zinc-500">{email}</p>
+      ) : null}
+      <p className="mt-0.5 text-xs text-amber-300/90">{phone || "No phone"}</p>
+    </div>
   );
 }
 

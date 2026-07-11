@@ -16,6 +16,8 @@ export type UserProfile = {
   firstName: string;
   lastName: string;
   email?: string;
+  /** Canonical contact number (also mirrored to `mobile` for older docs). */
+  phoneNumber?: string;
   mobile: string;
   gender?: Gender;
   role: UserRole;
