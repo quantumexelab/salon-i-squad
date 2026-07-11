@@ -1,4 +1,4 @@
-export type UserRole = "customer" | "admin";
+export type UserRole = "client" | "admin" | "master";
 
 export type Gender = "male" | "female" | "other" | "prefer_not_to_say";
 

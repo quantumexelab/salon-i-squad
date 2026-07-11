@@ -6,10 +6,22 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasUserDoc() {
       return isSignedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isMaster() {
+      return hasUserDoc() && userDoc().role == 'master';
+    }
+
+    function isStaff() {
+      return hasUserDoc()
+        && (userDoc().role == 'admin' || userDoc().role == 'master');
     }
 
     function isOwner(userId) {
@@ -17,39 +29,47 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
+      allow read: if isOwner(userId) || isStaff();
+
+      // First-time self signup as client (or master creating staff profiles)
+      allow create: if isOwner(userId)
+        || (isMaster() && request.resource.data.role == 'admin');
+
+      // Owners can update their profile but cannot change role.
+      // Master can update any user (including assigning admin).
+      allow update: if isMaster()
+        || (isOwner(userId)
+          && request.resource.data.role == resource.data.role);
+
+      allow delete: if isMaster();
     }
 
     match /services/{serviceId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isStaff();
     }
 
     match /bookings/{bookingId} {
-      // Phase 5: any signed-in user can list/read bookings (admin dashboard)
-      allow read: if isSignedIn();
+      allow read: if isStaff()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
 
-      // Clients create their own bookings
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'confirmed';
 
-      // Signed-in write/update for MVP (tighten to isAdmin() later)
-      allow update: if isSignedIn();
+      allow update: if isStaff()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
 
-      allow delete: if isAdmin();
+      allow delete: if isMaster();
     }
 
     match /salonSettings/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isStaff();
     }
 
     match /dayCloses/{dayCloseId} {
-      allow read, write: if isAdmin();
+      allow read, write: if isStaff();
     }
   }
 }

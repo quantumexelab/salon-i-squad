@@ -5,18 +5,22 @@ import { useRouter } from "next/navigation";
 import {
   GoogleAuthProvider,
   signInAnonymously,
+  signInWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
 import { Loader2, Scissors, UserRound } from "lucide-react";
 import { GuestDetailsModal } from "@/components/guest-details-modal";
 import { getFirebaseAuth, initFirebase } from "@/lib/firebase";
+import { isStaffRole } from "@/lib/roles";
 import {
   createGuestUserProfile,
   isValidMobile,
+  upsertEmailUserProfile,
   upsertGoogleUserProfile,
 } from "@/lib/users";
 import { siteConfig } from "@/lib/site";
 import { useAuth } from "@/contexts/auth-context";
+import type { UserRole } from "@/types/firestore";
 
 function GoogleIcon() {
   return (
@@ -41,18 +45,27 @@ function GoogleIcon() {
   );
 }
 
+function homeForRole(role: UserRole | string | undefined) {
+  return isStaffRole(role) ? "/admin" : "/booking";
+}
+
 export function LoginForm() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
-  const [loading, setLoading] = useState<"google" | "guest" | null>(null);
+  const { user, loading: authLoading, profile, refreshProfile } = useAuth();
+  const [loading, setLoading] = useState<"google" | "guest" | "staff" | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [guestModalOpen, setGuestModalOpen] = useState(false);
+  const [showStaffLogin, setShowStaffLogin] = useState(false);
+  const [staffEmail, setStaffEmail] = useState("");
+  const [staffPassword, setStaffPassword] = useState("");
 
   useEffect(() => {
-    if (!authLoading && user) {
-      router.replace("/booking");
+    if (!authLoading && user && profile) {
+      router.replace(homeForRole(profile.role));
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, user, profile, router]);
 
   async function handleGoogleSignIn() {
     setLoading("google");
@@ -62,11 +75,42 @@ export function LoginForm() {
       initFirebase();
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(getFirebaseAuth(), provider);
-      await upsertGoogleUserProfile(result.user);
-      router.push("/booking");
+      const nextProfile = await upsertGoogleUserProfile(result.user);
+      await refreshProfile();
+      router.push(homeForRole(nextProfile.role));
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Google sign-in failed. Try again.",
+      );
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function handleStaffSignIn(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading("staff");
+    setError(null);
+
+    try {
+      initFirebase();
+      const result = await signInWithEmailAndPassword(
+        getFirebaseAuth(),
+        staffEmail.trim(),
+        staffPassword,
+      );
+      const nextProfile = await upsertEmailUserProfile(result.user);
+      await refreshProfile();
+
+      if (!isStaffRole(nextProfile.role)) {
+        setError("This account is not a staff admin.");
+        return;
+      }
+
+      router.push("/admin");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Staff sign-in failed. Try again.",
       );
     } finally {
       setLoading(null);
@@ -91,6 +135,7 @@ export function LoginForm() {
       initFirebase();
       const result = await signInAnonymously(getFirebaseAuth());
       await createGuestUserProfile(result.user.uid, name, mobile);
+      await refreshProfile();
       setGuestModalOpen(false);
       router.push("/booking");
     } finally {
@@ -148,6 +193,45 @@ export function LoginForm() {
               Continue as Guest
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowStaffLogin((v) => !v)}
+            className="mt-4 w-full text-center text-xs font-medium text-zinc-500 hover:text-amber-400"
+          >
+            {showStaffLogin ? "Hide staff sign-in" : "Staff / admin sign-in"}
+          </button>
+
+          {showStaffLogin ? (
+            <form onSubmit={handleStaffSignIn} className="mt-3 space-y-2">
+              <input
+                type="email"
+                required
+                placeholder="Staff email"
+                value={staffEmail}
+                onChange={(e) => setStaffEmail(e.target.value)}
+                className="h-11 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm text-white outline-none focus:border-amber-500/40"
+              />
+              <input
+                type="password"
+                required
+                placeholder="Password"
+                value={staffPassword}
+                onChange={(e) => setStaffPassword(e.target.value)}
+                className="h-11 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm text-white outline-none focus:border-amber-500/40"
+              />
+              <button
+                type="submit"
+                disabled={loading !== null}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-bold text-zinc-950 disabled:opacity-60"
+              >
+                {loading === "staff" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : null}
+                Sign in as staff
+              </button>
+            </form>
+          ) : null}
 
           {error && (
             <p className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-center text-xs text-red-300">
