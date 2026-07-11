@@ -2,6 +2,9 @@
   "name": "salon-management-system",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:local": "concurrently -k -n emulators,next -c yellow,cyan \"npm run emulators\" \"next dev\"",
