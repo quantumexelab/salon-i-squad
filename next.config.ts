@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+// Default Workbox runtime caching (offline / home-screen friendly).
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const runtimeCaching = require("next-pwa/cache");
+
 // next-pwa generates service worker files into /public on production builds.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const withPWA = require("next-pwa")({
@@ -8,6 +12,7 @@ const withPWA = require("next-pwa")({
   skipWaiting: true,
   // Keep SW off in local `next dev` to avoid stale cache while coding.
   disable: process.env.NODE_ENV === "development",
+  runtimeCaching,
 });
 
 const nextConfig: NextConfig = {
