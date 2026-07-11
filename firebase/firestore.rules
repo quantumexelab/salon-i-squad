@@ -28,6 +28,13 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // One-time bootstrap: allow info@quantumexe.com to self-promote to master.
+    function canBootstrapMaster(userId) {
+      return isOwner(userId)
+        && request.auth.token.email == 'info@quantumexe.com'
+        && request.resource.data.role == 'master';
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId) || isStaff();
 
@@ -35,9 +42,10 @@ service cloud.firestore {
       allow create: if isOwner(userId)
         || (isMaster() && request.resource.data.role == 'admin');
 
-      // Owners can update their profile but cannot change role.
+      // Owners can update their profile but cannot change role — except bootstrap.
       // Master can update any user (including assigning admin).
       allow update: if isMaster()
+        || canBootstrapMaster(userId)
         || (isOwner(userId)
           && request.resource.data.role == resource.data.role);
 
