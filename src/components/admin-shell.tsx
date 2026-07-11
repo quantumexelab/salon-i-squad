@@ -25,7 +25,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <aside className="hidden w-60 shrink-0 border-r border-zinc-800 bg-zinc-950 p-5 md:flex md:flex-col">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-400">
-              Salon I Squad Admin
+              Salon Owner Admin
             </p>
             <p className="mt-2 text-sm font-medium text-zinc-300">
               {siteConfig.name}
@@ -69,10 +69,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-white md:hidden">
-                  Salon I Squad Admin
+                  Salon Owner Admin
                 </p>
                 <p className="hidden text-sm font-semibold text-white md:block">
-                  Admin Dashboard
+                  Salon Dashboard
                 </p>
               </div>
               <nav className="flex gap-1 overflow-x-auto md:hidden">

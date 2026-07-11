@@ -29,7 +29,7 @@ export function ClaimMasterContent() {
       await promoteMasterByEmail(user);
       await refreshProfile();
       setDone(true);
-      router.replace("/admin");
+      router.replace("/master");
     } catch (err) {
       setError(
         err instanceof Error
@@ -66,9 +66,9 @@ export function ClaimMasterContent() {
               <button
                 type="button"
                 className="underline"
-                onClick={() => router.push("/admin")}
+                onClick={() => router.push("/master")}
               >
-                /admin
+                /master
               </button>
               .
             </p>

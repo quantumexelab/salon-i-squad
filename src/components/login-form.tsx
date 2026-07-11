@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   GoogleAuthProvider,
@@ -11,6 +11,7 @@ import {
 import { Loader2, Scissors, UserRound } from "lucide-react";
 import { GuestDetailsModal } from "@/components/guest-details-modal";
 import { getFirebaseAuth, initFirebase } from "@/lib/firebase";
+import { homeForRole } from "@/lib/routing";
 import { isStaffRole } from "@/lib/roles";
 import {
   createGuestUserProfile,
@@ -20,7 +21,6 @@ import {
 } from "@/lib/users";
 import { siteConfig } from "@/lib/site";
 import { useAuth } from "@/contexts/auth-context";
-import type { UserRole } from "@/types/firestore";
 
 function GoogleIcon() {
   return (
@@ -43,10 +43,6 @@ function GoogleIcon() {
       />
     </svg>
   );
-}
-
-function homeForRole(role: UserRole | string | undefined) {
-  return isStaffRole(role) ? "/admin" : "/booking";
 }
 
 export function LoginForm() {
@@ -87,7 +83,7 @@ export function LoginForm() {
     }
   }
 
-  async function handleStaffSignIn(e: React.FormEvent) {
+  async function handleStaffSignIn(e: FormEvent) {
     e.preventDefault();
     setLoading("staff");
     setError(null);
@@ -103,11 +99,11 @@ export function LoginForm() {
       await refreshProfile();
 
       if (!isStaffRole(nextProfile.role)) {
-        setError("This account is not a staff admin.");
+        setError("This account is not a salon admin or master.");
         return;
       }
 
-      router.push("/admin");
+      router.push(homeForRole(nextProfile.role));
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Staff sign-in failed. Try again.",
@@ -137,7 +133,7 @@ export function LoginForm() {
       await createGuestUserProfile(result.user.uid, name, mobile);
       await refreshProfile();
       setGuestModalOpen(false);
-      router.push("/booking");
+      router.push("/");
     } finally {
       setLoading(null);
     }

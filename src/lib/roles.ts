@@ -19,3 +19,7 @@ export function isStaffRole(role: UserRole | string | null | undefined): boolean
 export function isMasterRole(role: UserRole | string | null | undefined): boolean {
   return normalizeRole(role) === "master";
 }
+
+export function isAdminRole(role: UserRole | string | null | undefined): boolean {
+  return normalizeRole(role) === "admin";
+}
