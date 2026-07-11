@@ -177,6 +177,31 @@ export async function completeBookingWithPayment(
   });
 }
 
+export async function cancelBooking(bookingId: string): Promise<void> {
+  initFirebase();
+  await updateDoc(doc(getFirebaseDb(), COLLECTIONS.bookings, bookingId), {
+    status: "cancelled",
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function rescheduleBooking(
+  bookingId: string,
+  input: { selectedDate: Date; selectedTime: string },
+): Promise<void> {
+  initFirebase();
+  const selectedDate = input.selectedDate.toISOString();
+  const dateKey = toDateKey(input.selectedDate);
+
+  await updateDoc(doc(getFirebaseDb(), COLLECTIONS.bookings, bookingId), {
+    selectedDate,
+    selectedTime: input.selectedTime,
+    dateKey,
+    status: "confirmed",
+    updatedAt: new Date().toISOString(),
+  });
+}
+
 export function subscribeToBookings(
   onData: (bookings: SavedBooking[]) => void,
   onError?: (error: Error) => void,
@@ -186,6 +211,30 @@ export function subscribeToBookings(
   const bookingsQuery = query(
     collection(db, COLLECTIONS.bookings),
     orderBy("createdAt", "desc"),
+  );
+
+  return onSnapshot(
+    bookingsQuery,
+    (snapshot) => {
+      const bookings = snapshot.docs.map((docSnap) =>
+        mapBookingDoc(docSnap.id, docSnap.data()),
+      );
+      onData(sortBookingsChronologically(bookings));
+    },
+    (error) => onError?.(error),
+  );
+}
+
+/** Bookings for the signed-in client (own history). */
+export function subscribeToUserBookings(
+  userId: string,
+  onData: (bookings: SavedBooking[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  initFirebase();
+  const bookingsQuery = query(
+    collection(getFirebaseDb(), COLLECTIONS.bookings),
+    where("userId", "==", userId),
   );
 
   return onSnapshot(

@@ -60,18 +60,41 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
+      function ownsBooking() {
+        return isSignedIn()
+          && (resource.data.userId == request.auth.uid
+            || (request.auth.token.email != null
+              && resource.data.customerEmail == request.auth.token.email));
+      }
+
+      function ownsBookingAfter() {
+        return isSignedIn()
+          && (request.resource.data.userId == request.auth.uid
+            || (request.auth.token.email != null
+              && request.resource.data.customerEmail == request.auth.token.email));
+      }
+
       // Staff see all; owners see own; signed-in clients can read confirmed
       // bookings so the booking calendar can hide taken slots.
       allow read: if isStaff()
-        || (isSignedIn() && resource.data.userId == request.auth.uid)
+        || ownsBooking()
         || (isSignedIn() && resource.data.status == 'confirmed');
 
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'confirmed';
 
+      // Staff: full updates. Clients: only their bookings; cannot reassign
+      // ownership/price/service; may cancel or reschedule while confirmed.
       allow update: if isStaff()
-        || (isSignedIn() && resource.data.userId == request.auth.uid);
+        || (ownsBooking()
+          && ownsBookingAfter()
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.serviceId == resource.data.serviceId
+          && request.resource.data.price == resource.data.price
+          && request.resource.data.duration == resource.data.duration
+          && (request.resource.data.status == 'cancelled'
+            || request.resource.data.status == 'confirmed'));
 
       allow delete: if isMaster();
     }
