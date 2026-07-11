@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { siteConfig } from "@/lib/site";
+import { Logo } from "@/components/logo";
 import { useAuth } from "@/contexts/auth-context";
 
 const clientNav = [
@@ -25,11 +25,9 @@ export function ClientShell({ children }: { children: ReactNode }) {
       <header className="border-b border-zinc-800 bg-zinc-950/80 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-semibold tracking-wide text-zinc-50">
-              {siteConfig.name}
-            </p>
+            <Logo />
             {user && showNav ? (
-              <p className="truncate text-[11px] text-zinc-500">
+              <p className="mt-0.5 truncate text-[11px] text-zinc-500">
                 {user.displayName ?? user.email ?? "Signed in"}
               </p>
             ) : null}

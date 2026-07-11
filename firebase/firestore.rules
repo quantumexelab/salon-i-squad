@@ -104,10 +104,13 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
-    // Business hours and other salon config (public read for booking slots).
+    // Business hours: public read, staff write.
+    // Branding: public read, master write only.
     match /settings/{docId} {
       allow read: if true;
-      allow create, update, delete: if isStaff();
+      allow create, update, delete: if docId == 'branding'
+        ? isMaster()
+        : isStaff();
     }
 
     // Legacy collection name (kept for compatibility).

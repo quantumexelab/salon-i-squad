@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Logo } from "@/components/logo";
 import { MasterGuard } from "@/components/master-guard";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -17,10 +18,11 @@ export function MasterShell({ children }: { children: ReactNode }) {
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-400">
                 QuantumExe · System Owner
               </p>
-              <h1 className="mt-1 text-lg font-semibold text-white">
-                Master Console
-              </h1>
+              <div className="mt-1">
+                <Logo textClassName="text-lg font-semibold text-white" />
+              </div>
               <p className="mt-0.5 text-xs text-zinc-500">
+                Master Console ·{" "}
                 {profile
                   ? `${profile.firstName} ${profile.lastName}`.trim()
                   : user?.email}{" "}

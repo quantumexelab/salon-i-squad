@@ -7,6 +7,7 @@ import { Loader2, LogOut, UserPlus } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { getFirebaseAuth, initFirebase } from "@/lib/firebase";
 import { createStaffAccount } from "@/lib/staff";
+import { MasterBrandingSection } from "@/components/master-branding-section";
 
 export function MasterDashboard() {
   const router = useRouter();
@@ -161,6 +162,8 @@ export function MasterDashboard() {
           </p>
         ) : null}
       </section>
+
+      <MasterBrandingSection />
 
       <button
         type="button"

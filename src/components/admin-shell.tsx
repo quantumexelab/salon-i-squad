@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { AdminGuard } from "@/components/admin-guard";
-import { siteConfig } from "@/lib/site";
+import { LogoMark } from "@/components/logo";
 import { useAuth } from "@/contexts/auth-context";
 
 const adminNav = [
@@ -28,9 +28,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-400">
               Salon Owner Admin
             </p>
-            <p className="mt-2 text-sm font-medium text-zinc-300">
-              {siteConfig.name}
-            </p>
+            <div className="mt-2">
+              <LogoMark />
+            </div>
             {profile ? (
               <p className="mt-1 text-xs text-zinc-500">
                 {profile.firstName} · {role}
@@ -69,9 +69,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <header className="border-b border-zinc-800 bg-zinc-950/90 px-4 py-3 backdrop-blur md:px-6">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-white md:hidden">
-                  Salon Owner Admin
-                </p>
+                <div className="md:hidden">
+                  <LogoMark />
+                </div>
                 <p className="hidden text-sm font-semibold text-white md:block">
                   Salon Dashboard
                 </p>

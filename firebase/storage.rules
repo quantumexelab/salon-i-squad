@@ -2,6 +2,12 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    function isMaster() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'master';
+    }
+
     match /services/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null;
@@ -10,6 +16,14 @@ service firebase.storage {
     match /profiles/{userId}/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // System logo — public read, master write only.
+    match /branding/{allPaths=**} {
+      allow read: if true;
+      allow write: if isMaster()
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
     }
   }
 }
