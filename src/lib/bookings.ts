@@ -6,10 +6,12 @@ import {
   orderBy,
   query,
   updateDoc,
+  where,
   type Unsubscribe,
 } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
+import { toDateKey } from "@/lib/calendar-utils";
 import type { DummyService } from "@/lib/booking/dummy-services";
 import type { Service } from "@/types/firestore";
 
@@ -17,7 +19,9 @@ export type BookingStatusUpdate = "completed" | "cancelled";
 
 export type CreateBookingInput = {
   userId: string;
-  service: Pick<Service, "id" | "name" | "durationMinutes" | "price"> | DummyService;
+  service:
+    | Pick<Service, "id" | "name" | "durationMinutes" | "price">
+    | DummyService;
   selectedDate: Date;
   selectedTime: string;
 };
@@ -31,6 +35,7 @@ export type SavedBooking = {
   price: number;
   selectedDate: string;
   selectedTime: string;
+  dateKey?: string;
   status: string;
   createdAt: string;
 };
@@ -66,6 +71,25 @@ export function sortBookingsChronologically(
   });
 }
 
+function mapBookingDoc(
+  id: string,
+  data: Record<string, unknown>,
+): SavedBooking {
+  return {
+    id,
+    userId: String(data.userId ?? ""),
+    serviceId: String(data.serviceId ?? ""),
+    serviceName: String(data.serviceName ?? "Service"),
+    duration: Number(data.duration ?? 0),
+    price: Number(data.price ?? 0),
+    selectedDate: String(data.selectedDate ?? ""),
+    selectedTime: String(data.selectedTime ?? ""),
+    dateKey: data.dateKey ? String(data.dateKey) : undefined,
+    status: String(data.status ?? "confirmed"),
+    createdAt: String(data.createdAt ?? ""),
+  };
+}
+
 export async function createBooking(
   input: CreateBookingInput,
 ): Promise<SavedBooking> {
@@ -73,6 +97,7 @@ export async function createBooking(
   const db = getFirebaseDb();
   const now = new Date().toISOString();
   const selectedDate = input.selectedDate.toISOString();
+  const dateKey = toDateKey(input.selectedDate);
 
   const payload = {
     userId: input.userId,
@@ -82,6 +107,7 @@ export async function createBooking(
     price: input.service.price,
     selectedDate,
     selectedTime: input.selectedTime,
+    dateKey,
     status: "confirmed" as const,
     createdAt: now,
     updatedAt: now,
@@ -122,26 +148,35 @@ export function subscribeToBookings(
   return onSnapshot(
     bookingsQuery,
     (snapshot) => {
-      const bookings = snapshot.docs.map((docSnap) => {
-        const data = docSnap.data();
-        return {
-          id: docSnap.id,
-          userId: String(data.userId ?? ""),
-          serviceId: String(data.serviceId ?? ""),
-          serviceName: String(data.serviceName ?? "Service"),
-          duration: Number(data.duration ?? 0),
-          price: Number(data.price ?? 0),
-          selectedDate: String(data.selectedDate ?? ""),
-          selectedTime: String(data.selectedTime ?? ""),
-          status: String(data.status ?? "confirmed"),
-          createdAt: String(data.createdAt ?? ""),
-        } satisfies SavedBooking;
-      });
-
+      const bookings = snapshot.docs.map((docSnap) =>
+        mapBookingDoc(docSnap.id, docSnap.data()),
+      );
       onData(sortBookingsChronologically(bookings));
     },
-    (error) => {
-      onError?.(error);
+    (error) => onError?.(error),
+  );
+}
+
+/** Confirmed bookings for client-side slot availability. */
+export function subscribeToConfirmedBookings(
+  onData: (bookings: SavedBooking[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  initFirebase();
+  const bookingsQuery = query(
+    collection(getFirebaseDb(), COLLECTIONS.bookings),
+    where("status", "==", "confirmed"),
+  );
+
+  return onSnapshot(
+    bookingsQuery,
+    (snapshot) => {
+      onData(
+        snapshot.docs.map((docSnap) =>
+          mapBookingDoc(docSnap.id, docSnap.data()),
+        ),
+      );
     },
+    (error) => onError?.(error),
   );
 }

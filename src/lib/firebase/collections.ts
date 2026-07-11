@@ -4,4 +4,6 @@ export const COLLECTIONS = {
   bookings: "bookings",
   salonSettings: "salonSettings",
   dayCloses: "dayCloses",
+  closedDays: "closed_days",
+  buffers: "buffers",
 } as const;

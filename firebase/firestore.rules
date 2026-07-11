@@ -60,8 +60,11 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
+      // Staff see all; owners see own; signed-in clients can read confirmed
+      // bookings so the booking calendar can hide taken slots.
       allow read: if isStaff()
-        || (isSignedIn() && resource.data.userId == request.auth.uid);
+        || (isSignedIn() && resource.data.userId == request.auth.uid)
+        || (isSignedIn() && resource.data.status == 'confirmed');
 
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
@@ -78,8 +81,20 @@ service cloud.firestore {
       allow write: if isStaff();
     }
 
+    // Legacy collection name (kept for compatibility).
     match /dayCloses/{dayCloseId} {
-      allow read, write: if isStaff();
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    match /closed_days/{dayId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff();
+    }
+
+    match /buffers/{bufferId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff();
     }
   }
 }

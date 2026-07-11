@@ -24,9 +24,22 @@ import {
   Scissors,
 } from "lucide-react";
 import { DUMMY_TIME_SLOTS, formatLkr } from "@/lib/booking/dummy-services";
-import { createBooking } from "@/lib/bookings";
+import {
+  createBooking,
+  subscribeToConfirmedBookings,
+  type SavedBooking,
+} from "@/lib/bookings";
+import {
+  subscribeToBuffers,
+  subscribeToClosedDays,
+} from "@/lib/calendar";
+import {
+  filterAvailableSlots,
+  toDateKey,
+} from "@/lib/calendar-utils";
 import { subscribeToServices } from "@/lib/services";
 import { useAuth } from "@/contexts/auth-context";
+import type { ClosedDay, TimeBuffer } from "@/types/calendar";
 import type { Service } from "@/types/firestore";
 
 type Step = "service" | "date" | "time";
@@ -38,10 +51,17 @@ export function BookingFlow() {
   const [services, setServices] = useState<Service[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesError, setServicesError] = useState<string | null>(null);
+  const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
+  const [buffers, setBuffers] = useState<TimeBuffer[]>([]);
+  const [confirmedBookings, setConfirmedBookings] = useState<SavedBooking[]>(
+    [],
+  );
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
+  const [monthCursor, setMonthCursor] = useState(() =>
+    startOfMonth(new Date()),
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -63,7 +83,28 @@ export function BookingFlow() {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    return subscribeToClosedDays(setClosedDays);
+  }, []);
+
+  useEffect(() => {
+    return subscribeToBuffers(setBuffers);
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setConfirmedBookings([]);
+      return;
+    }
+    return subscribeToConfirmedBookings(setConfirmedBookings);
+  }, [user]);
+
   const today = startOfDay(new Date());
+
+  const closedDateKeys = useMemo(
+    () => new Set(closedDays.map((d) => d.dateKey).filter(Boolean)),
+    [closedDays],
+  );
 
   const step: Step = !selectedService
     ? "service"
@@ -79,6 +120,22 @@ export function BookingFlow() {
       end: endOfWeek(monthEnd),
     });
   }, [monthCursor]);
+
+  const availableSlots = useMemo(() => {
+    if (!selectedService || !selectedDate) return [];
+    return filterAvailableSlots(DUMMY_TIME_SLOTS, {
+      dateKey: toDateKey(selectedDate),
+      durationMinutes: selectedService.durationMinutes,
+      buffers,
+      bookings: confirmedBookings,
+    });
+  }, [selectedService, selectedDate, buffers, confirmedBookings]);
+
+  useEffect(() => {
+    if (selectedSlot && !availableSlots.includes(selectedSlot)) {
+      setSelectedSlot(null);
+    }
+  }, [availableSlots, selectedSlot]);
 
   function resetBooking() {
     setSelectedService(null);
@@ -98,6 +155,7 @@ export function BookingFlow() {
 
   function selectDate(day: Date) {
     if (isBefore(day, today)) return;
+    if (closedDateKeys.has(toDateKey(day))) return;
     setSelectedDate(day);
     setSelectedSlot(null);
     setError(null);
@@ -316,17 +374,19 @@ export function BookingFlow() {
                 {calendarDays.map((day) => {
                   const inMonth = isSameMonth(day, monthCursor);
                   const past = isBefore(day, today);
+                  const closed = closedDateKeys.has(toDateKey(day));
                   const selected = selectedDate
                     ? isSameDay(day, selectedDate)
                     : false;
                   const isToday = isSameDay(day, today);
-                  const disabled = past || !inMonth || saving;
+                  const disabled = past || closed || !inMonth || saving;
 
                   return (
                     <button
                       key={day.toISOString()}
                       type="button"
                       disabled={disabled}
+                      title={closed ? "Salon closed" : undefined}
                       onClick={() => selectDate(day)}
                       className={`relative flex aspect-square items-center justify-center rounded-xl text-sm font-medium transition ${
                         selected
@@ -339,6 +399,9 @@ export function BookingFlow() {
                       }`}
                     >
                       {format(day, "d")}
+                      {closed && inMonth && !past ? (
+                        <span className="absolute bottom-1 h-1 w-1 rounded-full bg-red-400/80" />
+                      ) : null}
                     </button>
                   );
                 })}
@@ -354,30 +417,36 @@ export function BookingFlow() {
             icon={<Clock className="h-3.5 w-3.5" />}
             title="Available times"
           />
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {DUMMY_TIME_SLOTS.map((slot) => {
-              const selected = selectedSlot === slot;
-              return (
-                <button
-                  key={slot}
-                  type="button"
-                  disabled={saving}
-                  onClick={() => {
-                    setSelectedSlot(slot);
-                    setError(null);
-                    setSuccessMessage(null);
-                  }}
-                  className={`rounded-xl border px-2 py-3 text-center text-xs font-semibold transition active:scale-[0.98] disabled:opacity-60 sm:text-sm ${
-                    selected
-                      ? "border-amber-500/50 bg-amber-400 text-zinc-950"
-                      : "border-zinc-800 bg-zinc-900/60 text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900"
-                  }`}
-                >
-                  {slot}
-                </button>
-              );
-            })}
-          </div>
+          {availableSlots.length === 0 ? (
+            <p className="rounded-2xl border border-zinc-800 bg-zinc-900/50 px-4 py-6 text-center text-sm text-zinc-400">
+              No open slots on this day. Try another date.
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {availableSlots.map((slot) => {
+                const selected = selectedSlot === slot;
+                return (
+                  <button
+                    key={slot}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => {
+                      setSelectedSlot(slot);
+                      setError(null);
+                      setSuccessMessage(null);
+                    }}
+                    className={`rounded-xl border px-2 py-3 text-center text-xs font-semibold transition active:scale-[0.98] disabled:opacity-60 sm:text-sm ${
+                      selected
+                        ? "border-amber-500/50 bg-amber-400 text-zinc-950"
+                        : "border-zinc-800 bg-zinc-900/60 text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900"
+                    }`}
+                  >
+                    {slot}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </section>
       ) : null}
 
