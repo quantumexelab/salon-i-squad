@@ -29,13 +29,17 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
-      allow read: if isAdmin()
-        || (isSignedIn() && resource.data.userId == request.auth.uid);
+      // Phase 5: any signed-in user can list/read bookings (admin dashboard)
+      allow read: if isSignedIn();
+
+      // Clients create their own bookings
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'confirmed';
-      allow update: if isAdmin()
-        || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      // Signed-in write/update for MVP (tighten to isAdmin() later)
+      allow update: if isSignedIn();
+
       allow delete: if isAdmin();
     }
 
