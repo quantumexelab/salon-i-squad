@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Users } from "lucide-react";
 import { subscribeToBookings } from "@/lib/bookings";
 import { getProfilePhone, subscribeToClientUsers } from "@/lib/users";
+import {
+  buildWhatsAppUrl,
+  customerGreetingMessage,
+} from "@/lib/whatsapp";
 import type { UserProfile } from "@/types/firestore";
 
 type CustomerRow = {
@@ -74,7 +78,7 @@ export function AdminCustomersPage() {
         </h1>
         <p className="mt-2 max-w-xl text-sm text-zinc-400">
           Unique clients from the booking app, with contact details and total
-          appointments.
+          appointments. Tap a phone number to open WhatsApp.
         </p>
       </div>
 
@@ -135,8 +139,8 @@ export function AdminCustomersPage() {
                         <td className="px-6 py-4 text-zinc-300">
                           {user.email || "—"}
                         </td>
-                        <td className="px-6 py-4 text-amber-300/90">
-                          {phone || "—"}
+                        <td className="px-6 py-4">
+                          <CustomerPhoneLink name={name} phone={phone} />
                         </td>
                         <td className="px-6 py-4 font-semibold text-white">
                           {totalBookings}
@@ -161,9 +165,9 @@ export function AdminCustomersPage() {
                         <p className="mt-1 text-xs text-zinc-400">
                           {user.email || "No email"}
                         </p>
-                        <p className="mt-1 text-xs text-amber-300/90">
-                          {phone || "No phone"}
-                        </p>
+                        <div className="mt-1 text-xs">
+                          <CustomerPhoneLink name={name} phone={phone} />
+                        </div>
                       </div>
                       <p className="text-sm font-semibold text-white">
                         {totalBookings}{" "}
@@ -180,5 +184,34 @@ export function AdminCustomersPage() {
         )}
       </section>
     </div>
+  );
+}
+
+function CustomerPhoneLink({
+  name,
+  phone,
+}: {
+  name: string;
+  phone: string;
+}) {
+  if (!phone) {
+    return <span className="text-zinc-500">—</span>;
+  }
+
+  const url = buildWhatsAppUrl(phone, customerGreetingMessage(name));
+  if (!url) {
+    return <span className="text-amber-300/90">{phone}</span>;
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-medium text-[#25D366] underline-offset-2 transition hover:underline"
+      title="Open WhatsApp"
+    >
+      {phone}
+    </a>
   );
 }
