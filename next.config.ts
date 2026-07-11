@@ -12,6 +12,8 @@ const withPWA = require("next-pwa")({
   skipWaiting: true,
   // Keep SW off in local `next dev` to avoid stale cache while coding.
   disable: process.env.NODE_ENV === "development",
+  // Do not precache the FCM worker (registered separately by Firebase Messaging).
+  exclude: [/firebase-messaging-sw\.js$/],
   runtimeCaching,
 });
 

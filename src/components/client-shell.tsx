@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/logo";
+import { PushNotificationBootstrap } from "@/components/push-notification-bootstrap";
 import { useAuth } from "@/contexts/auth-context";
 
 const clientNav = [
@@ -22,6 +23,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-full flex-col bg-zinc-950">
+      <PushNotificationBootstrap />
       <header className="border-b border-zinc-800 bg-zinc-950/80 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
           <div className="min-w-0">

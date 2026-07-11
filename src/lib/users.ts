@@ -77,6 +77,7 @@ function mapUserDoc(uid: string, data: Record<string, unknown>): UserProfile {
     gender: data.gender as UserProfile["gender"],
     role: normalizeRole(data.role),
     isGuest: Boolean(data.isGuest),
+    fcmToken: data.fcmToken ? String(data.fcmToken) : undefined,
     createdAt: String(data.createdAt ?? new Date().toISOString()),
     updatedAt: String(data.updatedAt ?? new Date().toISOString()),
   };
@@ -252,6 +253,25 @@ export async function updateUserPhoneNumber(
   );
 
   return phone;
+}
+
+/** Persist the device FCM token on the signed-in user's profile. */
+export async function updateUserFcmToken(
+  uid: string,
+  fcmToken: string,
+): Promise<void> {
+  const token = fcmToken.trim();
+  if (!uid || !token) return;
+
+  initFirebase();
+  await setDoc(
+    doc(getFirebaseDb(), COLLECTIONS.users, uid),
+    {
+      fcmToken: token,
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true },
+  );
 }
 
 export function subscribeToClientUsers(

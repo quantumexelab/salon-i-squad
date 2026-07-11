@@ -22,6 +22,8 @@ export type UserProfile = {
   gender?: Gender;
   role: UserRole;
   isGuest: boolean;
+  /** FCM web push device token (optional). */
+  fcmToken?: string;
   createdAt: string;
   updatedAt: string;
 };
