@@ -207,6 +207,25 @@ export function AdminServicesPage() {
             />
             Active (visible on client booking)
           </label>
+          <label className="flex items-start gap-2 text-sm text-zinc-300 sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={Boolean(form.requiresConsultation)}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  requiresConsultation: e.target.checked,
+                }))
+              }
+              className="mt-0.5 h-4 w-4 rounded border-zinc-600"
+            />
+            <span>
+              Requires prior consultation
+              <span className="mt-0.5 block text-xs text-zinc-500">
+                Clients book a 15-minute consultation first (e.g. hair colouring).
+              </span>
+            </span>
+          </label>
           <div className="flex flex-wrap gap-2 sm:col-span-2">
             <button
               type="submit"
@@ -258,6 +277,11 @@ export function AdminServicesPage() {
                         Hidden
                       </span>
                     ) : null}
+                    {service.requiresConsultation ? (
+                      <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-300">
+                        Consultation first
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-1 text-xs text-zinc-400">
                     {service.description || "No description"}
@@ -267,6 +291,9 @@ export function AdminServicesPage() {
                     <span className="text-amber-400">
                       {formatLkr(service.price)}
                     </span>
+                    {service.requiresConsultation
+                      ? " · books as 15-min consultation"
+                      : ""}
                   </p>
                 </div>
                 <div className="flex gap-2">

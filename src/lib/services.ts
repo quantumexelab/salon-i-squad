@@ -22,6 +22,26 @@ export type ServiceInput = {
   requiresConsultation?: boolean;
 };
 
+/** Forced slot length when booking a prior consultation. */
+export const CONSULTATION_DURATION_MINUTES = 15;
+
+export function getBookableDurationMinutes(service: {
+  durationMinutes: number;
+  requiresConsultation?: boolean;
+}): number {
+  return service.requiresConsultation
+    ? CONSULTATION_DURATION_MINUTES
+    : service.durationMinutes;
+}
+
+export function getBookableServiceLabel(service: {
+  name: string;
+  requiresConsultation?: boolean;
+}): string {
+  if (!service.requiresConsultation) return service.name;
+  return `Consultation for ${service.name}`;
+}
+
 function mapServiceDoc(id: string, data: Record<string, unknown>): Service {
   return {
     id,

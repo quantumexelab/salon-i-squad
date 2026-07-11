@@ -44,7 +44,12 @@ import {
   subscribeToBusinessHours,
   type BusinessHours,
 } from "@/lib/settings";
-import { subscribeToServices } from "@/lib/services";
+import {
+  CONSULTATION_DURATION_MINUTES,
+  getBookableDurationMinutes,
+  getBookableServiceLabel,
+  subscribeToServices,
+} from "@/lib/services";
 import {
   getProfilePhone,
   isValidMobile,
@@ -141,16 +146,22 @@ export function BookingFlow() {
     });
   }, [monthCursor]);
 
+  const bookableDuration = selectedService
+    ? getBookableDurationMinutes(selectedService)
+    : 0;
+  const needsConsultation = Boolean(selectedService?.requiresConsultation);
+
   const availableSlots = useMemo(() => {
     if (!selectedService || !selectedDate) return [];
+    const durationMinutes = getBookableDurationMinutes(selectedService);
     const slots = generateTimeSlots(
       businessHours.openTime,
       businessHours.closeTime,
-      { durationMinutes: selectedService.durationMinutes },
+      { durationMinutes },
     );
     return filterAvailableSlots(slots, {
       dateKey: toDateKey(selectedDate),
-      durationMinutes: selectedService.durationMinutes,
+      durationMinutes,
       buffers,
       bookings: confirmedBookings,
     });
@@ -245,12 +256,21 @@ export function BookingFlow() {
 
       const booking = await createBooking({
         userId: user.uid,
-        service: selectedService,
+        service: {
+          id: selectedService.id,
+          name: getBookableServiceLabel(selectedService),
+          durationMinutes: getBookableDurationMinutes(selectedService),
+          price: selectedService.price,
+        },
         selectedDate,
         selectedTime: selectedSlot,
         phoneNumber,
         customerName: customerName || undefined,
         customerEmail: profile?.email ?? user.email ?? undefined,
+        isConsultation: selectedService.requiresConsultation,
+        notes: selectedService.requiresConsultation
+          ? `Prior consultation for ${selectedService.name} (full service ${selectedService.durationMinutes} mins).`
+          : undefined,
       });
 
       setSuccessMessage(
@@ -304,8 +324,12 @@ export function BookingFlow() {
 
         {selectedService && step !== "service" ? (
           <SelectedSummary
-            title={selectedService.name}
-            subtitle={`${selectedService.durationMinutes} min · ${formatLkr(selectedService.price)}`}
+            title={getBookableServiceLabel(selectedService)}
+            subtitle={
+              needsConsultation
+                ? `${CONSULTATION_DURATION_MINUTES} min consultation · ${formatLkr(selectedService.price)}`
+                : `${selectedService.durationMinutes} min · ${formatLkr(selectedService.price)}`
+            }
           />
         ) : servicesLoading ? (
           <ServiceListSkeleton />
@@ -357,9 +381,18 @@ export function BookingFlow() {
                       <span className="mt-0.5 block text-xs text-zinc-400">
                         {service.description || "Salon service"}
                       </span>
-                      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-zinc-800/80 px-2 py-0.5 text-[11px] text-zinc-300">
-                        <Clock className="h-3 w-3 text-zinc-400" />
-                        {service.durationMinutes} mins
+                      <span className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-zinc-800/80 px-2 py-0.5 text-[11px] text-zinc-300">
+                          <Clock className="h-3 w-3 text-zinc-400" />
+                          {service.requiresConsultation
+                            ? `${CONSULTATION_DURATION_MINUTES} min consult`
+                            : `${service.durationMinutes} mins`}
+                        </span>
+                        {service.requiresConsultation ? (
+                          <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[11px] font-medium text-amber-300">
+                            Consultation first
+                          </span>
+                        ) : null}
                       </span>
                     </span>
                   </button>
@@ -372,6 +405,16 @@ export function BookingFlow() {
 
       {selectedService ? (
         <section className="space-y-3">
+          {needsConsultation ? (
+            <div
+              role="status"
+              className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+            >
+              This complex service requires a prior consultation. You are
+              booking a {CONSULTATION_DURATION_MINUTES}-minute consultation
+              session first.
+            </div>
+          ) : null}
           <SectionLabel
             icon={<CalendarDays className="h-3.5 w-3.5" />}
             title="Pick a date"
@@ -551,12 +594,15 @@ export function BookingFlow() {
 
           {hasSelection ? (
             <p className="truncate text-center text-xs text-zinc-400">
-              {selectedService?.name} ·{" "}
-              {selectedDate ? format(selectedDate, "MMM d") : ""} ·{" "}
+              {selectedService
+                ? getBookableServiceLabel(selectedService)
+                : ""}{" "}
+              · {selectedDate ? format(selectedDate, "MMM d") : ""} ·{" "}
               {selectedSlot}
               {needsPhone && !phoneInput.trim()
                 ? " · add phone to confirm"
                 : ""}
+              {needsConsultation ? ` · ${bookableDuration} min` : ""}
             </p>
           ) : (
             <p className="text-center text-xs text-zinc-500">

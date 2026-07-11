@@ -28,6 +28,9 @@ export type CreateBookingInput = {
   phoneNumber: string;
   customerName?: string;
   customerEmail?: string;
+  /** Optional note stored on the booking (e.g. consultation). */
+  notes?: string;
+  isConsultation?: boolean;
 };
 
 export type SavedBooking = {
@@ -44,6 +47,8 @@ export type SavedBooking = {
   customerName?: string;
   customerEmail?: string;
   paymentMethod?: PaymentMethod;
+  notes?: string;
+  isConsultation?: boolean;
   status: string;
   createdAt: string;
 };
@@ -108,6 +113,8 @@ function mapBookingDoc(
       ? String(data.customerEmail)
       : undefined,
     paymentMethod,
+    notes: data.notes ? String(data.notes) : undefined,
+    isConsultation: Boolean(data.isConsultation),
     status: String(data.status ?? "confirmed"),
     createdAt: String(data.createdAt ?? ""),
   };
@@ -134,6 +141,8 @@ export async function createBooking(
     phoneNumber: input.phoneNumber,
     customerName: input.customerName ?? "",
     customerEmail: input.customerEmail ?? "",
+    notes: input.notes?.trim() || "",
+    isConsultation: Boolean(input.isConsultation),
     status: "confirmed" as const,
     createdAt: now,
     updatedAt: now,
@@ -146,6 +155,8 @@ export async function createBooking(
     ...payload,
     customerName: payload.customerName || undefined,
     customerEmail: payload.customerEmail || undefined,
+    notes: payload.notes || undefined,
+    isConsultation: payload.isConsultation || undefined,
   };
 }
 
