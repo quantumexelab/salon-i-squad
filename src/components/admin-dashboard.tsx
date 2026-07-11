@@ -21,6 +21,7 @@ import {
   type PaymentMethod,
   type SavedBooking,
 } from "@/lib/bookings";
+import { applyBookingCalendarSync } from "@/lib/request-calendar-sync";
 import {
   bookingStatusMessage,
   buildWhatsAppUrl,
@@ -92,8 +93,16 @@ export function AdminDashboard() {
     setActionId(bookingId);
     setActionError(null);
 
+    const booking = bookings.find((b) => b.id === bookingId);
+
     try {
       await updateBookingStatus(bookingId, "cancelled");
+      if (booking) {
+        void applyBookingCalendarSync("delete", {
+          ...booking,
+          status: "cancelled",
+        });
+      }
     } catch (err) {
       setActionError(
         err instanceof Error

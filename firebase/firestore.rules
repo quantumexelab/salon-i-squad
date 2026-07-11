@@ -106,9 +106,10 @@ service cloud.firestore {
 
     // Business hours: public read, staff write.
     // Branding: public read, master write only.
+    // Calendar: master-only (contains service account secrets).
     match /settings/{docId} {
-      allow read: if true;
-      allow create, update, delete: if docId == 'branding'
+      allow read: if docId == 'calendar' ? isMaster() : true;
+      allow create, update, delete: if docId == 'branding' || docId == 'calendar'
         ? isMaster()
         : isStaff();
     }

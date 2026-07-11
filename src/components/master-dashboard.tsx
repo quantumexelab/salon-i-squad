@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { getFirebaseAuth, initFirebase } from "@/lib/firebase";
 import { createStaffAccount } from "@/lib/staff";
 import { MasterBrandingSection } from "@/components/master-branding-section";
+import { MasterCalendarSection } from "@/components/master-calendar-section";
 
 export function MasterDashboard() {
   const router = useRouter();
@@ -164,6 +165,8 @@ export function MasterDashboard() {
       </section>
 
       <MasterBrandingSection />
+
+      <MasterCalendarSection />
 
       <button
         type="button"

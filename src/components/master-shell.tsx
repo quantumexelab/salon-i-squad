@@ -37,6 +37,12 @@ export function MasterShell({ children }: { children: ReactNode }) {
                 Salon admins
               </Link>
               <Link
+                href="/master/calendar"
+                className="rounded-lg border border-zinc-700 px-3 py-2 text-zinc-300 hover:border-zinc-500"
+              >
+                Calendar
+              </Link>
+              <Link
                 href="/admin"
                 className="rounded-lg border border-zinc-700 px-3 py-2 text-zinc-300 hover:border-zinc-500"
               >

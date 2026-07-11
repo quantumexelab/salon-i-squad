@@ -13,8 +13,10 @@ import {
   canClientModifyBooking,
 } from "@/lib/booking-policy";
 import { rescheduleBooking, type SavedBooking } from "@/lib/bookings";
+import { toDateKey } from "@/lib/calendar-utils";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
+import { applyBookingCalendarSync } from "@/lib/request-calendar-sync";
 
 function mapBooking(id: string, data: Record<string, unknown>): SavedBooking {
   return {
@@ -31,6 +33,9 @@ function mapBooking(id: string, data: Record<string, unknown>): SavedBooking {
     customerName: data.customerName ? String(data.customerName) : undefined,
     customerEmail: data.customerEmail
       ? String(data.customerEmail)
+      : undefined,
+    googleCalendarEventId: data.googleCalendarEventId
+      ? String(data.googleCalendarEventId)
       : undefined,
     status: String(data.status ?? "confirmed"),
     createdAt: String(data.createdAt ?? ""),
@@ -104,6 +109,13 @@ export function ReschedulePageContent() {
     setError(null);
     try {
       await rescheduleBooking(booking.id, { selectedDate, selectedTime });
+      void applyBookingCalendarSync("update", {
+        ...booking,
+        selectedDate: selectedDate.toISOString(),
+        selectedTime,
+        dateKey: toDateKey(selectedDate),
+        status: "confirmed",
+      });
       router.replace("/my-bookings");
     } catch (err) {
       setError(

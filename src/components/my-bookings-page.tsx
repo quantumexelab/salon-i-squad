@@ -24,6 +24,8 @@ import {
   subscribeToUserBookings,
   type SavedBooking,
 } from "@/lib/bookings";
+import { toDateKey } from "@/lib/calendar-utils";
+import { applyBookingCalendarSync } from "@/lib/request-calendar-sync";
 
 export function MyBookingsPage() {
   const { user } = useAuth();
@@ -86,6 +88,10 @@ export function MyBookingsPage() {
     setError(null);
     try {
       await cancelBooking(booking.id);
+      void applyBookingCalendarSync("delete", {
+        ...booking,
+        status: "cancelled",
+      });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not cancel booking.",
@@ -115,6 +121,14 @@ export function MyBookingsPage() {
         selectedDate,
         selectedTime,
       });
+      const updated: SavedBooking = {
+        ...rescheduleTarget,
+        selectedDate: selectedDate.toISOString(),
+        selectedTime,
+        dateKey: toDateKey(selectedDate),
+        status: "confirmed",
+      };
+      void applyBookingCalendarSync("update", updated);
       setRescheduleTarget(null);
     } catch (err) {
       setError(

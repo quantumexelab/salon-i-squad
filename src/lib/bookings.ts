@@ -49,6 +49,8 @@ export type SavedBooking = {
   paymentMethod?: PaymentMethod;
   notes?: string;
   isConsultation?: boolean;
+  /** Google Calendar event id when synced. */
+  googleCalendarEventId?: string;
   status: string;
   createdAt: string;
 };
@@ -115,6 +117,9 @@ function mapBookingDoc(
     paymentMethod,
     notes: data.notes ? String(data.notes) : undefined,
     isConsultation: Boolean(data.isConsultation),
+    googleCalendarEventId: data.googleCalendarEventId
+      ? String(data.googleCalendarEventId)
+      : undefined,
     status: String(data.status ?? "confirmed"),
     createdAt: String(data.createdAt ?? ""),
   };
@@ -192,6 +197,18 @@ export async function cancelBooking(bookingId: string): Promise<void> {
   initFirebase();
   await updateDoc(doc(getFirebaseDb(), COLLECTIONS.bookings, bookingId), {
     status: "cancelled",
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+/** Persist Google Calendar event id after sync (create/update/delete). */
+export async function setBookingCalendarEventId(
+  bookingId: string,
+  eventId: string | null,
+): Promise<void> {
+  initFirebase();
+  await updateDoc(doc(getFirebaseDb(), COLLECTIONS.bookings, bookingId), {
+    googleCalendarEventId: eventId,
     updatedAt: new Date().toISOString(),
   });
 }

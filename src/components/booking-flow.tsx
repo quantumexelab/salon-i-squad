@@ -30,6 +30,7 @@ import {
   subscribeToConfirmedBookings,
   type SavedBooking,
 } from "@/lib/bookings";
+import { applyBookingCalendarSync } from "@/lib/request-calendar-sync";
 import {
   subscribeToBuffers,
   subscribeToClosedDays,
@@ -279,6 +280,8 @@ export function BookingFlow() {
           ? `Prior consultation for ${selectedService.name} (full service ${selectedService.durationMinutes} mins).`
           : undefined,
       });
+
+      void applyBookingCalendarSync("create", booking);
 
       setSuccessMessage(
         `Booked ${booking.serviceName} on ${format(selectedDate, "MMM d")} at ${selectedSlot}.`,
