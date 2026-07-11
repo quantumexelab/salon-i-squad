@@ -1,0 +1,392 @@
+"use client";
+
+import { useMemo, useState, type ReactNode } from "react";
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isBefore,
+  isSameDay,
+  isSameMonth,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+} from "date-fns";
+import {
+  CalendarDays,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Scissors,
+} from "lucide-react";
+import {
+  DUMMY_SERVICES,
+  DUMMY_TIME_SLOTS,
+  formatLkr,
+  type DummyService,
+} from "@/lib/booking/dummy-services";
+
+type Step = "service" | "date" | "time";
+
+const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+export function BookingFlow() {
+  const [selectedService, setSelectedService] = useState<DummyService | null>(
+    null,
+  );
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
+
+  const today = startOfDay(new Date());
+
+  const step: Step = !selectedService
+    ? "service"
+    : !selectedDate
+      ? "date"
+      : "time";
+
+  const calendarDays = useMemo(() => {
+    const monthStart = startOfMonth(monthCursor);
+    const monthEnd = endOfMonth(monthCursor);
+    return eachDayOfInterval({
+      start: startOfWeek(monthStart),
+      end: endOfWeek(monthEnd),
+    });
+  }, [monthCursor]);
+
+  function selectService(service: DummyService) {
+    setSelectedService(service);
+    setSelectedDate(null);
+    setSelectedSlot(null);
+  }
+
+  function selectDate(day: Date) {
+    if (isBefore(day, today)) return;
+    setSelectedDate(day);
+    setSelectedSlot(null);
+  }
+
+  function resetFrom(stepToReset: Step) {
+    if (stepToReset === "service") {
+      setSelectedService(null);
+      setSelectedDate(null);
+      setSelectedSlot(null);
+      return;
+    }
+    if (stepToReset === "date") {
+      setSelectedDate(null);
+      setSelectedSlot(null);
+    }
+  }
+
+  const canConfirm = Boolean(selectedService && selectedDate && selectedSlot);
+
+  return (
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-5 pb-28">
+      <StepHeader step={step} />
+
+      {/* Service selection */}
+      <section className="space-y-3">
+        <SectionLabel
+          icon={<Scissors className="h-3.5 w-3.5" />}
+          title="Choose a service"
+          action={
+            selectedService ? (
+              <button
+                type="button"
+                onClick={() => resetFrom("service")}
+                className="text-xs font-medium text-amber-400"
+              >
+                Change
+              </button>
+            ) : null
+          }
+        />
+
+        {selectedService && step !== "service" ? (
+          <SelectedSummary
+            title={selectedService.name}
+            subtitle={`${selectedService.durationMinutes} min · ${formatLkr(selectedService.price)}`}
+          />
+        ) : (
+          <ul className="grid gap-3">
+            {DUMMY_SERVICES.map((service) => {
+              const selected = selectedService?.id === service.id;
+              return (
+                <li key={service.id}>
+                  <button
+                    type="button"
+                    onClick={() => selectService(service)}
+                    className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-3.5 text-left transition active:scale-[0.99] ${
+                      selected
+                        ? "border-amber-500/50 bg-amber-500/10 ring-1 ring-amber-500/30"
+                        : "border-zinc-800 bg-zinc-900/60 hover:border-zinc-700 hover:bg-zinc-900"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                        selected
+                          ? "border-amber-400 bg-amber-400 text-zinc-950"
+                          : "border-zinc-600"
+                      }`}
+                    >
+                      {selected ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className="text-sm font-semibold text-white">
+                          {service.name}
+                        </span>
+                        <span className="shrink-0 text-sm font-semibold text-amber-400">
+                          {formatLkr(service.price)}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 block text-xs text-zinc-400">
+                        {service.description}
+                      </span>
+                      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-zinc-800/80 px-2 py-0.5 text-[11px] text-zinc-300">
+                        <Clock className="h-3 w-3 text-zinc-400" />
+                        {service.durationMinutes} mins
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {/* Calendar */}
+      {selectedService ? (
+        <section className="space-y-3">
+          <SectionLabel
+            icon={<CalendarDays className="h-3.5 w-3.5" />}
+            title="Pick a date"
+            action={
+              selectedDate ? (
+                <button
+                  type="button"
+                  onClick={() => resetFrom("date")}
+                  className="text-xs font-medium text-amber-400"
+                >
+                  Change
+                </button>
+              ) : null
+            }
+          />
+
+          {selectedDate && step === "time" ? (
+            <SelectedSummary
+              title={format(selectedDate, "EEEE, MMM d")}
+              subtitle={format(selectedDate, "yyyy")}
+            />
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 p-3 sm:p-4">
+              <div className="mb-3 flex items-center justify-between px-1">
+                <button
+                  type="button"
+                  aria-label="Previous month"
+                  onClick={() => setMonthCursor((m) => addMonths(m, -1))}
+                  disabled={isSameMonth(monthCursor, today)}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-30"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <p className="text-sm font-semibold text-white">
+                  {format(monthCursor, "MMMM yyyy")}
+                </p>
+                <button
+                  type="button"
+                  aria-label="Next month"
+                  onClick={() => setMonthCursor((m) => addMonths(m, 1))}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-300 transition hover:bg-zinc-800"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mb-1 grid grid-cols-7 gap-1">
+                {WEEKDAYS.map((day) => (
+                  <div
+                    key={day}
+                    className="py-1 text-center text-[11px] font-medium text-zinc-500"
+                  >
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((day) => {
+                  const inMonth = isSameMonth(day, monthCursor);
+                  const past = isBefore(day, today);
+                  const selected = selectedDate
+                    ? isSameDay(day, selectedDate)
+                    : false;
+                  const isToday = isSameDay(day, today);
+                  const disabled = past || !inMonth;
+
+                  return (
+                    <button
+                      key={day.toISOString()}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => selectDate(day)}
+                      className={`relative flex aspect-square items-center justify-center rounded-xl text-sm font-medium transition ${
+                        selected
+                          ? "bg-amber-400 text-zinc-950 shadow-lg shadow-amber-500/20"
+                          : disabled
+                            ? "text-zinc-700"
+                            : isToday
+                              ? "bg-zinc-800 text-amber-300 ring-1 ring-amber-500/40"
+                              : "text-zinc-200 hover:bg-zinc-800"
+                      }`}
+                    >
+                      {format(day, "d")}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {/* Time slots */}
+      {selectedService && selectedDate ? (
+        <section className="space-y-3">
+          <SectionLabel
+            icon={<Clock className="h-3.5 w-3.5" />}
+            title="Available times"
+          />
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {DUMMY_TIME_SLOTS.map((slot) => {
+              const selected = selectedSlot === slot;
+              return (
+                <button
+                  key={slot}
+                  type="button"
+                  onClick={() => setSelectedSlot(slot)}
+                  className={`rounded-xl border px-2 py-3 text-center text-xs font-semibold transition active:scale-[0.98] sm:text-sm ${
+                    selected
+                      ? "border-amber-500/50 bg-amber-400 text-zinc-950"
+                      : "border-zinc-800 bg-zinc-900/60 text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900"
+                  }`}
+                >
+                  {slot}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Sticky confirm bar — UI only, no Firestore yet */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-800 bg-zinc-950/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-2">
+          {canConfirm ? (
+            <p className="truncate text-center text-xs text-zinc-400">
+              {selectedService?.name} · {format(selectedDate!, "MMM d")} ·{" "}
+              {selectedSlot}
+            </p>
+          ) : (
+            <p className="text-center text-xs text-zinc-500">
+              {step === "service" && "Select a service to continue"}
+              {step === "date" && "Select a date to see times"}
+              {step === "time" && "Select a time slot"}
+            </p>
+          )}
+          <button
+            type="button"
+            disabled={!canConfirm}
+            className="flex h-12 w-full items-center justify-center rounded-xl bg-amber-400 text-sm font-bold text-zinc-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
+          >
+            Confirm booking
+          </button>
+          <p className="text-center text-[10px] text-zinc-600">
+            Booking save comes in the next step — UI preview only
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StepHeader({ step }: { step: Step }) {
+  const steps: { id: Step; label: string }[] = [
+    { id: "service", label: "Service" },
+    { id: "date", label: "Date" },
+    { id: "time", label: "Time" },
+  ];
+  const activeIndex = steps.findIndex((s) => s.id === step);
+
+  return (
+    <ol className="flex items-center gap-2">
+      {steps.map((s, index) => {
+        const done = index < activeIndex;
+        const active = index === activeIndex;
+        return (
+          <li key={s.id} className="flex flex-1 flex-col gap-1.5">
+            <div
+              className={`h-1 rounded-full transition ${
+                done || active ? "bg-amber-400" : "bg-zinc-800"
+              }`}
+            />
+            <span
+              className={`text-[11px] font-medium ${
+                active ? "text-amber-400" : done ? "text-zinc-300" : "text-zinc-600"
+              }`}
+            >
+              {s.label}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function SectionLabel({
+  icon,
+  title,
+  action,
+}: {
+  icon: ReactNode;
+  title: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2 text-zinc-300">
+        <span className="text-amber-400">{icon}</span>
+        <h2 className="text-sm font-semibold text-white">{title}</h2>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function SelectedSummary({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
+      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-400/15 text-amber-400">
+        <Check className="h-4 w-4" strokeWidth={2.5} />
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-white">{title}</p>
+        <p className="text-xs text-zinc-400">{subtitle}</p>
+      </div>
+    </div>
+  );
+}

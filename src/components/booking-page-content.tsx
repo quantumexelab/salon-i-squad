@@ -2,6 +2,7 @@
 
 import { CalendarDays } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
+import { BookingFlow } from "@/components/booking-flow";
 import { useAuth } from "@/contexts/auth-context";
 
 export function BookingPageContent() {
@@ -9,26 +10,25 @@ export function BookingPageContent() {
 
   return (
     <AuthGuard>
-      <section className="px-4 py-8">
-        <div className="mx-auto max-w-3xl">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 ring-1 ring-amber-500/20">
-              <CalendarDays className="h-6 w-6 text-amber-400" />
+      <section className="relative flex flex-1 flex-col overflow-hidden bg-zinc-950 px-4 pb-4 pt-6">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-900/15 via-zinc-950 to-zinc-950" />
+
+        <div className="relative z-10 mx-auto w-full max-w-lg">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 ring-1 ring-amber-500/20">
+              <CalendarDays className="h-5 w-5 text-amber-400" />
             </div>
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Book Appointment</h1>
-              <p className="text-sm text-zinc-400">
-                Signed in as {user?.email ?? user?.uid}
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
+                Book Appointment
+              </h1>
+              <p className="truncate text-xs text-zinc-400 sm:text-sm">
+                Signed in as {user?.displayName ?? user?.email ?? user?.uid}
               </p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6">
-            <p className="text-sm text-zinc-400">
-              Smart calendar booking with service-based slots will be built here
-              next.
-            </p>
-          </div>
+          <BookingFlow />
         </div>
       </section>
     </AuthGuard>
