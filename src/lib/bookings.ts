@@ -1,14 +1,18 @@
 import {
   addDoc,
   collection,
+  doc,
   onSnapshot,
   orderBy,
   query,
+  updateDoc,
   type Unsubscribe,
 } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
 import type { DummyService } from "@/lib/booking/dummy-services";
+
+export type BookingStatusUpdate = "completed" | "cancelled";
 
 export type CreateBookingInput = {
   userId: string;
@@ -88,6 +92,19 @@ export async function createBooking(
     id: ref.id,
     ...payload,
   };
+}
+
+export async function updateBookingStatus(
+  bookingId: string,
+  status: BookingStatusUpdate,
+): Promise<void> {
+  initFirebase();
+  const db = getFirebaseDb();
+
+  await updateDoc(doc(db, COLLECTIONS.bookings, bookingId), {
+    status,
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 export function subscribeToBookings(

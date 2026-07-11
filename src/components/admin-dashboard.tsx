@@ -4,16 +4,20 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { format, isValid, parseISO } from "date-fns";
 import {
   CalendarDays,
+  Check,
   Clock,
   Loader2,
   RefreshCw,
   Scissors,
   Wallet,
+  X,
 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { formatLkr } from "@/lib/booking/dummy-services";
 import {
   subscribeToBookings,
+  updateBookingStatus,
+  type BookingStatusUpdate,
   type SavedBooking,
 } from "@/lib/bookings";
 
@@ -27,6 +31,8 @@ export function AdminDashboard() {
   const [bookings, setBookings] = useState<SavedBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -54,6 +60,26 @@ export function AdminDashboard() {
       revenue,
     };
   }, [bookings]);
+
+  async function handleStatusUpdate(
+    bookingId: string,
+    status: BookingStatusUpdate,
+  ) {
+    setActionId(bookingId);
+    setActionError(null);
+
+    try {
+      await updateBookingStatus(bookingId, status);
+    } catch (err) {
+      setActionError(
+        err instanceof Error
+          ? err.message
+          : "Could not update booking status. Try again.",
+      );
+    } finally {
+      setActionId(null);
+    }
+  }
 
   return (
     <AuthGuard>
@@ -95,6 +121,12 @@ export function AdminDashboard() {
           />
         </div>
 
+        {actionError ? (
+          <p className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {actionError}
+          </p>
+        ) : null}
+
         <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40">
           <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3 sm:px-6">
             <h2 className="text-sm font-semibold text-white">Appointment list</h2>
@@ -135,6 +167,7 @@ export function AdminDashboard() {
                       <th className="px-6 py-3 font-medium">Time</th>
                       <th className="px-6 py-3 font-medium">Price</th>
                       <th className="px-6 py-3 font-medium">Status</th>
+                      <th className="px-6 py-3 font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
@@ -162,6 +195,13 @@ export function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4">
                           <StatusPill status={booking.status} />
+                        </td>
+                        <td className="px-6 py-4">
+                          <BookingActions
+                            booking={booking}
+                            busy={actionId === booking.id}
+                            onUpdate={handleStatusUpdate}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -196,6 +236,13 @@ export function AdminDashboard() {
                         </div>
                       </div>
                     </div>
+                    <div className="mt-3">
+                      <BookingActions
+                        booking={booking}
+                        busy={actionId === booking.id}
+                        onUpdate={handleStatusUpdate}
+                      />
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -204,6 +251,55 @@ export function AdminDashboard() {
         </section>
       </div>
     </AuthGuard>
+  );
+}
+
+function BookingActions({
+  booking,
+  busy,
+  onUpdate,
+}: {
+  booking: SavedBooking;
+  busy: boolean;
+  onUpdate: (bookingId: string, status: BookingStatusUpdate) => Promise<void>;
+}) {
+  if (booking.status !== "confirmed") {
+    return (
+      <p className="text-xs text-zinc-500">
+        No further actions
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onUpdate(booking.id, "completed")}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Check className="h-3.5 w-3.5" />
+        )}
+        Complete
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onUpdate(booking.id, "cancelled")}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/15 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <X className="h-3.5 w-3.5" />
+        )}
+        Cancel
+      </button>
+    </div>
   );
 }
 
@@ -230,14 +326,18 @@ function StatCard({
 }
 
 function StatusPill({ status }: { status: string }) {
-  const isConfirmed = status === "confirmed";
+  const styles =
+    status === "confirmed"
+      ? "bg-emerald-500/15 text-emerald-300"
+      : status === "completed"
+        ? "bg-sky-500/15 text-sky-300"
+        : status === "cancelled"
+          ? "bg-red-500/15 text-red-300"
+          : "bg-zinc-800 text-zinc-300";
+
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ${
-        isConfirmed
-          ? "bg-emerald-500/15 text-emerald-300"
-          : "bg-zinc-800 text-zinc-300"
-      }`}
+      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ${styles}`}
     >
       {status || "unknown"}
     </span>

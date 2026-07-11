@@ -1,12 +1,15 @@
 {
+  "id": "/",
   "name": "Salon I Squad",
   "short_name": "Salon I Squad",
   "description": "Book appointments at Salon I Squad — haircuts, styling, and more.",
   "start_url": "/login",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
   "orientation": "portrait-primary",
+  "categories": ["lifestyle", "business"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
