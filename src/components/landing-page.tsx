@@ -165,27 +165,49 @@ export function LandingPage() {
                 className="text-lg font-medium text-[#FFD700]"
                 style={{ fontFamily: "var(--font-landing-display), serif" }}
               >
+                Contact info
+              </h3>
+              <ul className="mt-4 space-y-3 text-sm font-light text-[#f3efe6]/75">
+                <li>
+                  <a
+                    href="tel:+94723238400"
+                    className="transition hover:text-[#FFD700]"
+                  >
+                    +94 72 323 8400
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:sargunamkarthic@gmail.com"
+                    className="transition hover:text-[#FFD700]"
+                  >
+                    sargunamkarthic@gmail.com
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://wa.me/94723238400"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition hover:text-[#FFD700]"
+                  >
+                    WhatsApp · +94 72 323 8400
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3
+                className="text-lg font-medium text-[#FFD700]"
+                style={{ fontFamily: "var(--font-landing-display), serif" }}
+              >
                 Visit
               </h3>
               <p className="mt-2 text-sm font-light leading-relaxed text-[#f3efe6]/75">
                 42 Galle Road, Colombo 03
                 <br />
                 Sri Lanka
-              </p>
-              <p className="mt-3 text-sm font-light text-[#f3efe6]/75">
-                <a
-                  href="tel:+94112345678"
-                  className="transition hover:text-[#FFD700]"
-                >
-                  +94 11 234 5678
-                </a>
-                <br />
-                <a
-                  href="mailto:hello@salonisquad.lk"
-                  className="transition hover:text-[#FFD700]"
-                >
-                  hello@salonisquad.lk
-                </a>
               </p>
             </div>
 
