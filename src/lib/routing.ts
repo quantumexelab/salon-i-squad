@@ -7,7 +7,7 @@ export function homeForRole(role: UserRole | string | null | undefined): string 
 
   if (normalized === "master") return "/master";
   if (normalized === "admin") return "/admin";
-  return "/";
+  return "/booking";
 }
 
 export function canAccessAdmin(

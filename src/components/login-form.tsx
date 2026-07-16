@@ -133,7 +133,7 @@ export function LoginForm() {
       await createGuestUserProfile(result.user.uid, name, mobile);
       await refreshProfile();
       setGuestModalOpen(false);
-      router.push("/");
+      router.push("/booking");
     } finally {
       setLoading(null);
     }

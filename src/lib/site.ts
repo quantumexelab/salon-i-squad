@@ -1,7 +1,7 @@
 export const siteConfig = {
   name: "Salon I Squad",
   description:
-    "Book appointments at Salon I Squad — haircuts, styling, and more.",
+    "Premium hair, beauty, and bridal styling in Colombo. Book your appointment online at Salon I Squad.",
   /** Browser chrome / PWA theme (gold accent). */
   themeColor: "#FFD700",
   /** Splash / install background. */
