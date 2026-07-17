@@ -15,6 +15,7 @@ const sans = Outfit({
   variable: "--font-landing-sans",
 });
 
+/** Moody salon interior — rendered in grayscale for the editorial hero. */
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=2400&q=80";
 
@@ -68,90 +69,185 @@ const GALLERY = [
   },
 ] as const;
 
+const GOLD = "#c9a962";
+
 export function LandingPage() {
   return (
     <div
-      className={`${display.variable} ${sans.variable} min-h-dvh bg-[#0c0b0a] text-[#f3efe6]`}
+      className={`${display.variable} ${sans.variable} min-h-dvh bg-black text-white`}
       style={{ fontFamily: "var(--font-landing-sans), sans-serif" }}
     >
       <style>{`
         @keyframes landing-rise {
-          from { opacity: 0; transform: translateY(18px); }
+          from { opacity: 0; transform: translateY(22px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes landing-rule {
+          from { opacity: 0; transform: scaleX(0); }
+          to { opacity: 1; transform: scaleX(1); }
+        }
         @keyframes landing-ken {
-          from { transform: scale(1.08); }
+          from { transform: scale(1.12); }
           to { transform: scale(1); }
         }
-        @keyframes landing-fade {
+        @keyframes landing-fade-in {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        .landing-rise { animation: landing-rise 0.9s ease-out both; }
-        .landing-rise-delay { animation: landing-rise 0.9s ease-out 0.18s both; }
-        .landing-rise-cta { animation: landing-rise 0.9s ease-out 0.32s both; }
-        .landing-ken { animation: landing-ken 12s ease-out both; }
-        .landing-section { animation: landing-fade 0.8s ease-out both; }
+        @media (prefers-reduced-motion: reduce) {
+          .landing-rise,
+          .landing-rise-2,
+          .landing-rise-3,
+          .landing-rise-4,
+          .landing-rule,
+          .landing-ken,
+          .landing-fade-in {
+            animation: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+          }
+        }
+        .landing-rise { animation: landing-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .landing-rise-2 { animation: landing-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.16s both; }
+        .landing-rise-3 { animation: landing-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both; }
+        .landing-rise-4 { animation: landing-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.44s both; }
+        .landing-rule {
+          transform-origin: left center;
+          animation: landing-rule 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both;
+        }
+        .landing-ken { animation: landing-ken 14s ease-out both; }
+        .landing-fade-in { animation: landing-fade-in 1s ease-out both; }
+        .landing-cta {
+          background: linear-gradient(135deg, #e0c27a 0%, #c9a962 45%, #a8873f 100%);
+          transition: transform 0.35s ease, filter 0.35s ease, box-shadow 0.35s ease;
+        }
+        .landing-cta:hover {
+          transform: translateY(-2px);
+          filter: brightness(1.08);
+          box-shadow: 0 10px 28px rgba(201, 169, 98, 0.28);
+        }
+        .landing-nav-link {
+          position: relative;
+          transition: color 0.25s ease;
+        }
+        .landing-nav-link::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          bottom: -4px;
+          width: 100%;
+          height: 1px;
+          background: ${GOLD};
+          transform: scaleX(0);
+          transform-origin: left;
+          transition: transform 0.3s ease;
+        }
+        .landing-nav-link:hover { color: ${GOLD}; }
+        .landing-nav-link:hover::after { transform: scaleX(1); }
       `}</style>
 
-      {/* Minimal top bar — not a dashboard; brand lives in the hero */}
-      <header className="absolute inset-x-0 top-0 z-20">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-end px-5 py-5 md:px-8">
-          <Link
-            href="/login"
-            className="text-xs font-medium tracking-wide text-[#f3efe6]/70 transition hover:text-[#FFD700]"
-          >
-            Staff login
-          </Link>
-        </div>
-      </header>
-
-      {/* Hero — one composition: brand, line, CTA, full-bleed image */}
-      <section className="relative flex min-h-dvh items-end overflow-hidden">
-        <div className="absolute inset-0">
+      {/* Editorial noir hero */}
+      <section className="relative min-h-dvh overflow-hidden bg-black">
+        {/* Full-bleed photo (desktop: right-weighted via object-position) */}
+        <div className="absolute inset-0 landing-fade-in">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={HERO_IMAGE}
             alt=""
-            className="landing-ken h-full w-full object-cover"
+            className="landing-ken h-full w-full object-cover object-[70%_center] grayscale contrast-110 brightness-90 md:object-right"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0c0b0a] via-[#0c0b0a]/55 to-[#0c0b0a]/25" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_#0c0b0a_78%)] opacity-70" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-black/25 md:via-black/70 md:to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 md:hidden" />
         </div>
 
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-5 pb-16 pt-28 md:px-8 md:pb-24">
-          <h1
-            className="landing-rise text-5xl font-semibold leading-[0.95] tracking-tight text-[#FFD700] sm:text-6xl md:text-7xl lg:text-8xl"
-            style={{ fontFamily: "var(--font-landing-display), serif" }}
-          >
-            {siteConfig.name}
-          </h1>
-          <p className="landing-rise-delay mt-5 max-w-md text-base font-light leading-relaxed text-[#f3efe6]/85 sm:text-lg">
-            Where style meets care — hair, beauty, and bridal artistry in
-            Colombo.
-          </p>
-          <div className="landing-rise-cta mt-8">
+        <header className="relative z-20">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-6 md:px-8">
+            <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-white/90">
+              Salon <span style={{ color: GOLD }}>|</span> Squad
+            </p>
+            <nav className="hidden items-center gap-7 text-[11px] font-medium uppercase tracking-[0.22em] text-white/70 md:flex">
+              <a href="#about" className="landing-nav-link">
+                About
+              </a>
+              <a href="#services" className="landing-nav-link">
+                Services
+              </a>
+              <a href="#gallery" className="landing-nav-link">
+                Gallery
+              </a>
+              <a href="#contact" className="landing-nav-link">
+                Contact
+              </a>
+              <Link
+                href="/login"
+                className="landing-nav-link text-white/45"
+              >
+                Staff
+              </Link>
+            </nav>
             <Link
-              href="/booking"
-              className="inline-flex h-12 items-center justify-center bg-[#FFD700] px-8 text-sm font-semibold tracking-wide text-[#0c0b0a] transition hover:bg-[#ffe566]"
+              href="/login"
+              className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55 transition hover:text-[color:var(--gold)] md:hidden"
+              style={{ ["--gold" as string]: GOLD }}
             >
-              Book Appointment
+              Staff
             </Link>
+          </div>
+        </header>
+
+        <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-5rem)] w-full max-w-6xl flex-col justify-center px-5 pb-16 pt-8 md:px-8 md:pb-24">
+          <div className="max-w-xl">
+            <h1
+              className="landing-rise text-5xl font-semibold leading-[0.95] tracking-tight text-white sm:text-6xl md:text-7xl lg:text-[5.5rem]"
+              style={{ fontFamily: "var(--font-landing-display), serif" }}
+            >
+              SALON <span style={{ color: GOLD }}>|</span> SQUAD
+            </h1>
+
+            <div
+              className="landing-rule mt-6 h-px w-24"
+              style={{ backgroundColor: GOLD }}
+            />
+
+            <p className="landing-rise-2 mt-6 text-[11px] font-medium uppercase tracking-[0.28em] text-white/85 sm:text-xs">
+              Precision in style. Obsession in every detail.
+            </p>
+            <p
+              className="landing-rise-3 mt-3 text-sm italic"
+              style={{
+                fontFamily: "var(--font-landing-display), serif",
+                color: GOLD,
+              }}
+            >
+              Where artistry meets experience.
+            </p>
+
+            <div className="landing-rise-4 mt-10">
+              <Link
+                href="/booking"
+                className="landing-cta inline-flex h-12 items-center justify-center px-8 text-[11px] font-semibold uppercase tracking-[0.2em] text-black"
+              >
+                Book your experience
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* About + location */}
-      <section className="landing-section border-t border-[#f3efe6]/10">
+      {/* About + contact */}
+      <section
+        id="about"
+        className="border-t border-white/10 scroll-mt-16"
+      >
         <div className="mx-auto grid w-full max-w-6xl gap-12 px-5 py-16 md:grid-cols-2 md:gap-16 md:px-8 md:py-24">
           <div>
             <h2
-              className="text-3xl font-semibold tracking-tight text-[#FFD700] md:text-4xl"
+              className="text-3xl font-semibold tracking-tight text-white md:text-4xl"
               style={{ fontFamily: "var(--font-landing-display), serif" }}
             >
               About us
             </h2>
-            <p className="mt-5 text-sm font-light leading-relaxed text-[#f3efe6]/75 md:text-base">
+            <p className="mt-5 text-sm font-light leading-relaxed text-white/70 md:text-base">
               Salon I Squad is a calm, detail-led studio for cuts, color,
               facials, and bridal styling. We keep the room unhurried, the
               finish precise, and every visit focused on how you want to look
@@ -159,19 +255,23 @@ export function LandingPage() {
             </p>
           </div>
 
-          <div className="space-y-8">
+          <div id="contact" className="space-y-8 scroll-mt-16">
             <div>
               <h3
-                className="text-lg font-medium text-[#FFD700]"
-                style={{ fontFamily: "var(--font-landing-display), serif" }}
+                className="text-lg font-medium"
+                style={{
+                  fontFamily: "var(--font-landing-display), serif",
+                  color: GOLD,
+                }}
               >
                 Contact info
               </h3>
-              <ul className="mt-4 space-y-3 text-sm font-light text-[#f3efe6]/75">
+              <ul className="mt-4 space-y-3 text-sm font-light text-white/70">
                 <li>
                   <a
                     href="tel:+94723238400"
-                    className="transition hover:text-[#FFD700]"
+                    className="transition hover:text-[color:var(--g)]"
+                    style={{ ["--g" as string]: GOLD }}
                   >
                     +94 72 323 8400
                   </a>
@@ -179,7 +279,8 @@ export function LandingPage() {
                 <li>
                   <a
                     href="mailto:sargunamkarthic@gmail.com"
-                    className="transition hover:text-[#FFD700]"
+                    className="transition hover:text-[color:var(--g)]"
+                    style={{ ["--g" as string]: GOLD }}
                   >
                     sargunamkarthic@gmail.com
                   </a>
@@ -189,7 +290,8 @@ export function LandingPage() {
                     href="https://wa.me/94723238400"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="transition hover:text-[#FFD700]"
+                    className="transition hover:text-[color:var(--g)]"
+                    style={{ ["--g" as string]: GOLD }}
                   >
                     WhatsApp · +94 72 323 8400
                   </a>
@@ -199,12 +301,15 @@ export function LandingPage() {
 
             <div>
               <h3
-                className="text-lg font-medium text-[#FFD700]"
-                style={{ fontFamily: "var(--font-landing-display), serif" }}
+                className="text-lg font-medium"
+                style={{
+                  fontFamily: "var(--font-landing-display), serif",
+                  color: GOLD,
+                }}
               >
                 Visit
               </h3>
-              <p className="mt-2 text-sm font-light leading-relaxed text-[#f3efe6]/75">
+              <p className="mt-2 text-sm font-light leading-relaxed text-white/70">
                 42 Galle Road, Colombo 03
                 <br />
                 Sri Lanka
@@ -213,12 +318,15 @@ export function LandingPage() {
 
             <div>
               <h3
-                className="text-lg font-medium text-[#FFD700]"
-                style={{ fontFamily: "var(--font-landing-display), serif" }}
+                className="text-lg font-medium"
+                style={{
+                  fontFamily: "var(--font-landing-display), serif",
+                  color: GOLD,
+                }}
               >
                 Hours
               </h3>
-              <p className="mt-2 text-sm font-light leading-relaxed text-[#f3efe6]/75">
+              <p className="mt-2 text-sm font-light leading-relaxed text-white/70">
                 Tuesday – Sunday
                 <br />
                 9:00 AM – 7:00 PM
@@ -228,10 +336,10 @@ export function LandingPage() {
             </div>
 
             <div
-              className="flex min-h-48 items-end border border-[#f3efe6]/15 bg-[linear-gradient(145deg,#1a1917_0%,#0c0b0a_55%,#1f1a12_100%)] p-5"
+              className="flex min-h-48 items-end border border-white/15 bg-[linear-gradient(145deg,#1a1917_0%,#000_55%,#1f1a12_100%)] p-5"
               aria-label="Map placeholder"
             >
-              <p className="text-xs font-light tracking-wide text-[#f3efe6]/45">
+              <p className="text-xs font-light tracking-wide text-white/40">
                 Map placeholder — Google Maps embed coming soon
               </p>
             </div>
@@ -239,40 +347,42 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Services preview */}
-      <section className="landing-section border-t border-[#f3efe6]/10 bg-[#11100e]">
+      <section
+        id="services"
+        className="scroll-mt-16 border-t border-white/10 bg-[#0a0a0a]"
+      >
         <div className="mx-auto w-full max-w-6xl px-5 py-16 md:px-8 md:py-24">
           <h2
-            className="text-3xl font-semibold tracking-tight text-[#FFD700] md:text-4xl"
+            className="text-3xl font-semibold tracking-tight text-white md:text-4xl"
             style={{ fontFamily: "var(--font-landing-display), serif" }}
           >
             Services
           </h2>
-          <p className="mt-3 max-w-lg text-sm font-light text-[#f3efe6]/65">
+          <p className="mt-3 max-w-lg text-sm font-light text-white/60">
             A selection of our most requested treatments. Full menu available
             when you book.
           </p>
 
           <ul className="mt-10 grid gap-x-10 gap-y-0 sm:grid-cols-2">
             {FEATURED_SERVICES.map((service) => (
-              <li
-                key={service.name}
-                className="border-t border-[#f3efe6]/12 py-6"
-              >
+              <li key={service.name} className="border-t border-white/12 py-6">
                 <div className="flex items-baseline justify-between gap-4">
                   <h3
-                    className="text-xl font-medium text-[#f3efe6]"
+                    className="text-xl font-medium text-white"
                     style={{
                       fontFamily: "var(--font-landing-display), serif",
                     }}
                   >
                     {service.name}
                   </h3>
-                  <span className="shrink-0 text-sm font-medium text-[#FFD700]">
+                  <span
+                    className="shrink-0 text-sm font-medium"
+                    style={{ color: GOLD }}
+                  >
                     from {formatLkr(service.price)}
                   </span>
                 </div>
-                <p className="mt-2 text-sm font-light text-[#f3efe6]/60">
+                <p className="mt-2 text-sm font-light text-white/55">
                   {service.blurb}
                 </p>
               </li>
@@ -282,7 +392,8 @@ export function LandingPage() {
           <div className="mt-10">
             <Link
               href="/booking"
-              className="inline-flex text-sm font-medium tracking-wide text-[#FFD700] underline-offset-4 transition hover:underline"
+              className="inline-flex text-sm font-medium tracking-wide underline-offset-4 transition hover:underline"
+              style={{ color: GOLD }}
             >
               Book a service →
             </Link>
@@ -290,16 +401,18 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Gallery */}
-      <section className="landing-section border-t border-[#f3efe6]/10">
+      <section
+        id="gallery"
+        className="scroll-mt-16 border-t border-white/10"
+      >
         <div className="mx-auto w-full max-w-6xl px-5 py-16 md:px-8 md:py-24">
           <h2
-            className="text-3xl font-semibold tracking-tight text-[#FFD700] md:text-4xl"
+            className="text-3xl font-semibold tracking-tight text-white md:text-4xl"
             style={{ fontFamily: "var(--font-landing-display), serif" }}
           >
             Gallery
           </h2>
-          <p className="mt-3 max-w-lg text-sm font-light text-[#f3efe6]/65">
+          <p className="mt-3 max-w-lg text-sm font-light text-white/60">
             Interior atmosphere and recent work — replace with your own photos
             anytime.
           </p>
@@ -328,22 +441,22 @@ export function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-[#f3efe6]/10">
+      <footer className="border-t border-white/10">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-10 sm:flex-row sm:items-center sm:justify-between md:px-8">
           <p
-            className="text-lg font-medium text-[#FFD700]"
+            className="text-lg font-medium text-white"
             style={{ fontFamily: "var(--font-landing-display), serif" }}
           >
-            {siteConfig.name}
+            Salon <span style={{ color: GOLD }}>|</span> Squad
           </p>
-          <div className="flex flex-wrap gap-5 text-xs font-medium tracking-wide text-[#f3efe6]/55">
-            <Link href="/booking" className="hover:text-[#FFD700]">
+          <div className="flex flex-wrap gap-5 text-xs font-medium tracking-wide text-white/50">
+            <Link href="/booking" className="transition hover:text-white">
               Book
             </Link>
-            <Link href="/login" className="hover:text-[#FFD700]">
+            <Link href="/login" className="transition hover:text-white">
               Sign in
             </Link>
-            <span>© {new Date().getFullYear()} Salon I Squad</span>
+            <span>© {new Date().getFullYear()} {siteConfig.name}</span>
           </div>
         </div>
       </footer>
