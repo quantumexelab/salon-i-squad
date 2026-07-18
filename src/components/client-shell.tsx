@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/logo";
+import { LogoutButton } from "@/components/logout-button";
 import { PushNotificationBootstrap } from "@/components/push-notification-bootstrap";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -35,26 +36,29 @@ export function ClientShell({ children }: { children: ReactNode }) {
             ) : null}
           </div>
           {showNav ? (
-            <nav className="flex shrink-0 gap-1">
-              {clientNav.map((item) => {
-                const active =
-                  pathname === item.href ||
-                  pathname.startsWith(`${item.href}/`);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
-                      active
-                        ? "bg-amber-400/10 text-amber-300"
-                        : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
+            <div className="flex shrink-0 items-center gap-1">
+              <nav className="flex gap-1">
+                {clientNav.map((item) => {
+                  const active =
+                    pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+                        active
+                          ? "bg-amber-400/10 text-amber-300"
+                          : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+              {user ? <LogoutButton compact /> : null}
+            </div>
           ) : null}
         </div>
       </header>

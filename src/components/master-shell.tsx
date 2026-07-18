@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/logo";
+import { LogoutButton } from "@/components/logout-button";
 import { MasterGuard } from "@/components/master-guard";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -54,6 +55,7 @@ export function MasterShell({ children }: { children: ReactNode }) {
               >
                 Client app
               </Link>
+              <LogoutButton compact />
             </nav>
           </div>
         </header>

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { AdminGuard } from "@/components/admin-guard";
 import { LogoMark } from "@/components/logo";
+import { LogoutButton } from "@/components/logout-button";
 import { useAuth } from "@/contexts/auth-context";
 
 const adminNav = [
@@ -57,12 +58,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
             })}
           </nav>
 
-          <Link
-            href="/booking"
-            className="mt-auto rounded-xl border border-zinc-800 px-3 py-2 text-xs text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200"
-          >
-            ← Client booking app
-          </Link>
+          <div className="mt-auto space-y-2">
+            <LogoutButton className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 px-3 py-2.5 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:text-white disabled:opacity-60" />
+            <Link
+              href="/booking"
+              className="block rounded-xl border border-zinc-800 px-3 py-2 text-center text-xs text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200"
+            >
+              ← Client booking app
+            </Link>
+          </div>
         </aside>
 
         <div className="flex min-h-full flex-1 flex-col">
@@ -76,21 +80,26 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   Salon Dashboard
                 </p>
               </div>
-              <nav className="flex gap-1 overflow-x-auto md:hidden">
-                {adminNav.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium ${
-                      pathname === item.href
-                        ? "bg-amber-400/10 text-amber-300"
-                        : "text-zinc-300 hover:bg-zinc-900"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
+              <div className="flex items-center gap-2">
+                <nav className="flex gap-1 overflow-x-auto md:hidden">
+                  {adminNav.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium ${
+                        pathname === item.href
+                          ? "bg-amber-400/10 text-amber-300"
+                          : "text-zinc-300 hover:bg-zinc-900"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+                <div className="md:hidden">
+                  <LogoutButton compact />
+                </div>
+              </div>
             </div>
           </header>
           <main className="flex flex-1 flex-col">{children}</main>
