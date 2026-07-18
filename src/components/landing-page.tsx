@@ -185,13 +185,6 @@ export function LandingPage() {
                 Staff
               </Link>
             </nav>
-            <Link
-              href="/login"
-              className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/55 transition hover:text-[color:var(--gold)] md:hidden"
-              style={{ ["--gold" as string]: GOLD }}
-            >
-              Staff
-            </Link>
           </div>
         </header>
 
