@@ -131,21 +131,21 @@ export function ReschedulePageContent() {
       <section className="mx-auto w-full max-w-lg px-4 py-6">
         <Link
           href="/my-bookings"
-          className="text-xs font-medium text-amber-400 hover:text-amber-300"
+          className="text-xs font-medium text-salon-gold hover:text-salon-gold/80"
         >
           ← My bookings
         </Link>
 
         {loading ? (
-          <div className="mt-10 flex justify-center text-zinc-400">
-            <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
+          <div className="mt-10 flex justify-center text-salon-muted">
+            <Loader2 className="h-5 w-5 animate-spin text-salon-gold" />
           </div>
         ) : error && !booking ? (
           <p className="mt-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}
           </p>
         ) : booking && !canClientModifyBooking(booking) ? (
-          <p className="mt-6 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          <p className="mt-6 rounded-xl border border-salon-gold/25 bg-salon-gold/10 px-4 py-3 text-sm text-salon-ink">
             Cannot be modified within {CLIENT_MODIFY_CUTOFF_HOURS} hours of the
             appointment.
           </p>

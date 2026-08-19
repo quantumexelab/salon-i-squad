@@ -8,8 +8,9 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
-import { Loader2, Scissors, UserRound } from "lucide-react";
+import { Loader2, UserRound } from "lucide-react";
 import { GuestDetailsModal } from "@/components/guest-details-modal";
+import { CustomerLogoHero } from "@/components/logo";
 import { getFirebaseAuth, initFirebase } from "@/lib/firebase";
 import { homeForRole } from "@/lib/routing";
 import { isStaffRole } from "@/lib/roles";
@@ -19,7 +20,6 @@ import {
   upsertEmailUserProfile,
   upsertGoogleUserProfile,
 } from "@/lib/users";
-import { siteConfig } from "@/lib/site";
 import { useAuth } from "@/contexts/auth-context";
 
 function GoogleIcon() {
@@ -141,18 +141,13 @@ export function LoginForm() {
 
   return (
     <>
-      <div className="relative flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-zinc-800/80 bg-zinc-950 shadow-2xl shadow-black/40">
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-amber-500/10 to-transparent" />
+      <div className="relative flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-salon-gold/25 bg-salon-white shadow-xl shadow-salon-gold/10">
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-salon-gold/10 to-transparent" />
 
         <div className="relative px-8 pb-8 pt-10">
           <div className="mb-8 flex flex-col items-center text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 ring-1 ring-amber-500/20">
-              <Scissors className="h-8 w-8 text-amber-400" />
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
-              {siteConfig.name}
-            </h1>
-            <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+            <CustomerLogoHero />
+            <p className="mt-4 text-sm leading-relaxed text-salon-muted">
               Book your next haircut, styling, or treatment in seconds.
             </p>
           </div>
@@ -162,7 +157,7 @@ export function LoginForm() {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading !== null}
-              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-white px-4 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-salon-ivory px-4 text-sm font-semibold text-salon-black transition hover:bg-salon-champagne disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading === "google" ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -179,12 +174,12 @@ export function LoginForm() {
                 setGuestModalOpen(true);
               }}
               disabled={loading !== null}
-              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-zinc-700 bg-zinc-900 px-4 text-sm font-semibold text-white transition hover:border-zinc-500 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-salon-gold/30 bg-salon-surface px-4 text-sm font-semibold text-salon-ink transition hover:border-salon-gold hover:bg-salon-ivory disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading === "guest" ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <UserRound className="h-5 w-5 text-amber-400" />
+                <UserRound className="h-5 w-5 text-salon-gold" />
               )}
               Continue as Guest
             </button>
@@ -193,7 +188,7 @@ export function LoginForm() {
           <button
             type="button"
             onClick={() => setShowStaffLogin((v) => !v)}
-            className="mt-4 w-full text-center text-xs font-medium text-zinc-500 hover:text-amber-400"
+            className="mt-4 w-full text-center text-xs font-medium text-salon-muted hover:text-salon-gold"
           >
             {showStaffLogin ? "Hide staff sign-in" : "Staff / admin sign-in"}
           </button>
@@ -206,7 +201,7 @@ export function LoginForm() {
                 placeholder="Staff email"
                 value={staffEmail}
                 onChange={(e) => setStaffEmail(e.target.value)}
-                className="h-11 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm text-white outline-none focus:border-amber-500/40"
+                className="h-11 w-full rounded-xl border border-salon-beige bg-salon-white px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/60"
               />
               <input
                 type="password"
@@ -214,12 +209,12 @@ export function LoginForm() {
                 placeholder="Password"
                 value={staffPassword}
                 onChange={(e) => setStaffPassword(e.target.value)}
-                className="h-11 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm text-white outline-none focus:border-amber-500/40"
+                className="h-11 w-full rounded-xl border border-salon-beige bg-salon-white px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/60"
               />
               <button
                 type="submit"
                 disabled={loading !== null}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-bold text-zinc-950 disabled:opacity-60"
+                className="salon-gold-btn flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold disabled:opacity-60"
               >
                 {loading === "staff" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -235,7 +230,7 @@ export function LoginForm() {
             </p>
           )}
 
-          <p className="mt-6 text-center text-xs leading-relaxed text-zinc-500">
+          <p className="mt-6 text-center text-xs leading-relaxed text-salon-muted">
             By continuing, you agree to our booking terms. Guest sessions can book
             without creating a full account.
           </p>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { Logo } from "@/components/logo";
+import { CustomerLogo } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
 import { PushNotificationBootstrap } from "@/components/push-notification-bootstrap";
 import { useAuth } from "@/contexts/auth-context";
@@ -23,18 +23,18 @@ export function ClientShell({ children }: { children: ReactNode }) {
     pathname.startsWith("/reschedule");
 
   return (
-    <div className="flex min-h-full flex-col bg-zinc-950">
+    <div className="flex min-h-full flex-col bg-salon-bg">
       <PushNotificationBootstrap />
-      <header className="border-b border-zinc-800 bg-zinc-950/80 px-4 py-3 backdrop-blur">
+      <header className="border-b border-salon-gold/25 bg-salon-white px-4 py-3 shadow-sm shadow-salon-gold/5">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
-          <div className="min-w-0">
-            <Logo />
+          <Link href="/" className="min-w-0">
+            <CustomerLogo />
             {user && showNav ? (
-              <p className="mt-0.5 truncate text-[11px] text-zinc-500">
+              <p className="mt-0.5 truncate text-[11px] text-salon-muted">
                 {user.displayName ?? user.email ?? "Signed in"}
               </p>
             ) : null}
-          </div>
+          </Link>
           {showNav ? (
             <div className="flex shrink-0 items-center gap-1">
               <nav className="flex gap-1">
@@ -48,8 +48,8 @@ export function ClientShell({ children }: { children: ReactNode }) {
                       href={item.href}
                       className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
                         active
-                          ? "bg-amber-400/10 text-amber-300"
-                          : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+                          ? "bg-salon-gold/15 text-salon-gold"
+                          : "text-salon-muted hover:bg-salon-surface hover:text-salon-ink"
                       }`}
                     >
                       {item.label}
@@ -57,7 +57,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
                   );
                 })}
               </nav>
-              {user ? <LogoutButton compact /> : null}
+              {user ? <LogoutButton compact tone="light" /> : null}
             </div>
           ) : null}
         </div>

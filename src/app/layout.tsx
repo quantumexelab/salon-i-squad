@@ -47,7 +47,7 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: light)", color: siteConfig.themeColor },
     { media: "(prefers-color-scheme: dark)", color: siteConfig.themeColor },
   ],
-  colorScheme: "dark",
+  colorScheme: "light",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

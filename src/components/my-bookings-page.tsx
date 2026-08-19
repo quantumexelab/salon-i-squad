@@ -141,23 +141,23 @@ export function MyBookingsPage() {
 
   return (
     <AuthGuard>
-      <section className="relative flex flex-1 flex-col overflow-hidden bg-zinc-950 px-4 pb-10 pt-6">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-900/15 via-zinc-950 to-zinc-950" />
+      <section className="relative flex flex-1 flex-col overflow-hidden bg-salon-bg px-4 pb-10 pt-6">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-salon-gold/10 via-salon-bg to-salon-bg" />
 
         <div className="relative z-10 mx-auto w-full max-w-lg">
           <div className="mb-6 flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
+              <h1 className="text-xl font-semibold tracking-tight text-salon-ink sm:text-2xl">
                 My bookings
               </h1>
-              <p className="mt-1 text-xs text-zinc-400 sm:text-sm">
+              <p className="mt-1 text-xs text-salon-muted sm:text-sm">
                 Cancel or reschedule with at least{" "}
                 {CLIENT_MODIFY_CUTOFF_HOURS} hours&apos; notice.
               </p>
             </div>
             <Link
               href="/booking"
-              className="shrink-0 rounded-xl border border-zinc-700 px-3 py-2 text-xs font-semibold text-amber-300"
+              className="shrink-0 rounded-xl border border-salon-gold/25 px-3 py-2 text-xs font-semibold text-salon-gold"
             >
               New booking
             </Link>
@@ -170,8 +170,8 @@ export function MyBookingsPage() {
           ) : null}
 
           {loading ? (
-            <div className="flex justify-center gap-2 py-16 text-zinc-400">
-              <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
+            <div className="flex justify-center gap-2 py-16 text-salon-muted">
+              <Loader2 className="h-5 w-5 animate-spin text-salon-gold" />
               Loading…
             </div>
           ) : (
@@ -210,7 +210,7 @@ export function MyBookingsPage() {
               disabled={actionId === rescheduleTarget.id}
               onClick={() => setRescheduleTarget(null)}
             />
-            <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-zinc-700 bg-zinc-950 p-5 shadow-2xl">
+            <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-salon-gold/25 bg-salon-white p-5 shadow-2xl">
               <ReschedulePicker
                 booking={rescheduleTarget}
                 busy={actionId === rescheduleTarget.id}
@@ -246,9 +246,9 @@ function BookingSection({
 }) {
   return (
     <section>
-      <h2 className="mb-3 text-sm font-semibold text-white">{title}</h2>
+      <h2 className="mb-3 text-sm font-semibold text-salon-ink">{title}</h2>
       {bookings.length === 0 ? (
-        <p className="rounded-2xl border border-zinc-800 bg-zinc-900/40 px-4 py-8 text-center text-sm text-zinc-500">
+        <p className="rounded-2xl border border-salon-gold/15 bg-salon-surface/40 px-4 py-8 text-center text-sm text-salon-muted">
           {empty}
         </p>
       ) : (
@@ -293,14 +293,14 @@ function BookingCard({
     !past && booking.status === "confirmed" && !canModify;
 
   return (
-    <li className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4">
+    <li className="rounded-2xl border border-salon-gold/15 bg-salon-surface/50 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-semibold text-white">{booking.serviceName}</p>
-          <p className="mt-1 text-xs text-zinc-400">
+          <p className="font-semibold text-salon-ink">{booking.serviceName}</p>
+          <p className="mt-1 text-xs text-salon-muted">
             {formatBookingWhen(booking)}
           </p>
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-1 text-xs text-salon-muted">
             {booking.duration} mins · {formatLkr(booking.price)}
           </p>
         </div>
@@ -314,7 +314,7 @@ function BookingCard({
               type="button"
               disabled={!canModify || busy}
               onClick={() => onReschedule?.(booking)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400/15 px-3 py-2 text-xs font-semibold text-amber-300 transition hover:bg-amber-400/25 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-salon-gold/15 px-3 py-2 text-xs font-semibold text-salon-gold transition hover:bg-salon-gold/25 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {busy ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -338,7 +338,7 @@ function BookingCard({
             </button>
           </div>
           {showCutoffNote ? (
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-[11px] text-salon-muted">
               Cannot be modified within {CLIENT_MODIFY_CUTOFF_HOURS} hours of
               the appointment.
             </p>
@@ -365,7 +365,7 @@ function StatusPill({ status }: { status: string }) {
         ? "bg-sky-500/15 text-sky-300"
         : status === "cancelled"
           ? "bg-red-500/15 text-red-300"
-          : "bg-zinc-800 text-zinc-300";
+          : "bg-salon-surface text-salon-gold";
 
   return (
     <span
