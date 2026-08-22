@@ -338,7 +338,15 @@ export function subscribeToClientBookings(
       );
       mergeAndEmit();
     },
-    (error) => onError?.(error),
+    (error) => {
+      // Rules may not allow phone queries yet — keep uid bookings visible.
+      if (error.code === "permission-denied") {
+        phoneBookings = [];
+        mergeAndEmit();
+        return;
+      }
+      onError?.(error);
+    },
   );
 
   return () => {

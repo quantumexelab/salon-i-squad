@@ -85,7 +85,9 @@ service cloud.firestore {
         return isSignedIn()
           && (request.resource.data.userId == request.auth.uid
             || (request.auth.token.email != null
-              && request.resource.data.customerEmail == request.auth.token.email));
+              && request.resource.data.customerEmail == request.auth.token.email)
+            || (userPhone() != ''
+              && request.resource.data.phoneNumber == userPhone()));
       }
 
       // Staff see all; owners see own; signed-in clients can read confirmed
