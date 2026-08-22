@@ -59,12 +59,26 @@ service cloud.firestore {
       allow create, update, delete: if isStaff();
     }
 
+    function userPhone() {
+      return hasUserDoc()
+        && userDoc().phoneNumber is string
+        && userDoc().phoneNumber != ''
+        ? userDoc().phoneNumber
+        : (hasUserDoc()
+          && userDoc().mobile is string
+          && userDoc().mobile != ''
+          ? userDoc().mobile
+          : '');
+    }
+
     match /bookings/{bookingId} {
       function ownsBooking() {
         return isSignedIn()
           && (resource.data.userId == request.auth.uid
             || (request.auth.token.email != null
-              && resource.data.customerEmail == request.auth.token.email));
+              && resource.data.customerEmail == request.auth.token.email)
+            || (userPhone() != ''
+              && resource.data.phoneNumber == userPhone()));
       }
 
       function ownsBookingAfter() {

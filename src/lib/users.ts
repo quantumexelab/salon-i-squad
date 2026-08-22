@@ -14,6 +14,13 @@ import { getFirebaseDb, initFirebase } from "@/lib/firebase";
 import { normalizeRole } from "@/lib/roles";
 import type { UserProfile, UserRole } from "@/types/firestore";
 
+/** Firestore rejects documents that contain `undefined` field values. */
+function toFirestoreData<T extends Record<string, unknown>>(data: T) {
+  return Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined),
+  ) as T;
+}
+
 function parseName(fullName: string) {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
 
@@ -130,7 +137,7 @@ export async function upsertGoogleUserProfile(user: User) {
     updatedAt: now,
   };
 
-  await setDoc(ref, profile, { merge: true });
+  await setDoc(ref, toFirestoreData(profile), { merge: true });
   return profile;
 }
 
@@ -172,7 +179,7 @@ export async function upsertEmailUserProfile(user: User) {
     updatedAt: now,
   };
 
-  await setDoc(ref, profile, { merge: true });
+  await setDoc(ref, toFirestoreData(profile), { merge: true });
   return profile;
 }
 

@@ -12,11 +12,12 @@ import {
   CLIENT_MODIFY_CUTOFF_HOURS,
   canClientModifyBooking,
 } from "@/lib/booking-policy";
-import { rescheduleBooking, type SavedBooking } from "@/lib/bookings";
+import { rescheduleBooking, clientOwnsBooking, type SavedBooking } from "@/lib/bookings";
 import { toDateKey } from "@/lib/calendar-utils";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
 import { applyBookingCalendarSync } from "@/lib/request-calendar-sync";
+import { getProfilePhone } from "@/lib/users";
 
 function mapBooking(id: string, data: Record<string, unknown>): SavedBooking {
   return {
@@ -45,7 +46,7 @@ function mapBooking(id: string, data: Record<string, unknown>): SavedBooking {
 export function ReschedulePageContent() {
   const params = useParams<{ bookingId: string }>();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const bookingId = params.bookingId;
 
   const [booking, setBooking] = useState<SavedBooking | null>(null);
@@ -57,8 +58,8 @@ export function ReschedulePageContent() {
     let cancelled = false;
 
     async function load() {
-      if (!bookingId || !user) {
-        setLoading(false);
+      if (!bookingId || !user || !profile) {
+        if (!user) setLoading(false);
         return;
       }
       try {
@@ -72,7 +73,15 @@ export function ReschedulePageContent() {
           setBooking(null);
         } else {
           const mapped = mapBooking(snap.id, snap.data());
-          if (mapped.userId !== user.uid) {
+          const profilePhone = getProfilePhone(profile);
+          if (
+            !clientOwnsBooking(
+              mapped,
+              user.uid,
+              profilePhone,
+              user.email,
+            )
+          ) {
             setError("You can only reschedule your own bookings.");
             setBooking(null);
           } else {
@@ -94,7 +103,7 @@ export function ReschedulePageContent() {
     return () => {
       cancelled = true;
     };
-  }, [bookingId, user]);
+  }, [bookingId, user, profile]);
 
   async function handleConfirm(selectedDate: Date, selectedTime: string) {
     if (!booking) return;

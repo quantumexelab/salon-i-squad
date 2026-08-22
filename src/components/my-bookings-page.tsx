@@ -20,15 +20,17 @@ import {
 } from "@/lib/booking-policy";
 import {
   cancelBooking,
+  clientOwnsBooking,
   rescheduleBooking,
-  subscribeToUserBookings,
+  subscribeToClientBookings,
   type SavedBooking,
 } from "@/lib/bookings";
 import { toDateKey } from "@/lib/calendar-utils";
 import { applyBookingCalendarSync } from "@/lib/request-calendar-sync";
+import { getProfilePhone } from "@/lib/users";
 
 export function MyBookingsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [bookings, setBookings] = useState<SavedBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,8 +52,10 @@ export function MyBookingsPage() {
     }
 
     setLoading(true);
-    return subscribeToUserBookings(
+    const profilePhone = getProfilePhone(profile);
+    return subscribeToClientBookings(
       user.uid,
+      profilePhone || undefined,
       (next) => {
         setBookings(next);
         setLoading(false);
@@ -62,7 +66,7 @@ export function MyBookingsPage() {
         setLoading(false);
       },
     );
-  }, [user]);
+  }, [user, profile]);
 
   const { upcoming, past } = useMemo(() => {
     const up: SavedBooking[] = [];

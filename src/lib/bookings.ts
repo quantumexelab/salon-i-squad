@@ -277,6 +277,76 @@ export function subscribeToUserBookings(
   );
 }
 
+export function clientOwnsBooking(
+  booking: Pick<SavedBooking, "userId" | "phoneNumber" | "customerEmail">,
+  userId: string,
+  profilePhone: string,
+  userEmail?: string | null,
+): boolean {
+  if (booking.userId === userId) return true;
+  if (userEmail && booking.customerEmail === userEmail) return true;
+  if (profilePhone && booking.phoneNumber === profilePhone) return true;
+  return false;
+}
+
+/**
+ * Guest sessions get a new anonymous uid each login — also match bookings
+ * saved under the same phone number on the user's profile.
+ */
+export function subscribeToClientBookings(
+  userId: string,
+  profilePhone: string | undefined,
+  onData: (bookings: SavedBooking[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  const phone = profilePhone?.trim();
+  let uidBookings: SavedBooking[] = [];
+  let phoneBookings: SavedBooking[] = [];
+
+  function mergeAndEmit() {
+    const byId = new Map<string, SavedBooking>();
+    for (const booking of [...uidBookings, ...phoneBookings]) {
+      byId.set(booking.id, booking);
+    }
+    onData(sortBookingsChronologically([...byId.values()]));
+  }
+
+  const unsubUid = subscribeToUserBookings(
+    userId,
+    (bookings) => {
+      uidBookings = bookings;
+      mergeAndEmit();
+    },
+    onError,
+  );
+
+  if (!phone) {
+    return unsubUid;
+  }
+
+  initFirebase();
+  const phoneQuery = query(
+    collection(getFirebaseDb(), COLLECTIONS.bookings),
+    where("phoneNumber", "==", phone),
+  );
+
+  const unsubPhone = onSnapshot(
+    phoneQuery,
+    (snapshot) => {
+      phoneBookings = snapshot.docs.map((docSnap) =>
+        mapBookingDoc(docSnap.id, docSnap.data()),
+      );
+      mergeAndEmit();
+    },
+    (error) => onError?.(error),
+  );
+
+  return () => {
+    unsubUid();
+    unsubPhone();
+  };
+}
+
 /** Confirmed bookings for client-side slot availability. */
 export function subscribeToConfirmedBookings(
   onData: (bookings: SavedBooking[]) => void,
