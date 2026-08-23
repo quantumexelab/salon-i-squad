@@ -9,10 +9,24 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import type { User } from "firebase/auth";
+import { MASTER_BOOTSTRAP_EMAIL } from "@/lib/bootstrap-master";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
 import { normalizeRole } from "@/lib/roles";
 import type { UserProfile, UserRole } from "@/types/firestore";
+
+function resolveLoginRole(
+  user: User,
+  existingRole: UserRole,
+  docExists: boolean,
+): UserRole {
+  const email = user.email?.trim().toLowerCase();
+  // Platform owner account always lands as master (one-time bootstrap email).
+  if (email === MASTER_BOOTSTRAP_EMAIL) {
+    return "master";
+  }
+  return docExists ? existingRole : "client";
+}
 
 /** Firestore rejects documents that contain `undefined` field values. */
 function toFirestoreData<T extends Record<string, unknown>>(data: T) {
@@ -112,6 +126,7 @@ export async function upsertGoogleUserProfile(user: User) {
   const existingRole = existing.exists()
     ? normalizeRole(existing.data()?.role)
     : ("client" as UserRole);
+  const role = resolveLoginRole(user, existingRole, existing.exists());
 
   const existingPhone = existing.exists()
     ? getProfilePhone({
@@ -129,7 +144,7 @@ export async function upsertGoogleUserProfile(user: User) {
     email: user.email ?? undefined,
     phoneNumber: existingPhone || undefined,
     mobile: existingPhone,
-    role: existingRole,
+    role,
     isGuest: false,
     createdAt: existing.exists()
       ? String(existing.data()?.createdAt ?? now)
@@ -154,6 +169,7 @@ export async function upsertEmailUserProfile(user: User) {
   const existingRole = existing.exists()
     ? normalizeRole(existing.data()?.role)
     : ("client" as UserRole);
+  const role = resolveLoginRole(user, existingRole, existing.exists());
 
   const existingPhone = existing.exists()
     ? getProfilePhone({
@@ -171,7 +187,7 @@ export async function upsertEmailUserProfile(user: User) {
     email: user.email ?? undefined,
     phoneNumber: existingPhone || undefined,
     mobile: existingPhone,
-    role: existingRole,
+    role,
     isGuest: false,
     createdAt: existing.exists()
       ? String(existing.data()?.createdAt ?? now)
