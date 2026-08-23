@@ -13,8 +13,7 @@ export function canBootstrapMaster(user: User | null): boolean {
 
 /**
  * Updates `users/{auth.uid}` to role `master`.
- * Requires the temporary Firestore bootstrap rule + signed-in as that email.
- * (Doc id matches Auth UID from Google/email signup.)
+ * Tries client Firestore write first, then trusted API (Admin SDK) fallback.
  */
 export async function promoteMasterByEmail(user: User): Promise<void> {
   const email = user.email?.trim().toLowerCase();
@@ -28,17 +27,46 @@ export async function promoteMasterByEmail(user: User): Promise<void> {
   const db = getFirebaseDb();
   const now = new Date().toISOString();
 
-  await setDoc(
-    doc(db, COLLECTIONS.users, user.uid),
-    {
-      uid: user.uid,
-      email,
-      role: "master",
-      isGuest: false,
-      updatedAt: now,
+  try {
+    await setDoc(
+      doc(db, COLLECTIONS.users, user.uid),
+      {
+        uid: user.uid,
+        email,
+        firstName: user.displayName?.split(/\s+/)[0] || "Master",
+        lastName: "",
+        mobile: "",
+        role: "master",
+        isGuest: false,
+        updatedAt: now,
+        createdAt: now,
+      },
+      { merge: true },
+    );
+    return;
+  } catch {
+    // Client rules may block role changes — fall back to server claim.
+  }
+
+  const idToken = await user.getIdToken();
+  const response = await fetch("/api/claim-master", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      "Content-Type": "application/json",
     },
-    { merge: true },
-  );
+  });
+  const payload = (await response.json()) as {
+    ok?: boolean;
+    reason?: string;
+  };
+
+  if (!response.ok || !payload.ok) {
+    throw new Error(
+      payload.reason ||
+        "Could not set master role. Check Firestore rules or service account.",
+    );
+  }
 }
 
 /** Ensure bootstrap owner is master; returns true when role is master. */

@@ -1,50 +1,86 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Loader2 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { BookingFlow } from "@/components/booking-flow";
 import { useAuth } from "@/contexts/auth-context";
 import {
   canBootstrapMaster,
   ensureMasterRole,
+  MASTER_BOOTSTRAP_EMAIL,
 } from "@/lib/bootstrap-master";
 import { isMasterRole } from "@/lib/roles";
 
 export function BookingPageContent() {
   const router = useRouter();
   const { user, profile, refreshProfile, loading } = useAuth();
+  const [redirecting, setRedirecting] = useState(false);
+  const [redirectError, setRedirectError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (loading || !user || !profile) return;
+    if (loading || !user) return;
 
-    const currentProfile = profile;
     const currentUser = user;
+    const currentProfile = profile;
 
     async function redirectStaffAwayFromBooking() {
+      // Master owner email must never stay on the client booking page —
+      // even when the Firestore profile doc is still missing.
+      if (canBootstrapMaster(currentUser)) {
+        setRedirecting(true);
+        setRedirectError(null);
+        try {
+          await ensureMasterRole(currentUser);
+          await refreshProfile();
+          router.replace("/master");
+        } catch (err) {
+          setRedirectError(
+            err instanceof Error
+              ? err.message
+              : "Could not open master console.",
+          );
+          router.replace("/claim-master");
+        }
+        return;
+      }
+
+      if (!currentProfile) return;
+
       if (isMasterRole(currentProfile.role)) {
         router.replace("/master");
         return;
       }
       if (currentProfile.role === "admin") {
         router.replace("/admin");
-        return;
-      }
-      if (canBootstrapMaster(currentUser) && !isMasterRole(currentProfile.role)) {
-        try {
-          await ensureMasterRole(currentUser);
-          await refreshProfile();
-          router.replace("/master");
-        } catch {
-          router.replace("/claim-master");
-        }
       }
     }
 
     void redirectStaffAwayFromBooking();
   }, [loading, user, profile, router, refreshProfile]);
+
+  if (canBootstrapMaster(user) || redirecting) {
+    return (
+      <AuthGuard>
+        <section className="flex flex-1 flex-col items-center justify-center gap-3 bg-salon-bg px-4 py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-salon-gold" />
+          <p className="text-sm text-salon-muted">
+            Opening master console for {MASTER_BOOTSTRAP_EMAIL}…
+          </p>
+          {redirectError ? (
+            <p className="max-w-md text-center text-xs text-red-600">
+              {redirectError}{" "}
+              <Link href="/claim-master" className="underline">
+                Claim master
+              </Link>
+            </p>
+          ) : null}
+        </section>
+      </AuthGuard>
+    );
+  }
 
   return (
     <AuthGuard>
