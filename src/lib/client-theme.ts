@@ -16,7 +16,7 @@ export const clientTheme = {
   beige: "#D8C3A5",
   /** Brand red accent on the wordmark “I”. */
   brandRed: "#D32F2F",
-  /** Customer brand logo (transparent PNG). */
+  /** Optional remote branding image; default UI uses inline SVG logo. */
   defaultLogoSrc: "/logo.png",
 } as const;
 

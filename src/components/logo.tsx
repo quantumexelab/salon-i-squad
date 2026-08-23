@@ -5,7 +5,11 @@ import {
   brandingFallbackName,
   subscribeToBranding,
 } from "@/lib/branding";
-import { clientTheme } from "@/lib/client-theme";
+import {
+  SalonLogoFull,
+  SalonLogoMark,
+  SalonWordmark,
+} from "@/components/salon-logo-mark";
 
 const LOGO_SESSION_KEY = "sis-logo-animated";
 
@@ -13,10 +17,8 @@ type CustomerLogoProps = {
   className?: string;
   /** compact = header, hero = login / landing hero, mark = icon only */
   size?: "compact" | "hero" | "mark";
-  /** Soft entrance animation on the official PNG logo. */
+  /** Soft entrance animation on the SVG logo. */
   animated?: boolean;
-  /** White pad behind logo for crisp contrast on ivory headers. */
-  padded?: boolean;
 };
 
 function useRemoteBranding() {
@@ -51,111 +53,111 @@ export function useLogoSessionAnimation() {
   return shouldAnimate;
 }
 
-const sizeStyles = {
-  compact: {
-    wrap: "max-w-[148px]",
-    img: "h-auto max-h-12 w-full object-contain object-left",
-  },
-  hero: {
-    wrap: "max-w-[min(100%,280px)]",
-    img: "h-auto max-h-44 w-full object-contain object-center sm:max-h-40",
-  },
-  mark: {
-    wrap: "max-w-[2.75rem]",
-    img: "h-10 w-10 object-contain",
-  },
+const remoteSizeStyles = {
+  compact: "h-auto max-h-12 w-auto max-w-[148px] object-contain object-left",
+  hero: "h-auto max-h-44 w-auto max-w-[min(100%,280px)] object-contain object-center sm:max-h-40",
+  mark: "h-10 w-10 object-contain",
 } as const;
 
-function CustomerLogoImage({
+function RemoteLogoImage({
   src,
   alt,
   size,
   className,
-  animated,
-  padded,
   onError,
 }: {
   src: string;
   alt: string;
   size: "compact" | "hero" | "mark";
   className?: string;
-  animated?: boolean;
-  padded?: boolean;
   onError?: () => void;
 }) {
-  const styles = sizeStyles[size];
-
-  const image = (
+  return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt={alt}
-      width={size === "hero" ? 280 : 148}
-      height={size === "hero" ? 160 : 48}
       decoding="async"
-      className={`customer-logo-img ${styles.img} ${animated ? "logo-png-enter" : ""}`}
+      className={`${remoteSizeStyles[size]} ${className ?? ""}`}
       onError={onError}
     />
   );
-
-  return (
-    <span
-      className={`inline-flex min-w-0 shrink-0 ${styles.wrap} ${className ?? ""}`}
-    >
-      {padded ? (
-        <span className="inline-block rounded-lg bg-white px-1.5 py-1 shadow-sm shadow-black/[0.04] ring-1 ring-black/[0.04]">
-          {image}
-        </span>
-      ) : (
-        image
-      )}
-    </span>
-  );
 }
 
-/** Customer-facing logo — remote branding or official `/logo.png`. */
+/** Customer-facing logo — remote branding upload or built-in SVG mark. */
 export function CustomerLogo({
   className,
   size = "compact",
   animated = false,
-  padded = false,
 }: CustomerLogoProps) {
   const { logoUrl, hasRemote, setFailed } = useRemoteBranding();
   const fallback = brandingFallbackName();
-  const imageSrc = hasRemote
-    ? logoUrl
-    : size === "mark"
-      ? "/logo-mark.png"
-      : clientTheme.defaultLogoSrc;
+
+  if (hasRemote) {
+    return (
+      <RemoteLogoImage
+        src={logoUrl}
+        alt={fallback}
+        size={size}
+        className={className}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  if (size === "mark") {
+    return (
+      <SalonLogoMark
+        variant="light"
+        animated={animated}
+        className={`h-10 w-10 shrink-0 ${className ?? ""}`}
+      />
+    );
+  }
+
+  if (size === "hero") {
+    return (
+      <SalonLogoFull
+        variant="light"
+        animated={animated}
+        markClassName="h-[4.5rem] w-[4.5rem] sm:h-20 sm:w-20"
+        wordmarkClassName="text-xs sm:text-sm"
+        className={className}
+      />
+    );
+  }
 
   return (
-    <CustomerLogoImage
-      src={imageSrc}
-      alt={fallback}
-      size={size}
-      className={className}
-      animated={animated && !hasRemote}
-      padded={padded}
-      onError={() => setFailed(true)}
-    />
+    <span
+      className={`inline-flex min-w-0 items-center gap-2 ${className ?? ""}`}
+      aria-label={fallback}
+    >
+      <SalonLogoMark
+        variant="light"
+        animated={animated}
+        className="h-9 w-9 shrink-0"
+      />
+      <SalonWordmark
+        variant="light"
+        animated={animated}
+        className="truncate text-left text-[10px] tracking-[0.22em] sm:text-[11px]"
+      />
+    </span>
   );
 }
 
 export function CustomerLogoHero({
   className,
   animated = true,
-  padded = false,
 }: {
   className?: string;
   animated?: boolean;
-  padded?: boolean;
 }) {
   return (
     <CustomerLogo
       size="hero"
       className={className}
       animated={animated}
-      padded={padded}
     />
   );
 }
@@ -192,12 +194,9 @@ export function Logo({
 
   return (
     <span className={`inline-flex items-center gap-2 ${className ?? ""}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/logo-mark.png"
-        alt=""
-        aria-hidden
-        className={`object-contain ${imageClassName}`}
+      <SalonLogoMark
+        variant="dark"
+        className={`shrink-0 ${imageClassName}`}
       />
       <span className={textClassName}>{fallback}</span>
     </span>

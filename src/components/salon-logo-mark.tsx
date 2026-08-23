@@ -14,13 +14,15 @@ const palettes = {
     primary: clientTheme.gold,
     accent: clientTheme.champagne,
     word: clientTheme.ivory,
+    wordAccent: clientTheme.champagne,
     cutout: "#000000",
   },
   light: {
     primary: "#111111",
-    accent: clientTheme.gold,
+    accent: "#111111",
     word: "#111111",
-    cutout: clientTheme.ivory,
+    wordAccent: clientTheme.brandRed,
+    cutout: "#FFFFFF",
   },
 } as const;
 
@@ -144,7 +146,7 @@ export function SalonWordmark({
       aria-label="Salon I Squad"
     >
       Salon{" "}
-      <span style={{ color: colors.accent }}>I</span>
+      <span style={{ color: colors.wordAccent }}>I</span>
       {" "}Squad
     </p>
   );
