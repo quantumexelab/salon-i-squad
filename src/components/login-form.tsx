@@ -23,10 +23,11 @@ import { isMasterRole, isStaffRole } from "@/lib/roles";
 import {
   createGuestUserProfile,
   isValidMobile,
+  normalizeMobile,
   upsertEmailUserProfile,
   upsertGoogleUserProfile,
 } from "@/lib/users";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth, rememberGuestPhone, clearRememberedGuestPhone } from "@/contexts/auth-context";
 import type { UserProfile } from "@/types/firestore";
 
 function GoogleIcon() {
@@ -121,6 +122,7 @@ export function LoginForm() {
       initFirebase();
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(getFirebaseAuth(), provider);
+      clearRememberedGuestPhone();
       const nextProfile = await upsertGoogleUserProfile(result.user);
       await finishOwnerOrStaffLogin(result.user, nextProfile);
     } catch (err) {
@@ -144,6 +146,7 @@ export function LoginForm() {
         staffEmail.trim(),
         staffPassword,
       );
+      clearRememberedGuestPhone();
       const nextProfile = await upsertEmailUserProfile(result.user);
 
       if (canBootstrapMaster(result.user)) {
@@ -186,7 +189,9 @@ export function LoginForm() {
     try {
       initFirebase();
       const result = await signInAnonymously(getFirebaseAuth());
+      const phone = normalizeMobile(mobile);
       await createGuestUserProfile(result.user.uid, name, mobile);
+      rememberGuestPhone(phone);
       await refreshProfile();
       setGuestModalOpen(false);
       router.push("/booking");

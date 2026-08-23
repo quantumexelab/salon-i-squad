@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { ReschedulePicker } from "@/components/reschedule-picker";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth, readRememberedGuestPhone } from "@/contexts/auth-context";
 import { formatLkr } from "@/lib/booking/dummy-services";
 import {
   CLIENT_MODIFY_CUTOFF_HOURS,
@@ -27,7 +27,7 @@ import {
 } from "@/lib/bookings";
 import { toDateKey } from "@/lib/calendar-utils";
 import { applyBookingCalendarSync } from "@/lib/request-calendar-sync";
-import { getProfilePhone } from "@/lib/users";
+import { getProfilePhone, normalizeMobile } from "@/lib/users";
 
 export function MyBookingsPage() {
   const { user, profile } = useAuth();
@@ -53,9 +53,17 @@ export function MyBookingsPage() {
 
     setLoading(true);
     const profilePhone = getProfilePhone(profile);
+    const remembered = readRememberedGuestPhone();
+    const lookupPhone =
+      profilePhone ||
+      (remembered
+        ? remembered.startsWith("+")
+          ? remembered
+          : normalizeMobile(remembered)
+        : "");
     return subscribeToClientBookings(
       user.uid,
-      profilePhone || undefined,
+      lookupPhone || undefined,
       (next) => {
         setBookings(next);
         setLoading(false);

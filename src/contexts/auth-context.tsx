@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -26,10 +27,37 @@ type AuthContextValue = {
   isMaster: boolean;
   loading: boolean;
   isConfigured: boolean;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<UserProfile | null>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+const GUEST_PHONE_KEY = "salon_guest_phone";
+
+export function rememberGuestPhone(phone: string) {
+  try {
+    const value = phone.trim();
+    if (value) sessionStorage.setItem(GUEST_PHONE_KEY, value);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function readRememberedGuestPhone(): string {
+  try {
+    return sessionStorage.getItem(GUEST_PHONE_KEY)?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function clearRememberedGuestPhone() {
+  try {
+    sessionStorage.removeItem(GUEST_PHONE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -37,19 +65,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const isConfigured = isFirebaseConfigured();
 
-  async function loadProfile(firebaseUser: User | null) {
+  const loadProfile = useCallback(async (firebaseUser: User | null) => {
     if (!firebaseUser) {
       setProfile(null);
-      return;
+      return null;
     }
 
     try {
-      const next = await getUserProfile(firebaseUser.uid);
+      let next = await getUserProfile(firebaseUser.uid);
+      // Guest profile may be written just after auth — brief retry.
+      if (!next) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        next = await getUserProfile(firebaseUser.uid);
+      }
       setProfile(next);
+      return next;
     } catch {
       setProfile(null);
+      return null;
     }
-  }
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    initFirebase();
+    const current = getFirebaseAuth().currentUser;
+    return loadProfile(current);
+  }, [loadProfile]);
 
   useEffect(() => {
     if (!isConfigured) {
@@ -68,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return unsubscribe;
-  }, [isConfigured]);
+  }, [isConfigured, loadProfile]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -79,11 +120,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isMaster: isMasterRole(profile?.role),
       loading,
       isConfigured,
-      refreshProfile: async () => {
-        await loadProfile(user);
-      },
+      refreshProfile,
     }),
-    [user, profile, loading, isConfigured],
+    [user, profile, loading, isConfigured, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

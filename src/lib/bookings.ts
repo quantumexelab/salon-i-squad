@@ -292,6 +292,10 @@ export function clientOwnsBooking(
 /**
  * Guest sessions get a new anonymous uid each login — also match bookings
  * saved under the same phone number on the user's profile.
+ *
+ * Phone query is limited to confirmed bookings so it satisfies the public
+ * signed-in read rule (status == confirmed). Current-uid query covers all
+ * statuses for this session.
  */
 export function subscribeToClientBookings(
   userId: string,
@@ -328,6 +332,7 @@ export function subscribeToClientBookings(
   const phoneQuery = query(
     collection(getFirebaseDb(), COLLECTIONS.bookings),
     where("phoneNumber", "==", phone),
+    where("status", "==", "confirmed"),
   );
 
   const unsubPhone = onSnapshot(
@@ -339,8 +344,9 @@ export function subscribeToClientBookings(
       mergeAndEmit();
     },
     (error) => {
-      // Rules may not allow phone queries yet — keep uid bookings visible.
-      if (error.code === "permission-denied") {
+      // Rules / indexes may block this query — keep uid bookings visible.
+      const code = (error as { code?: string }).code;
+      if (code === "permission-denied" || code === "failed-precondition") {
         phoneBookings = [];
         mergeAndEmit();
         return;
