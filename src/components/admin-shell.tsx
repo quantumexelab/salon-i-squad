@@ -23,8 +23,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <AdminGuard>
-      <div className="flex min-h-full bg-zinc-950 text-zinc-50">
-        <aside className="hidden w-60 shrink-0 border-r border-zinc-800 bg-zinc-950 p-5 md:flex md:flex-col">
+      <div className="flex h-dvh overflow-hidden bg-zinc-950 text-zinc-50">
+        <aside className="hidden h-dvh w-60 shrink-0 flex-col overflow-y-auto border-r border-zinc-800 bg-zinc-950 p-5 md:flex">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-400">
               Salon Owner Admin
@@ -58,7 +58,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             })}
           </nav>
 
-          <div className="mt-auto space-y-2">
+          <div className="mt-auto space-y-2 pt-4">
             <LogoutButton className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 px-3 py-2.5 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:text-white disabled:opacity-60" />
             <Link
               href="/booking"
@@ -69,8 +69,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        <div className="flex min-h-full flex-1 flex-col">
-          <header className="border-b border-zinc-800 bg-zinc-950/90 px-4 py-3 backdrop-blur md:px-6">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-20 shrink-0 border-b border-zinc-800 bg-zinc-950/95 px-4 py-3 backdrop-blur md:px-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="md:hidden">
@@ -102,7 +102,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </div>
             </div>
           </header>
-          <main className="flex flex-1 flex-col">{children}</main>
+          <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            {children}
+          </main>
         </div>
       </div>
     </AdminGuard>

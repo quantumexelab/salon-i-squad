@@ -12,8 +12,8 @@ export function MasterShell({ children }: { children: ReactNode }) {
 
   return (
     <MasterGuard>
-      <div className="flex min-h-full flex-col bg-zinc-950 text-zinc-50">
-        <header className="border-b border-zinc-800 bg-zinc-950/90 px-4 py-4 backdrop-blur md:px-8">
+      <div className="flex h-dvh flex-col overflow-hidden bg-zinc-950 text-zinc-50">
+        <header className="sticky top-0 z-20 shrink-0 border-b border-zinc-800 bg-zinc-950/95 px-4 py-4 backdrop-blur md:px-8">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-400">
@@ -59,7 +59,7 @@ export function MasterShell({ children }: { children: ReactNode }) {
             </nav>
           </div>
         </header>
-        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8 md:px-8">
+        <main className="mx-auto flex w-full max-w-5xl min-h-0 flex-1 flex-col overflow-y-auto px-4 py-8 md:px-8">
           {children}
         </main>
       </div>
