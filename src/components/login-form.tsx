@@ -7,13 +7,19 @@ import {
   signInAnonymously,
   signInWithEmailAndPassword,
   signInWithPopup,
+  type User,
 } from "firebase/auth";
 import { Loader2, UserRound } from "lucide-react";
 import { GuestDetailsModal } from "@/components/guest-details-modal";
 import { CustomerLogoHero } from "@/components/logo";
+import {
+  canBootstrapMaster,
+  ensureMasterRole,
+  MASTER_BOOTSTRAP_EMAIL,
+} from "@/lib/bootstrap-master";
 import { getFirebaseAuth, initFirebase } from "@/lib/firebase";
 import { homeForRole } from "@/lib/routing";
-import { isStaffRole } from "@/lib/roles";
+import { isMasterRole, isStaffRole } from "@/lib/roles";
 import {
   createGuestUserProfile,
   isValidMobile,
@@ -21,6 +27,7 @@ import {
   upsertGoogleUserProfile,
 } from "@/lib/users";
 import { useAuth } from "@/contexts/auth-context";
+import type { UserProfile } from "@/types/firestore";
 
 function GoogleIcon() {
   return (
@@ -58,10 +65,50 @@ export function LoginForm() {
   const [staffPassword, setStaffPassword] = useState("");
 
   useEffect(() => {
-    if (!authLoading && user && profile) {
+    if (authLoading || !user || !profile || loading) return;
+
+    async function routeSignedInUser() {
+      if (canBootstrapMaster(user) && !isMasterRole(profile.role)) {
+        try {
+          await ensureMasterRole(user);
+          await refreshProfile();
+          router.replace("/master");
+          return;
+        } catch {
+          router.replace("/claim-master");
+          return;
+        }
+      }
       router.replace(homeForRole(profile.role));
     }
-  }, [authLoading, user, profile, router]);
+
+    void routeSignedInUser();
+  }, [authLoading, user, profile, router, loading, refreshProfile]);
+
+  async function finishOwnerOrStaffLogin(
+    firebaseUser: User,
+    nextProfile: UserProfile,
+  ) {
+    if (canBootstrapMaster(firebaseUser)) {
+      try {
+        await ensureMasterRole(firebaseUser);
+        await refreshProfile();
+        router.replace("/master");
+        return;
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? `${err.message} Open /claim-master after signing in as ${MASTER_BOOTSTRAP_EMAIL}.`
+            : `Could not set master role. Open /claim-master as ${MASTER_BOOTSTRAP_EMAIL}.`,
+        );
+        router.replace("/claim-master");
+        return;
+      }
+    }
+
+    await refreshProfile();
+    router.replace(homeForRole(nextProfile.role));
+  }
 
   async function handleGoogleSignIn() {
     setLoading("google");
@@ -72,8 +119,7 @@ export function LoginForm() {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(getFirebaseAuth(), provider);
       const nextProfile = await upsertGoogleUserProfile(result.user);
-      await refreshProfile();
-      router.push(homeForRole(nextProfile.role));
+      await finishOwnerOrStaffLogin(result.user, nextProfile);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Google sign-in failed. Try again.",
@@ -96,14 +142,21 @@ export function LoginForm() {
         staffPassword,
       );
       const nextProfile = await upsertEmailUserProfile(result.user);
-      await refreshProfile();
 
-      if (!isStaffRole(nextProfile.role)) {
-        setError("This account is not a salon admin or master.");
+      if (canBootstrapMaster(result.user)) {
+        await finishOwnerOrStaffLogin(result.user, nextProfile);
         return;
       }
 
-      router.push(homeForRole(nextProfile.role));
+      if (!isStaffRole(nextProfile.role)) {
+        setError(
+          `This account (${result.user.email ?? "unknown"}) is not a salon admin or master. Master login must use ${MASTER_BOOTSTRAP_EMAIL}.`,
+        );
+        return;
+      }
+
+      await refreshProfile();
+      router.replace(homeForRole(nextProfile.role));
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Staff sign-in failed. Try again.",
@@ -149,6 +202,9 @@ export function LoginForm() {
             <CustomerLogoHero />
             <p className="mt-4 text-sm leading-relaxed text-salon-muted">
               Book your next haircut, styling, or treatment in seconds.
+            </p>
+            <p className="mt-2 text-[11px] text-salon-muted/80">
+              Master: Google sign-in as {MASTER_BOOTSTRAP_EMAIL}
             </p>
           </div>
 
@@ -225,7 +281,7 @@ export function LoginForm() {
           ) : null}
 
           {error && (
-            <p className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-center text-xs text-red-300">
+            <p className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-center text-xs text-red-600">
               {error}
             </p>
           )}

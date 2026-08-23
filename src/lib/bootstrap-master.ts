@@ -1,4 +1,4 @@
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import type { User } from "firebase/auth";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
@@ -26,10 +26,24 @@ export async function promoteMasterByEmail(user: User): Promise<void> {
 
   initFirebase();
   const db = getFirebaseDb();
+  const now = new Date().toISOString();
 
-  await updateDoc(doc(db, COLLECTIONS.users, user.uid), {
-    role: "master",
-    email,
-    updatedAt: new Date().toISOString(),
-  });
+  await setDoc(
+    doc(db, COLLECTIONS.users, user.uid),
+    {
+      uid: user.uid,
+      email,
+      role: "master",
+      isGuest: false,
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+}
+
+/** Ensure bootstrap owner is master; returns true when role is master. */
+export async function ensureMasterRole(user: User): Promise<boolean> {
+  if (!canBootstrapMaster(user)) return false;
+  await promoteMasterByEmail(user);
+  return true;
 }

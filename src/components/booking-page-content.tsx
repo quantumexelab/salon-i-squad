@@ -1,13 +1,47 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CalendarDays } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { BookingFlow } from "@/components/booking-flow";
 import { useAuth } from "@/contexts/auth-context";
+import {
+  canBootstrapMaster,
+  ensureMasterRole,
+} from "@/lib/bootstrap-master";
+import { isMasterRole } from "@/lib/roles";
 
 export function BookingPageContent() {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, profile, refreshProfile, loading } = useAuth();
+
+  useEffect(() => {
+    if (loading || !user || !profile) return;
+
+    async function redirectStaffAwayFromBooking() {
+      if (isMasterRole(profile.role)) {
+        router.replace("/master");
+        return;
+      }
+      if (profile.role === "admin") {
+        router.replace("/admin");
+        return;
+      }
+      if (canBootstrapMaster(user) && !isMasterRole(profile.role)) {
+        try {
+          await ensureMasterRole(user);
+          await refreshProfile();
+          router.replace("/master");
+        } catch {
+          router.replace("/claim-master");
+        }
+      }
+    }
+
+    void redirectStaffAwayFromBooking();
+  }, [loading, user, profile, router, refreshProfile]);
 
   return (
     <AuthGuard>
@@ -25,7 +59,9 @@ export function BookingPageContent() {
                   Book Appointment
                 </h1>
                 <p className="truncate text-xs text-salon-muted sm:text-sm">
-                  Signed in as {user?.displayName ?? user?.email ?? user?.uid}
+                  Signed in as{" "}
+                  {user?.email ?? user?.displayName ?? user?.uid}
+                  {profile?.role ? ` · ${profile.role}` : ""}
                 </p>
               </div>
             </div>
