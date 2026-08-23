@@ -12,14 +12,34 @@ import {
 } from "@/lib/services";
 import type { Service } from "@/types/firestore";
 
-const emptyForm: ServiceInput = {
+type ServiceFormState = {
+  name: string;
+  description: string;
+  durationMinutes: string;
+  price: string;
+  isActive: boolean;
+  requiresConsultation: boolean;
+};
+
+const emptyForm: ServiceFormState = {
   name: "",
   description: "",
-  durationMinutes: 30,
-  price: 0,
+  durationMinutes: "30",
+  price: "",
   isActive: true,
   requiresConsultation: false,
 };
+
+function toServiceInput(form: ServiceFormState): ServiceInput {
+  return {
+    name: form.name.trim(),
+    description: form.description.trim(),
+    durationMinutes: Number(form.durationMinutes),
+    price: Number(form.price),
+    isActive: form.isActive,
+    requiresConsultation: form.requiresConsultation,
+  };
+}
 
 export function AdminServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -28,7 +48,7 @@ export function AdminServicesPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState<ServiceInput>(emptyForm);
+  const [form, setForm] = useState<ServiceFormState>(emptyForm);
 
   useEffect(() => {
     const unsubscribe = subscribeToServices(
@@ -58,8 +78,8 @@ export function AdminServicesPage() {
     setForm({
       name: service.name,
       description: service.description ?? "",
-      durationMinutes: service.durationMinutes,
-      price: service.price,
+      durationMinutes: String(service.durationMinutes),
+      price: String(service.price),
       isActive: service.isActive,
       requiresConsultation: service.requiresConsultation,
     });
@@ -69,14 +89,31 @@ export function AdminServicesPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+
+    const durationMinutes = Number(form.durationMinutes);
+    const price = Number(form.price);
+    if (
+      !form.durationMinutes.trim() ||
+      Number.isNaN(durationMinutes) ||
+      durationMinutes < 5
+    ) {
+      setError("Enter a valid duration (at least 5 minutes).");
+      return;
+    }
+    if (!form.price.trim() || Number.isNaN(price) || price < 0) {
+      setError("Enter a valid price.");
+      return;
+    }
+
+    const payload = toServiceInput(form);
     setSaving(true);
     setError(null);
 
     try {
       if (editingId) {
-        await updateService(editingId, form);
+        await updateService(editingId, payload);
       } else {
-        await createService(form);
+        await createService(payload);
       }
       setFormOpen(false);
       setEditingId(null);
@@ -174,10 +211,7 @@ export function AdminServicesPage() {
               step={5}
               value={form.durationMinutes}
               onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  durationMinutes: Number(e.target.value),
-                }))
+                setForm((f) => ({ ...f, durationMinutes: e.target.value }))
               }
               className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
             />
@@ -190,9 +224,8 @@ export function AdminServicesPage() {
               min={0}
               step={50}
               value={form.price}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, price: Number(e.target.value) }))
-              }
+              placeholder="0"
+              onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
               className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
             />
           </label>

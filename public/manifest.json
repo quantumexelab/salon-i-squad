@@ -6,8 +6,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#FFD700",
+  "background_color": "#F8F5F0",
+  "theme_color": "#D4AF37",
   "orientation": "portrait-primary",
   "categories": ["lifestyle", "business"],
   "icons": [

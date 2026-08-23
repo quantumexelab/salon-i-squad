@@ -76,3 +76,92 @@ body {
 .salon-nav-link:hover::after {
   transform: scaleX(1);
 }
+
+/* ── Customer logo animations ── */
+@keyframes logo-frame-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes logo-fill-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes logo-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes logo-shimmer {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.logo-draw {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: logo-frame-draw 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.logo-draw-delay-1 {
+  animation-delay: 0.12s;
+}
+
+.logo-draw-delay-2 {
+  animation-delay: 0.24s;
+}
+
+.logo-fill-in {
+  opacity: 0;
+  transform-origin: center;
+  animation: logo-fill-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.38s forwards;
+}
+
+.logo-fill-in-delay-1 {
+  animation-delay: 0.48s;
+}
+
+.logo-rise-wordmark {
+  opacity: 0;
+  animation: logo-rise 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.58s forwards;
+}
+
+.logo-shimmer {
+  animation: logo-shimmer 2.4s ease-in-out 1.1s infinite;
+}
+
+.logo-png-enter {
+  animation: logo-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-draw,
+  .logo-fill-in,
+  .logo-rise-wordmark,
+  .logo-shimmer,
+  .logo-png-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    stroke-dashoffset: 0 !important;
+    transform: none !important;
+  }
+}

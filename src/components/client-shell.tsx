@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { CustomerLogo } from "@/components/logo";
+import { CustomerLogo, useLogoSessionAnimation } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
 import { PushNotificationBootstrap } from "@/components/push-notification-bootstrap";
 import { useAuth } from "@/contexts/auth-context";
@@ -16,6 +16,7 @@ const clientNav = [
 export function ClientShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const animateLogo = useLogoSessionAnimation();
 
   const showNav =
     pathname.startsWith("/booking") ||
@@ -28,7 +29,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
       <header className="border-b border-salon-gold/25 bg-salon-white px-4 py-3 shadow-sm shadow-salon-gold/5">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
           <Link href="/" className="min-w-0">
-            <CustomerLogo />
+            <CustomerLogo animated={animateLogo} />
             {user && showNav ? (
               <p className="mt-0.5 truncate text-[11px] text-salon-muted">
                 {user.displayName ?? user.email ?? "Signed in"}

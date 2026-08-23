@@ -199,7 +199,8 @@ export function LandingPage() {
           <div className="max-w-lg">
             <CustomerLogo
               size="hero"
-              className="landing-rise mb-7 w-[min(100%,240px)] md:w-[260px]"
+              animated
+              className="mb-7 w-[min(100%,240px)] md:w-[260px]"
             />
 
             <div
