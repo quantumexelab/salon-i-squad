@@ -67,10 +67,13 @@ export function LoginForm() {
   useEffect(() => {
     if (authLoading || !user || !profile || loading) return;
 
+    const currentUser = user;
+    const currentProfile = profile;
+
     async function routeSignedInUser() {
-      if (canBootstrapMaster(user) && !isMasterRole(profile.role)) {
+      if (canBootstrapMaster(currentUser) && !isMasterRole(currentProfile.role)) {
         try {
-          await ensureMasterRole(user);
+          await ensureMasterRole(currentUser);
           await refreshProfile();
           router.replace("/master");
           return;
@@ -79,7 +82,7 @@ export function LoginForm() {
           return;
         }
       }
-      router.replace(homeForRole(profile.role));
+      router.replace(homeForRole(currentProfile.role));
     }
 
     void routeSignedInUser();
