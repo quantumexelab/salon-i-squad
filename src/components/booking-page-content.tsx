@@ -20,18 +20,21 @@ export function BookingPageContent() {
   useEffect(() => {
     if (loading || !user || !profile) return;
 
+    const currentProfile = profile;
+    const currentUser = user;
+
     async function redirectStaffAwayFromBooking() {
-      if (isMasterRole(profile.role)) {
+      if (isMasterRole(currentProfile.role)) {
         router.replace("/master");
         return;
       }
-      if (profile.role === "admin") {
+      if (currentProfile.role === "admin") {
         router.replace("/admin");
         return;
       }
-      if (canBootstrapMaster(user) && !isMasterRole(profile.role)) {
+      if (canBootstrapMaster(currentUser) && !isMasterRole(currentProfile.role)) {
         try {
-          await ensureMasterRole(user);
+          await ensureMasterRole(currentUser);
           await refreshProfile();
           router.replace("/master");
         } catch {
