@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { ImageIcon, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { formatLkr } from "@/lib/booking/dummy-services";
+import { serviceImageFor } from "@/lib/service-images";
 import {
   createService,
   deleteService,
   subscribeToServices,
   updateService,
+  uploadServiceImageFile,
   type ServiceInput,
 } from "@/lib/services";
 import type { Service } from "@/types/firestore";
@@ -17,6 +19,7 @@ type ServiceFormState = {
   description: string;
   durationMinutes: string;
   price: string;
+  imageUrl: string;
   isActive: boolean;
   requiresConsultation: boolean;
 };
@@ -26,6 +29,7 @@ const emptyForm: ServiceFormState = {
   description: "",
   durationMinutes: "30",
   price: "",
+  imageUrl: "",
   isActive: true,
   requiresConsultation: false,
 };
@@ -36,15 +40,18 @@ function toServiceInput(form: ServiceFormState): ServiceInput {
     description: form.description.trim(),
     durationMinutes: Number(form.durationMinutes),
     price: Number(form.price),
+    imageUrl: form.imageUrl.trim(),
     isActive: form.isActive,
     requiresConsultation: form.requiresConsultation,
   };
 }
 
 export function AdminServicesPage() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -80,11 +87,32 @@ export function AdminServicesPage() {
       description: service.description ?? "",
       durationMinutes: String(service.durationMinutes),
       price: String(service.price),
+      imageUrl: service.imageUrl ?? "",
       isActive: service.isActive,
       requiresConsultation: service.requiresConsultation,
     });
     setFormOpen(true);
     setError(null);
+  }
+
+  async function handleImageUpload(file: File | null) {
+    if (!file) return;
+
+    setUploadingImage(true);
+    setError(null);
+    try {
+      const url = await uploadServiceImageFile(file);
+      setForm((f) => ({ ...f, imageUrl: url }));
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Upload failed. You can paste an image URL instead.",
+      );
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -229,6 +257,69 @@ export function AdminServicesPage() {
               className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
             />
           </label>
+          <label className="grid gap-1.5 text-xs text-zinc-400 sm:col-span-2">
+            <span className="inline-flex items-center gap-1.5">
+              <ImageIcon className="h-3.5 w-3.5 text-amber-400" />
+              Card image (booking app)
+            </span>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <div className="h-24 w-full shrink-0 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 sm:w-32">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={serviceImageFor(form.name || "Service", form.imageUrl)}
+                  alt="Service preview"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="grid min-w-0 flex-1 gap-2">
+                <input
+                  type="url"
+                  value={form.imageUrl}
+                  placeholder="https://… or upload below"
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, imageUrl: e.target.value }))
+                  }
+                  className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={saving || uploadingImage}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-700 px-3 text-xs font-semibold text-zinc-200 disabled:opacity-60"
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5 text-amber-400" />
+                    )}
+                    Upload image
+                  </button>
+                  {form.imageUrl ? (
+                    <button
+                      type="button"
+                      disabled={saving || uploadingImage}
+                      onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
+                      className="h-10 rounded-xl border border-zinc-700 px-3 text-xs font-semibold text-zinc-400"
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+                <p className="text-[11px] text-zinc-500">
+                  Shown on the client booking cards. Leave blank for a default
+                  salon photo.
+                </p>
+              </div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => void handleImageUpload(e.target.files?.[0] ?? null)}
+            />
+          </label>
           <label className="flex items-center gap-2 text-sm text-zinc-300 sm:col-span-2">
             <input
               type="checkbox"
@@ -262,7 +353,7 @@ export function AdminServicesPage() {
           <div className="flex flex-wrap gap-2 sm:col-span-2">
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || uploadingImage}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 text-sm font-bold text-zinc-950 disabled:opacity-60"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -302,7 +393,16 @@ export function AdminServicesPage() {
                 key={service.id}
                 className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
               >
-                <div>
+                <div className="flex min-w-0 gap-3">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={serviceImageFor(service.name, service.imageUrl)}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold text-white">{service.name}</p>
                     {!service.isActive ? (
@@ -328,11 +428,12 @@ export function AdminServicesPage() {
                       ? " · books as 15-min consultation"
                       : ""}
                   </p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    disabled={saving}
+                    disabled={saving || uploadingImage}
                     onClick={() => openEdit(service)}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
                   >
@@ -341,7 +442,7 @@ export function AdminServicesPage() {
                   </button>
                   <button
                     type="button"
-                    disabled={saving}
+                    disabled={saving || uploadingImage}
                     onClick={() => handleDelete(service)}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/20"
                   >

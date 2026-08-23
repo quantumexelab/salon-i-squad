@@ -34,6 +34,8 @@ export type Service = {
   description?: string;
   durationMinutes: number;
   price: number;
+  /** Public URL shown on booking cards (optional). */
+  imageUrl?: string;
   requiresConsultation: boolean;
   isActive: boolean;
   createdAt: string;

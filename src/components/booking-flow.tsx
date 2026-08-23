@@ -58,6 +58,7 @@ import {
   updateUserPhoneNumber,
 } from "@/lib/users";
 import { useAuth } from "@/contexts/auth-context";
+import { serviceImageFor } from "@/lib/service-images";
 import type { ClosedDay, TimeBuffer } from "@/types/calendar";
 import type { Service } from "@/types/firestore";
 
@@ -317,9 +318,9 @@ export function BookingFlow() {
 
   return (
     <div
-      className={`mx-auto flex w-full max-w-lg flex-col gap-5 ${
-        needsPhone ? "pb-36" : "pb-28"
-      }`}
+      className={`mx-auto flex w-full max-w-lg flex-col gap-6 ${
+        needsPhone ? "pb-40" : "pb-32"
+      } md:pb-28`}
     >
       <StepHeader step={step} />
 
@@ -336,7 +337,7 @@ export function BookingFlow() {
         <section className="space-y-3">
           <SectionLabel
             icon={<Scissors className="h-3.5 w-3.5" />}
-            title="Choose a service"
+            title="Select a service"
           />
 
           {servicesLoading ? (
@@ -351,63 +352,47 @@ export function BookingFlow() {
               Services.
             </p>
           ) : (
-            <ul className="grid gap-3">
+            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 snap-x snap-mandatory">
               {services.map((service) => {
                 const selected = selectedService?.id === service.id;
                 return (
-                  <li key={service.id}>
-                    <button
-                      type="button"
-                      onClick={() => selectService(service)}
-                      disabled={saving}
-                      className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-3.5 text-left transition active:scale-[0.99] disabled:opacity-60 ${
-                        selected
-                          ? "border-salon-gold/50 bg-salon-gold/10 ring-1 ring-salon-gold/30"
-                          : "border-salon-surface bg-salon-surface/60 hover:border-salon-gold/20 hover:bg-salon-surface"
-                      }`}
-                    >
-                      <span
-                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
-                          selected
-                            ? "border-salon-gold bg-salon-gold text-salon-black"
-                            : "border-salon-beige"
-                        }`}
-                      >
-                        {selected ? (
-                          <Check className="h-3 w-3" strokeWidth={3} />
-                        ) : null}
+                  <button
+                    key={service.id}
+                    type="button"
+                    onClick={() => selectService(service)}
+                    disabled={saving}
+                    className={`relative w-[min(72vw,240px)] shrink-0 snap-start overflow-hidden rounded-2xl border bg-salon-white text-left transition active:scale-[0.99] disabled:opacity-60 ${
+                      selected
+                        ? "border-salon-gold ring-2 ring-salon-gold/30"
+                        : "border-salon-beige/40 shadow-sm shadow-black/[0.04]"
+                    }`}
+                  >
+                    {selected ? (
+                      <span className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-salon-gold text-salon-black">
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-baseline justify-between gap-2">
-                          <span className="text-sm font-semibold text-salon-ink">
-                            {service.name}
-                          </span>
-                          <span className="shrink-0 text-sm font-semibold text-salon-gold">
-                            {formatLkr(service.price)}
-                          </span>
-                        </span>
-                        <span className="mt-0.5 block text-xs text-salon-muted">
-                          {service.description || "Salon service"}
-                        </span>
-                        <span className="mt-2 flex flex-wrap items-center gap-2">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-salon-surface/80 px-2 py-0.5 text-[11px] text-salon-gold">
-                            <Clock className="h-3 w-3 text-salon-muted" />
-                            {service.requiresConsultation
-                              ? `${CONSULTATION_DURATION_MINUTES} min consult`
-                              : `${service.durationMinutes} mins`}
-                          </span>
-                          {service.requiresConsultation ? (
-                            <span className="rounded-full bg-salon-gold/15 px-2 py-0.5 text-[11px] font-medium text-salon-gold">
-                              Consultation first
-                            </span>
-                          ) : null}
-                        </span>
+                    ) : null}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={serviceImageFor(service.name, service.imageUrl)}
+                      alt={service.name}
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                    <span className="block px-3 py-3">
+                      <span className="block text-sm font-semibold text-salon-ink">
+                        {service.name}
                       </span>
-                    </button>
-                  </li>
+                      <span className="mt-0.5 block text-sm font-semibold text-salon-gold">
+                        {formatLkr(service.price)}
+                      </span>
+                      <span className="mt-1 block text-[11px] text-salon-muted line-clamp-2">
+                        {service.description || "Salon service"}
+                      </span>
+                    </span>
+                  </button>
                 );
               })}
-            </ul>
+            </div>
           )}
         </section>
       ) : null}
@@ -564,7 +549,7 @@ export function BookingFlow() {
               No open slots on this day. Try another date.
             </p>
           ) : (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
               {availableSlots.map((slot) => {
                 const selected = selectedSlot === slot;
                 return (
@@ -623,7 +608,7 @@ export function BookingFlow() {
         </section>
       ) : null}
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-salon-gold/15 bg-salon-white/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 border-t border-salon-gold/15 bg-salon-white/95 px-4 pb-3 pt-3 backdrop-blur md:bottom-0 md:pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex w-full max-w-lg flex-col gap-2">
           {error ? (
             <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-center text-xs text-red-300">
@@ -656,7 +641,7 @@ export function BookingFlow() {
               type="button"
               disabled={!canConfirm}
               onClick={handleConfirmBooking}
-              className="salon-gold-btn flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition disabled:cursor-not-allowed disabled:bg-salon-surface disabled:text-salon-muted"
+              className="salon-gold-btn flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:bg-salon-surface disabled:text-salon-muted"
             >
               {saving ? (
                 <>
@@ -672,7 +657,7 @@ export function BookingFlow() {
               type="button"
               disabled={!canGoNext}
               onClick={goToNextStep}
-              className="salon-gold-btn flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition disabled:cursor-not-allowed disabled:bg-salon-surface disabled:text-salon-muted"
+              className="salon-gold-btn flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:bg-salon-surface disabled:text-salon-muted"
             >
               Next
               <ChevronRight className="h-5 w-5" />
@@ -705,29 +690,33 @@ function ServiceListSkeleton() {
 }
 
 function StepHeader({ step }: { step: Step }) {
-  const steps: { id: Step; label: string }[] = [
-    { id: "service", label: "Service" },
-    { id: "date", label: "Date" },
-    { id: "time", label: "Time" },
+  const steps: { id: Step; label: string; num: number }[] = [
+    { id: "service", label: "Select Service", num: 1 },
+    { id: "date", label: "Pick Date & Time", num: 2 },
+    { id: "time", label: "Confirm", num: 3 },
   ];
   const activeIndex = steps.findIndex((s) => s.id === step);
 
   return (
-    <ol className="flex items-center gap-2">
+    <ol className="space-y-4">
       {steps.map((s, index) => {
         const done = index < activeIndex;
         const active = index === activeIndex;
         return (
-          <li key={s.id} className="flex flex-1 flex-col gap-1.5">
-            <div
-              className={`h-1 rounded-full transition ${
-                done || active ? "bg-salon-gold" : "bg-salon-surface"
-              }`}
-            />
+          <li key={s.id} className="flex items-center gap-3">
             <span
-              className={`text-[11px] font-medium ${
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition ${
+                done || active
+                  ? "bg-salon-gold text-salon-black"
+                  : "bg-salon-surface text-salon-muted ring-1 ring-salon-beige/50"
+              }`}
+            >
+              {done ? <Check className="h-4 w-4" strokeWidth={3} /> : s.num}
+            </span>
+            <span
+              className={`font-serif text-base ${
                 active
-                  ? "text-salon-gold"
+                  ? "font-semibold text-salon-ink"
                   : done
                     ? "text-salon-gold"
                     : "text-salon-muted"
