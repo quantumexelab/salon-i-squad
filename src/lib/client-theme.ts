@@ -14,7 +14,9 @@ export const clientTheme = {
   champagne: "#E8D9A8",
   ivory: "#F8F5F0",
   beige: "#D8C3A5",
-  /** Customer brand logo (symbol + wordmark on white). */
+  /** Brand red accent on the wordmark “I”. */
+  brandRed: "#D32F2F",
+  /** Customer brand logo (transparent PNG). */
   defaultLogoSrc: "/logo.png",
 } as const;
 

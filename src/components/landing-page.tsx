@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Cormorant_Garamond, Outfit } from "next/font/google";
+import { Menu } from "lucide-react";
 import { formatLkr } from "@/lib/booking/dummy-services";
+import { ClientMobileNav } from "@/components/client-mobile-nav";
 import { CustomerLogo } from "@/components/logo";
 import { clientTheme } from "@/lib/client-theme";
 import { siteConfig } from "@/lib/site";
@@ -76,7 +78,7 @@ const GOLD = clientTheme.gold;
 export function LandingPage() {
   return (
     <div
-      className={`${display.variable} ${sans.variable} min-h-dvh bg-salon-bg text-salon-ink`}
+      className={`${display.variable} ${sans.variable} min-h-dvh bg-salon-bg pb-[calc(4.5rem+env(safe-area-inset-bottom))] text-salon-ink md:pb-0`}
       style={{ fontFamily: "var(--font-landing-sans), sans-serif" }}
     >
       <style>{`
@@ -157,8 +159,67 @@ export function LandingPage() {
         }
       `}</style>
 
-      {/* Editorial white hero — photo backdrop, no card boxes */}
-      <section className="relative min-h-dvh overflow-hidden bg-salon-white">
+      {/* Mobile template hero */}
+      <section className="relative overflow-hidden bg-salon-white md:hidden">
+        <header className="relative z-20 flex items-center justify-between border-b border-salon-beige/25 bg-white/90 px-4 py-3 backdrop-blur-sm">
+          <Link href="/" className="flex items-center gap-2">
+            <CustomerLogo size="mark" />
+            <span className="font-serif text-[10px] font-medium uppercase tracking-[0.22em] text-salon-ink">
+              Salon <span className="text-[#D32F2F]">I</span> Squad
+            </span>
+          </Link>
+          <Link
+            href="/booking"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-salon-gold"
+            aria-label="Menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Link>
+        </header>
+
+        <div className="relative h-[46vh] min-h-[300px]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={HERO_IMAGE}
+            alt=""
+            className="landing-ken h-full w-full object-cover object-center grayscale contrast-[0.92]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-black/10" />
+          <div className="absolute inset-x-0 bottom-0 flex justify-center px-6 pb-2">
+            <CustomerLogo size="hero" animated className="mx-auto drop-shadow-lg" />
+          </div>
+        </div>
+
+        <div className="px-5 pb-10 pt-6 text-center">
+          <div
+            className="landing-rule mx-auto h-px w-16"
+            style={{ backgroundColor: GOLD }}
+          />
+          <p className="landing-rise-2 mt-5 text-[11px] font-semibold uppercase tracking-[0.28em] text-salon-ink">
+            Precision in style.
+          </p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-salon-ink">
+            Obsession in every detail.
+          </p>
+          <p
+            className="landing-rise-3 mt-3 text-base italic text-salon-gold"
+            style={{ fontFamily: "var(--font-landing-display), serif" }}
+          >
+            Where artistry meets experience.
+          </p>
+          <div className="landing-rise-4 mt-8">
+            <Link
+              href="/booking"
+              className="landing-cta flex h-12 w-full items-center justify-center rounded-sm text-[11px] font-bold uppercase tracking-[0.22em] text-black"
+            >
+              Book appointment
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Desktop editorial hero */}
+      <section className="relative hidden min-h-dvh overflow-hidden bg-salon-white md:block">
         <div className="absolute inset-0 landing-fade-in">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -200,7 +261,7 @@ export function LandingPage() {
             <CustomerLogo
               size="hero"
               animated
-              className="mb-7 w-[min(100%,240px)] md:w-[260px]"
+              className="mb-7"
             />
 
             <div
@@ -443,7 +504,7 @@ export function LandingPage() {
       <footer className="border-t border-salon-beige/40 bg-salon-bg">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-12 sm:flex-row sm:items-center sm:justify-between md:px-8">
           <div>
-            <CustomerLogo className="h-10" />
+            <CustomerLogo />
             <p className="mt-3 max-w-xs text-xs font-light leading-relaxed text-salon-muted">
               Precision styling and calm luxury in the heart of Colombo.
             </p>
@@ -459,6 +520,8 @@ export function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <ClientMobileNav />
     </div>
   );
 }
