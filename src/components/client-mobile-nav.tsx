@@ -38,7 +38,7 @@ const tabs: Tab[] = [
   {
     id: "my-bookings",
     href: "/my-bookings",
-    label: "My bookings",
+    label: "Bookings",
     icon: ClipboardList,
   },
   {
@@ -132,7 +132,7 @@ export function ClientMobileNav() {
       className="fixed inset-x-0 bottom-0 z-30 border-t border-salon-beige/30 bg-salon-white/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"
       aria-label="Mobile navigation"
     >
-      <div className="mx-auto flex max-w-lg items-end justify-around px-1">
+      <div className="mx-auto flex max-w-lg items-end justify-between px-1">
         {tabs.map((tab) => {
           const active = isActive(tab);
           const Icon = tab.icon;
@@ -142,13 +142,13 @@ export function ClientMobileNav() {
               key={tab.id}
               href={tab.href}
               onClick={(e) => handleClick(tab, e)}
-              className={`flex min-w-[3.75rem] flex-col items-center gap-1 px-1.5 py-1 transition ${
+              className={`flex flex-1 flex-col items-center gap-1 px-0.5 py-1 transition ${
                 active ? "text-salon-gold" : "text-salon-muted"
               }`}
             >
               {isBooking ? (
                 <span
-                  className={`-mt-5 flex h-12 w-12 items-center justify-center rounded-full border-2 ${
+                  className={`-mt-5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 ${
                     active
                       ? "border-salon-gold bg-salon-gold text-black shadow-lg shadow-salon-gold/25"
                       : "border-salon-gold/50 bg-salon-white text-salon-gold"
@@ -157,9 +157,14 @@ export function ClientMobileNav() {
                   <Icon className="h-5 w-5" strokeWidth={2.25} />
                 </span>
               ) : (
-                <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.75} />
+                <Icon
+                  className="h-5 w-5 shrink-0"
+                  strokeWidth={active ? 2.25 : 1.75}
+                />
               )}
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              <span className="h-3 max-w-full truncate text-center text-[10px] font-medium leading-none tracking-normal">
+                {tab.label}
+              </span>
             </Link>
           );
         })}

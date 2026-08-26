@@ -211,9 +211,6 @@ export function LoginForm() {
             <p className="mt-4 text-sm leading-relaxed text-salon-muted">
               Book your next haircut, styling, or treatment in seconds.
             </p>
-            <p className="mt-2 text-[11px] text-salon-muted/80">
-              Master: Google sign-in as {MASTER_BOOTSTRAP_EMAIL}
-            </p>
           </div>
 
           <div className="space-y-3">

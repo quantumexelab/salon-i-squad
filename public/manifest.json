@@ -6,11 +6,17 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#F8F5F0",
-  "theme_color": "#D4AF37",
+  "background_color": "#0C0C0C",
+  "theme_color": "#C6A664",
   "orientation": "portrait-primary",
   "categories": ["lifestyle", "business"],
   "icons": [
+    {
+      "src": "/icons/icon-48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
@@ -24,7 +30,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
