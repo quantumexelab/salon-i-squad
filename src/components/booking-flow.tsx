@@ -233,26 +233,18 @@ export function BookingFlow() {
   }
 
   function toggleService(service: Service) {
+    setSelectedServices((prev) => {
+      const exists = prev.some((s) => s.id === service.id);
+      if (exists) {
+        return prev.filter((s) => s.id !== service.id);
+      }
+      // Always allow adding another service (multi-select).
+      return [...prev, service];
+    });
     setSelectedDate(null);
     setSelectedSlot(null);
     setError(null);
     setSuccessMessage(null);
-
-    setSelectedServices((prev) => {
-      const already = prev.some((s) => s.id === service.id);
-      if (already) {
-        return prev.filter((s) => s.id !== service.id);
-      }
-
-      // Consultation services must be booked alone.
-      if (service.requiresConsultation) {
-        return [service];
-      }
-      if (prev.some((s) => s.requiresConsultation)) {
-        return [service];
-      }
-      return [...prev, service];
-    });
   }
 
   function selectDate(day: Date) {
@@ -444,7 +436,12 @@ export function BookingFlow() {
                     <button
                       key={service.id}
                       type="button"
-                      onClick={() => toggleService(service)}
+                      aria-pressed={selected}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleService(service);
+                      }}
                       disabled={saving}
                       className={`relative overflow-hidden rounded-2xl border bg-salon-white text-left transition active:scale-[0.99] disabled:opacity-60 ${
                         selected
@@ -452,11 +449,16 @@ export function BookingFlow() {
                           : "border-salon-beige/40 shadow-[var(--salon-shadow)]"
                       }`}
                     >
-                      {selected ? (
-                        <span className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-salon-gold text-black">
-                          <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                        </span>
-                      ) : null}
+                      <span
+                        className={`absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-md border-2 ${
+                          selected
+                            ? "border-salon-gold bg-salon-gold text-black"
+                            : "border-white/80 bg-black/25 text-transparent"
+                        }`}
+                        aria-hidden
+                      >
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                      </span>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={serviceImageFor(service.name, service.imageUrl)}

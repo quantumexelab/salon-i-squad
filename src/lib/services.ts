@@ -63,7 +63,9 @@ function mapServiceDoc(id: string, data: Record<string, unknown>): Service {
     durationMinutes: Number(data.durationMinutes ?? 0),
     price: Number(data.price ?? 0),
     imageUrl: normalizeImageUrl(data.imageUrl),
-    requiresConsultation: Boolean(data.requiresConsultation),
+    requiresConsultation:
+      data.requiresConsultation === true ||
+      data.requiresConsultation === "true",
     isActive: data.isActive !== false,
     createdAt: String(data.createdAt ?? ""),
     updatedAt: String(data.updatedAt ?? ""),
