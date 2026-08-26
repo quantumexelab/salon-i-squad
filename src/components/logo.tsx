@@ -10,6 +10,7 @@ import {
   SalonLogoMark,
   SalonWordmark,
 } from "@/components/salon-logo-mark";
+import { useThemeMode } from "@/contexts/theme-mode-context";
 
 const LOGO_SESSION_KEY = "sis-logo-animated";
 
@@ -91,7 +92,10 @@ export function CustomerLogo({
   animated = false,
 }: CustomerLogoProps) {
   const { logoUrl, hasRemote, setFailed } = useRemoteBranding();
+  const { mode } = useThemeMode();
   const fallback = brandingFallbackName();
+  /** SVG “dark” palette = gold marks for dark UI; “light” = black marks for ivory UI. */
+  const markVariant = mode === "dark" ? "dark" : "light";
 
   if (hasRemote) {
     return (
@@ -108,7 +112,7 @@ export function CustomerLogo({
   if (size === "mark") {
     return (
       <SalonLogoMark
-        variant="light"
+        variant={markVariant}
         animated={animated}
         className={`h-10 w-10 shrink-0 ${className ?? ""}`}
       />
@@ -118,7 +122,7 @@ export function CustomerLogo({
   if (size === "hero") {
     return (
       <SalonLogoFull
-        variant="light"
+        variant={markVariant}
         animated={animated}
         markClassName="h-[4.5rem] w-[4.5rem] sm:h-20 sm:w-20"
         wordmarkClassName="text-xs sm:text-sm"
@@ -133,12 +137,12 @@ export function CustomerLogo({
       aria-label={fallback}
     >
       <SalonLogoMark
-        variant="light"
+        variant={markVariant}
         animated={animated}
         className="h-9 w-9 shrink-0"
       />
       <SalonWordmark
-        variant="light"
+        variant={markVariant}
         animated={animated}
         className="truncate text-left text-[10px] tracking-[0.22em] sm:text-[11px]"
       />

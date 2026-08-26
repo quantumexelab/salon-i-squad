@@ -4,8 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { CustomerLogo, useLogoSessionAnimation } from "@/components/logo";
+import { ClientMobileNav } from "@/components/client-mobile-nav";
 import { LogoutButton } from "@/components/logout-button";
 import { PushNotificationBootstrap } from "@/components/push-notification-bootstrap";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/contexts/auth-context";
 
 const clientNav = [
@@ -23,47 +25,54 @@ export function ClientShell({ children }: { children: ReactNode }) {
     pathname.startsWith("/my-bookings") ||
     pathname.startsWith("/reschedule");
 
+  const hideChromeHeader =
+    pathname.startsWith("/booking") || pathname === "/login";
+
   return (
-    <div className="flex min-h-full flex-col bg-salon-bg">
+    <div className="flex min-h-full flex-col bg-salon-bg pb-[calc(4.5rem+env(safe-area-inset-bottom))] text-salon-ink md:pb-0">
       <PushNotificationBootstrap />
-      <header className="border-b border-salon-gold/25 bg-salon-white px-4 py-3 shadow-sm shadow-salon-gold/5">
-        <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
-          <Link href="/" className="min-w-0">
-            <CustomerLogo animated={animateLogo} />
-            {user && showNav ? (
-              <p className="mt-0.5 truncate text-[11px] text-salon-muted">
-                {user.displayName ?? user.email ?? "Signed in"}
-              </p>
-            ) : null}
-          </Link>
-          {showNav ? (
-            <div className="flex shrink-0 items-center gap-1">
-              <nav className="flex gap-1">
-                {clientNav.map((item) => {
-                  const active =
-                    pathname === item.href ||
-                    pathname.startsWith(`${item.href}/`);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
-                        active
-                          ? "bg-salon-gold/15 text-salon-gold"
-                          : "text-salon-muted hover:bg-salon-surface hover:text-salon-ink"
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </nav>
-              {user ? <LogoutButton compact tone="light" /> : null}
+      {!hideChromeHeader ? (
+        <header className="sticky top-0 z-20 border-b border-salon-beige/30 bg-salon-white/95 shadow-sm shadow-black/5 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3">
+            <Link href="/" className="flex min-w-0 items-center gap-2.5">
+              <CustomerLogo size="mark" animated={animateLogo} />
+              <span className="hidden truncate font-serif text-[11px] font-medium uppercase tracking-[0.24em] text-salon-ink sm:inline">
+                Salon <span className="text-salon-script">I</span> Squad
+              </span>
+            </Link>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <ThemeToggle size="compact" />
+              {showNav ? (
+                <>
+                  <nav className="flex gap-1">
+                    {clientNav.map((item) => {
+                      const active =
+                        pathname === item.href ||
+                        pathname.startsWith(`${item.href}/`);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
+                            active
+                              ? "salon-gold-btn text-black shadow-sm shadow-salon-gold/20"
+                              : "text-salon-muted hover:bg-salon-surface hover:text-salon-ink"
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </nav>
+                  {user ? <LogoutButton compact tone="light" /> : null}
+                </>
+              ) : null}
             </div>
-          ) : null}
-        </div>
-      </header>
+          </div>
+        </header>
+      ) : null}
       <main className="flex flex-1 flex-col">{children}</main>
+      <ClientMobileNav />
     </div>
   );
 }

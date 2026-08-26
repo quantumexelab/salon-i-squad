@@ -17,6 +17,7 @@ import {
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getClientStorage, initFirebaseClient } from "@/lib/firebase/client";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
+import { serviceImageFor } from "@/lib/service-images";
 import type { Service } from "@/types/firestore";
 
 export type ServiceInput = {
@@ -173,4 +174,105 @@ export async function updateService(
 export async function deleteService(serviceId: string): Promise<void> {
   initFirebase();
   await deleteDoc(doc(getFirebaseDb(), COLLECTIONS.services, serviceId));
+}
+
+const SAMPLE_CATALOG: ServiceInput[] = [
+  {
+    name: "Haircut",
+    description: "Classic cut and finish tailored to your face shape.",
+    durationMinutes: 30,
+    price: 1500,
+    imageUrl:
+      "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800&q=80",
+    isActive: true,
+    requiresConsultation: false,
+  },
+  {
+    name: "Beard Grooming",
+    description: "Trim, shape, and clean beard finish.",
+    durationMinutes: 25,
+    price: 1000,
+    imageUrl:
+      "https://images.unsplash.com/photo-1621607512214-68297480165e?auto=format&fit=crop&w=800&q=80",
+    isActive: true,
+    requiresConsultation: false,
+  },
+  {
+    name: "Classic Shave",
+    description: "Hot towel traditional shave.",
+    durationMinutes: 20,
+    price: 1200,
+    imageUrl:
+      "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80",
+    isActive: true,
+    requiresConsultation: false,
+  },
+  {
+    name: "Hair Styling",
+    description: "Wash, blow-dry, and style.",
+    durationMinutes: 40,
+    price: 2000,
+    imageUrl:
+      "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80",
+    isActive: true,
+    requiresConsultation: false,
+  },
+  {
+    name: "Hair Colour",
+    description: "Full colour or refresh — consultation first.",
+    durationMinutes: 90,
+    price: 5500,
+    imageUrl:
+      "https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=800&q=80",
+    isActive: true,
+    requiresConsultation: true,
+  },
+  {
+    name: "Facial Treatment",
+    description: "Deep cleanse and glow-restoring facial.",
+    durationMinutes: 45,
+    price: 3500,
+    imageUrl:
+      "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80",
+    isActive: true,
+    requiresConsultation: false,
+  },
+];
+
+/**
+ * Creates sample catalog services (skips names that already exist) and
+ * fills missing imageUrl on existing services from the name-based catalog.
+ */
+export async function seedCatalogServices(
+  existing: Service[],
+): Promise<{ created: number; updated: number }> {
+  const byName = new Map(
+    existing.map((s) => [s.name.trim().toLowerCase(), s]),
+  );
+  let created = 0;
+  let updated = 0;
+
+  for (const sample of SAMPLE_CATALOG) {
+    const key = sample.name.trim().toLowerCase();
+    if (byName.has(key)) continue;
+    await createService(sample);
+    created += 1;
+  }
+
+  for (const service of existing) {
+    if (service.imageUrl?.trim()) continue;
+    const guessed = serviceImageFor(service.name);
+    await updateService(service.id, {
+      name: service.name,
+      description: service.description ?? "",
+      durationMinutes: service.durationMinutes,
+      price: service.price,
+      imageUrl: guessed,
+      isActive: service.isActive,
+      requiresConsultation: service.requiresConsultation,
+    });
+    updated += 1;
+  }
+
+  return { created, updated };
 }

@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { BookingFlow } from "@/components/booking-flow";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/contexts/auth-context";
 import {
   canBootstrapMaster,
@@ -27,8 +28,6 @@ export function BookingPageContent() {
     const currentProfile = profile;
 
     async function redirectStaffAwayFromBooking() {
-      // Master owner email must never stay on the client booking page —
-      // even when the Firestore profile doc is still missing.
       if (canBootstrapMaster(currentUser)) {
         setRedirecting(true);
         setRedirectError(null);
@@ -84,32 +83,32 @@ export function BookingPageContent() {
 
   return (
     <AuthGuard>
-      <section className="relative flex flex-1 flex-col overflow-hidden bg-salon-bg px-4 pb-4 pt-6">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-salon-gold/8 via-salon-bg to-salon-bg" />
-
-        <div className="relative z-10 mx-auto w-full max-w-lg">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-salon-gold/10 ring-1 ring-salon-gold/25">
-                <CalendarDays className="h-5 w-5 text-salon-gold" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-xl font-semibold tracking-tight text-salon-ink sm:text-2xl">
-                  Book Appointment
-                </h1>
-                <p className="truncate text-xs text-salon-muted sm:text-sm">
-                  Signed in as{" "}
-                  {user?.email ?? user?.displayName ?? user?.uid}
-                  {profile?.role ? ` · ${profile.role}` : ""}
-                </p>
-              </div>
+      <section className="relative flex flex-1 flex-col bg-salon-bg px-4 pb-4 pt-4 md:px-6 md:pt-6">
+        <div className="relative z-10 mx-auto w-full max-w-6xl">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1
+                className="text-2xl font-semibold tracking-tight text-salon-ink md:text-3xl"
+                style={{
+                  fontFamily: "var(--font-landing-display, Georgia), serif",
+                }}
+              >
+                Book Your Appointment
+              </h1>
+              <p className="mt-1 text-sm text-salon-muted">
+                Choose a service and continue to date & time.
+              </p>
             </div>
-            <Link
-              href="/my-bookings"
-              className="shrink-0 rounded-xl border border-salon-gold/30 px-3 py-2 text-xs font-semibold text-salon-gold"
-            >
-              My bookings
-            </Link>
+            <div className="flex items-center gap-2">
+              <ThemeToggle size="compact" />
+              <Link
+                href="/"
+                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-salon-beige/40 bg-salon-white px-3 text-xs font-semibold text-salon-ink hover:border-salon-gold/40"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Back to Home
+              </Link>
+            </div>
           </div>
 
           <BookingFlow />

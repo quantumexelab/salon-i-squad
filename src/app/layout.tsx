@@ -47,13 +47,15 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: light)", color: siteConfig.themeColor },
     { media: "(prefers-color-scheme: dark)", color: siteConfig.themeColor },
   ],
-  colorScheme: "light",
+  colorScheme: "light dark",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
 };
+
+const themeBootScript = `(function(){try{var t=localStorage.getItem("sis-theme");if(t!=="dark"&&t!=="light")t="light";document.documentElement.setAttribute("data-theme",t);document.documentElement.style.colorScheme=t;}catch(e){document.documentElement.setAttribute("data-theme","light");}})();`;
 
 export default function RootLayout({
   children,
@@ -63,9 +65,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="light"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         {/* Explicit PWA / iOS install hints (complements Next metadata). */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta

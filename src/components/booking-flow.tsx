@@ -318,330 +318,364 @@ export function BookingFlow() {
 
   return (
     <div
-      className={`mx-auto flex w-full max-w-lg flex-col gap-6 ${
-        needsPhone ? "pb-40" : "pb-32"
+      className={`mx-auto flex w-full max-w-6xl flex-col gap-6 lg:flex-row lg:gap-8 ${
+        needsPhone ? "pb-44" : "pb-36"
       } md:pb-28`}
     >
-      <StepHeader step={step} />
-
-      {successMessage ? (
-        <div
-          role="status"
-          className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
-        >
-          {successMessage}
+      {/* Desktop sidebar stepper */}
+      <aside className="hidden w-64 shrink-0 flex-col gap-6 lg:flex">
+        <div className="rounded-2xl border border-salon-beige/35 bg-salon-white p-5 shadow-[var(--salon-shadow)]">
+          <StepHeader step={step} />
         </div>
-      ) : null}
-
-      {activeStep === "service" ? (
-        <section className="space-y-3">
-          <SectionLabel
-            icon={<Scissors className="h-3.5 w-3.5" />}
-            title="Select a service"
-          />
-
-          {servicesLoading ? (
-            <ServiceListSkeleton />
-          ) : servicesError ? (
-            <p className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {servicesError}
-            </p>
-          ) : services.length === 0 ? (
-            <p className="rounded-2xl border border-salon-gold/15 bg-salon-surface/50 px-4 py-6 text-center text-sm text-salon-muted">
-              No services available yet. Ask the salon to add offerings in Admin →
-              Services.
-            </p>
-          ) : (
-            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 snap-x snap-mandatory">
-              {services.map((service) => {
-                const selected = selectedService?.id === service.id;
-                return (
-                  <button
-                    key={service.id}
-                    type="button"
-                    onClick={() => selectService(service)}
-                    disabled={saving}
-                    className={`relative w-[min(72vw,240px)] shrink-0 snap-start overflow-hidden rounded-2xl border bg-salon-white text-left transition active:scale-[0.99] disabled:opacity-60 ${
-                      selected
-                        ? "border-salon-gold ring-2 ring-salon-gold/30"
-                        : "border-salon-beige/40 shadow-sm shadow-black/[0.04]"
-                    }`}
-                  >
-                    {selected ? (
-                      <span className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-salon-gold text-salon-black">
-                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                      </span>
-                    ) : null}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={serviceImageFor(service.name, service.imageUrl)}
-                      alt={service.name}
-                      className="aspect-[4/3] w-full object-cover"
-                    />
-                    <span className="block px-3 py-3">
-                      <span className="block text-sm font-semibold text-salon-ink">
-                        {service.name}
-                      </span>
-                      <span className="mt-0.5 block text-sm font-semibold text-salon-gold">
-                        {formatLkr(service.price)}
-                      </span>
-                      <span className="mt-1 block text-[11px] text-salon-muted line-clamp-2">
-                        {service.description || "Salon service"}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      ) : null}
-
-      {activeStep !== "service" && selectedService ? (
-        <section className="space-y-3">
-          <SectionLabel
-            icon={<Scissors className="h-3.5 w-3.5" />}
-            title="Service"
-            action={
-              <button
-                type="button"
-                onClick={() => resetFrom("service")}
-                className="text-xs font-medium text-salon-gold"
-              >
-                Change
-              </button>
-            }
-          />
-          <SelectedSummary
-            title={getBookableServiceLabel(selectedService)}
-            subtitle={
-              needsConsultation
-                ? `${CONSULTATION_DURATION_MINUTES} min consultation · ${formatLkr(selectedService.price)}`
-                : `${selectedService.durationMinutes} min · ${formatLkr(selectedService.price)}`
-            }
-          />
-        </section>
-      ) : null}
-
-      {activeStep === "date" && selectedService ? (
-        <section className="space-y-3">
-          {needsConsultation ? (
-            <div
-              role="status"
-              className="rounded-2xl border border-salon-gold/30 bg-salon-gold/10 px-4 py-3 text-sm text-salon-gold"
-            >
-              This complex service requires a prior consultation. You are
-              booking a {CONSULTATION_DURATION_MINUTES}-minute consultation
-              session first.
-            </div>
-          ) : null}
-          <SectionLabel
-            icon={<CalendarDays className="h-3.5 w-3.5" />}
-            title="Pick a date"
-          />
-
-          <div className="overflow-hidden rounded-2xl border border-salon-surface bg-salon-surface/60 p-3 sm:p-4">
-            <div className="mb-3 flex items-center justify-between px-1">
-              <button
-                type="button"
-                aria-label="Previous month"
-                onClick={() => setMonthCursor((m) => addMonths(m, -1))}
-                disabled={isSameMonth(monthCursor, today) || saving}
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-salon-gold transition hover:bg-salon-surface disabled:opacity-30"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <p className="text-sm font-semibold text-salon-ink">
-                {format(monthCursor, "MMMM yyyy")}
+        <div className="rounded-2xl border border-salon-beige/35 bg-salon-surface p-4">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-salon-gold/15 text-salon-gold">
+              <Phone className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-salon-muted">
+                Need help?
               </p>
-              <button
-                type="button"
-                aria-label="Next month"
-                onClick={() => setMonthCursor((m) => addMonths(m, 1))}
-                disabled={saving}
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-salon-gold transition hover:bg-salon-surface disabled:opacity-30"
+              <a
+                href="tel:+94771234567"
+                className="mt-1 block text-sm font-semibold text-salon-gold hover:underline"
               >
-                <ChevronRight className="h-5 w-5" />
-              </button>
+                +94 77 123 4567
+              </a>
             </div>
+          </div>
+        </div>
+      </aside>
 
-            <div className="mb-1 grid grid-cols-7 gap-1">
-              {WEEKDAYS.map((day) => (
-                <div
-                  key={day}
-                  className="py-1 text-center text-[11px] font-medium text-salon-muted"
+      <div className="min-w-0 flex-1 space-y-5">
+        {/* Mobile stepper */}
+        <div className="rounded-2xl border border-salon-beige/35 bg-salon-white p-4 lg:hidden">
+          <StepHeader step={step} horizontal />
+        </div>
+
+        {successMessage ? (
+          <div
+            role="status"
+            className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300"
+          >
+            {successMessage}
+          </div>
+        ) : null}
+
+        {activeStep === "service" ? (
+          <section className="space-y-4">
+            <SectionLabel
+              icon={<Scissors className="h-3.5 w-3.5" />}
+              title="Choose Your Service"
+            />
+
+            {servicesLoading ? (
+              <ServiceListSkeleton />
+            ) : servicesError ? (
+              <p className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600">
+                {servicesError}
+              </p>
+            ) : services.length === 0 ? (
+              <p className="rounded-2xl border border-salon-gold/15 bg-salon-surface/50 px-4 py-6 text-center text-sm text-salon-muted">
+                No services available yet. Ask the salon to add offerings in
+                Admin → Services.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {services.map((service) => {
+                  const selected = selectedService?.id === service.id;
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      onClick={() => selectService(service)}
+                      disabled={saving}
+                      className={`relative overflow-hidden rounded-2xl border bg-salon-white text-left transition active:scale-[0.99] disabled:opacity-60 ${
+                        selected
+                          ? "border-salon-gold ring-2 ring-salon-gold/30"
+                          : "border-salon-beige/40 shadow-[var(--salon-shadow)]"
+                      }`}
+                    >
+                      {selected ? (
+                        <span className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-salon-gold text-black">
+                          <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                        </span>
+                      ) : null}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={serviceImageFor(service.name, service.imageUrl)}
+                        alt={service.name}
+                        className="aspect-[16/10] w-full object-cover"
+                      />
+                      <span className="block px-3 py-3">
+                        <span className="block text-sm font-semibold text-salon-ink">
+                          {service.name}
+                        </span>
+                        <span className="mt-1 block text-[11px] text-salon-muted">
+                          {getBookableDurationMinutes(service)} mins ·{" "}
+                          <span className="font-semibold text-salon-gold">
+                            {formatLkr(service.price)}
+                          </span>
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        ) : null}
+
+        {activeStep !== "service" && selectedService ? (
+          <section className="space-y-3">
+            <SectionLabel
+              icon={<Scissors className="h-3.5 w-3.5" />}
+              title="Service"
+              action={
+                <button
+                  type="button"
+                  onClick={() => resetFrom("service")}
+                  className="text-xs font-medium text-salon-gold"
                 >
-                  {day}
-                </div>
-              ))}
-            </div>
+                  Change
+                </button>
+              }
+            />
+            <SelectedSummary
+              title={getBookableServiceLabel(selectedService)}
+              subtitle={
+                needsConsultation
+                  ? `${CONSULTATION_DURATION_MINUTES} min consultation · ${formatLkr(selectedService.price)}`
+                  : `${selectedService.durationMinutes} min · ${formatLkr(selectedService.price)}`
+              }
+            />
+          </section>
+        ) : null}
 
-            <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map((day) => {
-                const inMonth = isSameMonth(day, monthCursor);
-                const past = isBefore(day, today);
-                const closed = closedDateKeys.has(toDateKey(day));
-                const selected = selectedDate
-                  ? isSameDay(day, selectedDate)
-                  : false;
-                const isToday = isSameDay(day, today);
-                const disabled = past || closed || !inMonth || saving;
-
-                return (
-                  <button
-                    key={day.toISOString()}
-                    type="button"
-                    disabled={disabled}
-                    title={closed ? "Salon closed" : undefined}
-                    onClick={() => selectDate(day)}
-                    className={`relative flex aspect-square items-center justify-center rounded-xl text-sm font-medium transition ${
-                      selected
-                        ? "bg-salon-gold text-salon-black shadow-lg shadow-salon-gold/20"
-                        : disabled
-                          ? "text-salon-muted/60"
-                          : isToday
-                            ? "bg-salon-surface text-salon-gold ring-1 ring-salon-gold/40"
-                            : "text-salon-ink hover:bg-salon-surface"
-                    }`}
-                  >
-                    {format(day, "d")}
-                    {closed && inMonth && !past ? (
-                      <span className="absolute bottom-1 h-1 w-1 rounded-full bg-red-400/80" />
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {activeStep === "time" && selectedService && selectedDate ? (
-        <section className="space-y-3">
-          <SectionLabel
-            icon={<CalendarDays className="h-3.5 w-3.5" />}
-            title="Date"
-            action={
-              <button
-                type="button"
-                onClick={() => resetFrom("date")}
-                className="text-xs font-medium text-salon-gold"
+        {activeStep === "date" && selectedService ? (
+          <section className="space-y-3">
+            {needsConsultation ? (
+              <div
+                role="status"
+                className="rounded-2xl border border-salon-gold/30 bg-salon-gold/10 px-4 py-3 text-sm text-salon-gold"
               >
-                Change
-              </button>
-            }
-          />
-          <SelectedSummary
-            title={format(selectedDate, "EEEE, MMM d")}
-            subtitle={format(selectedDate, "yyyy")}
-          />
-        </section>
-      ) : null}
+                This complex service requires a prior consultation. You are
+                booking a {CONSULTATION_DURATION_MINUTES}-minute consultation
+                session first.
+              </div>
+            ) : null}
+            <SectionLabel
+              icon={<CalendarDays className="h-3.5 w-3.5" />}
+              title="Pick a date"
+            />
 
-      {activeStep === "time" && selectedService && selectedDate ? (
-        <section className="space-y-3">
-          <SectionLabel
-            icon={<Clock className="h-3.5 w-3.5" />}
-            title="Available times"
-          />
-          {availableSlots.length === 0 ? (
-            <p className="rounded-2xl border border-salon-gold/15 bg-salon-surface/50 px-4 py-6 text-center text-sm text-salon-muted">
-              No open slots on this day. Try another date.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-              {availableSlots.map((slot) => {
-                const selected = selectedSlot === slot;
-                return (
-                  <button
-                    key={slot}
-                    type="button"
-                    disabled={saving}
-                    onClick={() => {
-                      setSelectedSlot(slot);
-                      setError(null);
-                      setSuccessMessage(null);
-                    }}
-                    className={`rounded-xl border px-2 py-3 text-center text-xs font-semibold transition active:scale-[0.98] disabled:opacity-60 sm:text-sm ${
-                      selected
-                        ? "border-salon-gold/50 bg-salon-gold text-salon-black"
-                        : "border-salon-surface bg-salon-surface/60 text-salon-ink hover:border-salon-gold/25 hover:bg-salon-surface"
-                    }`}
+            <div className="overflow-hidden rounded-2xl border border-salon-beige/35 bg-salon-white p-3 shadow-[var(--salon-shadow)] sm:p-4">
+              <div className="mb-3 flex items-center justify-between px-1">
+                <button
+                  type="button"
+                  aria-label="Previous month"
+                  onClick={() => setMonthCursor((m) => addMonths(m, -1))}
+                  disabled={isSameMonth(monthCursor, today) || saving}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-salon-gold transition hover:bg-salon-surface disabled:opacity-30"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <p className="text-sm font-semibold text-salon-ink">
+                  {format(monthCursor, "MMMM yyyy")}
+                </p>
+                <button
+                  type="button"
+                  aria-label="Next month"
+                  onClick={() => setMonthCursor((m) => addMonths(m, 1))}
+                  disabled={saving}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-salon-gold transition hover:bg-salon-surface disabled:opacity-30"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mb-1 grid grid-cols-7 gap-1">
+                {WEEKDAYS.map((day) => (
+                  <div
+                    key={day}
+                    className="py-1 text-center text-[11px] font-medium text-salon-muted"
                   >
-                    {slot}
-                  </button>
-                );
-              })}
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((day) => {
+                  const inMonth = isSameMonth(day, monthCursor);
+                  const past = isBefore(day, today);
+                  const closed = closedDateKeys.has(toDateKey(day));
+                  const selected = selectedDate
+                    ? isSameDay(day, selectedDate)
+                    : false;
+                  const isToday = isSameDay(day, today);
+                  const disabled = past || closed || !inMonth || saving;
+
+                  return (
+                    <button
+                      key={day.toISOString()}
+                      type="button"
+                      disabled={disabled}
+                      title={closed ? "Salon closed" : undefined}
+                      onClick={() => selectDate(day)}
+                      className={`relative flex aspect-square items-center justify-center rounded-xl text-sm font-medium transition ${
+                        selected
+                          ? "bg-salon-gold text-black shadow-lg shadow-salon-gold/20"
+                          : disabled
+                            ? "text-salon-muted/60"
+                            : isToday
+                              ? "bg-salon-surface text-salon-gold ring-1 ring-salon-gold/40"
+                              : "text-salon-ink hover:bg-salon-surface"
+                      }`}
+                    >
+                      {format(day, "d")}
+                      {closed && inMonth && !past ? (
+                        <span className="absolute bottom-1 h-1 w-1 rounded-full bg-red-400/80" />
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          )}
-        </section>
-      ) : null}
+          </section>
+        ) : null}
 
-      {activeStep === "time" && selectedService && selectedDate && needsPhone ? (
-        <section className="space-y-3">
-          <SectionLabel
-            icon={<Phone className="h-3.5 w-3.5" />}
-            title="Your phone number"
-          />
-          <div className="rounded-2xl border border-salon-surface bg-salon-surface/60 p-4">
-            <p className="mb-3 text-xs text-salon-muted">
-              The salon needs your number to confirm or reschedule. Saved to
-              your profile for next time.
-            </p>
-            <label className="grid gap-1.5 text-xs text-salon-muted">
-              Phone number
-              <input
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                placeholder="07X XXX XXXX"
-                value={phoneInput}
-                disabled={saving}
-                onChange={(e) => {
-                  setPhoneInput(e.target.value);
-                  setError(null);
-                }}
-                className="h-11 rounded-xl border border-salon-gold/20 bg-salon-surface px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50 disabled:opacity-60"
-              />
-            </label>
+        {activeStep === "time" && selectedService && selectedDate ? (
+          <section className="space-y-3">
+            <SectionLabel
+              icon={<CalendarDays className="h-3.5 w-3.5" />}
+              title="Date"
+              action={
+                <button
+                  type="button"
+                  onClick={() => resetFrom("date")}
+                  className="text-xs font-medium text-salon-gold"
+                >
+                  Change
+                </button>
+              }
+            />
+            <SelectedSummary
+              title={format(selectedDate, "EEEE, MMM d")}
+              subtitle={format(selectedDate, "yyyy")}
+            />
+          </section>
+        ) : null}
+
+        {activeStep === "time" && selectedService && selectedDate ? (
+          <section className="space-y-3">
+            <SectionLabel
+              icon={<Clock className="h-3.5 w-3.5" />}
+              title="Available times"
+            />
+            {availableSlots.length === 0 ? (
+              <p className="rounded-2xl border border-salon-gold/15 bg-salon-surface/50 px-4 py-6 text-center text-sm text-salon-muted">
+                No open slots on this day. Try another date.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                {availableSlots.map((slot) => {
+                  const selected = selectedSlot === slot;
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      disabled={saving}
+                      onClick={() => {
+                        setSelectedSlot(slot);
+                        setError(null);
+                        setSuccessMessage(null);
+                      }}
+                      className={`rounded-xl border px-2 py-3 text-center text-xs font-semibold transition active:scale-[0.98] disabled:opacity-60 sm:text-sm ${
+                        selected
+                          ? "border-salon-gold/50 bg-salon-gold text-black"
+                          : "border-salon-beige/40 bg-salon-white text-salon-ink hover:border-salon-gold/40"
+                      }`}
+                    >
+                      {slot}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        ) : null}
+
+        {activeStep === "time" &&
+        selectedService &&
+        selectedDate &&
+        needsPhone ? (
+          <section className="space-y-3">
+            <SectionLabel
+              icon={<Phone className="h-3.5 w-3.5" />}
+              title="Your phone number"
+            />
+            <div className="rounded-2xl border border-salon-beige/35 bg-salon-white p-4 shadow-[var(--salon-shadow)]">
+              <p className="mb-3 text-xs text-salon-muted">
+                The salon needs your number to confirm or reschedule. Saved to
+                your profile for next time.
+              </p>
+              <label className="grid gap-1.5 text-xs text-salon-muted">
+                Phone number
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="07X XXX XXXX"
+                  value={phoneInput}
+                  disabled={saving}
+                  onChange={(e) => {
+                    setPhoneInput(e.target.value);
+                    setError(null);
+                  }}
+                  className="h-11 rounded-xl border border-salon-beige/40 bg-salon-surface px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50 disabled:opacity-60"
+                />
+              </label>
+            </div>
+          </section>
+        ) : null}
+      </div>
+
+      {/* Sticky footer CTA */}
+      <div className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 border-t border-salon-beige/30 bg-salon-white/95 px-4 pb-3 pt-3 backdrop-blur md:bottom-0 md:pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            {error ? (
+              <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-center text-xs text-red-600 lg:text-left">
+                {error}
+              </p>
+            ) : hasSelection ? (
+              <p className="truncate text-center text-xs text-salon-muted lg:text-left">
+                {selectedService
+                  ? getBookableServiceLabel(selectedService)
+                  : ""}{" "}
+                · {selectedDate ? format(selectedDate, "MMM d") : ""} ·{" "}
+                {selectedSlot}
+                {needsPhone && !phoneInput.trim()
+                  ? " · add phone to confirm"
+                  : ""}
+                {needsConsultation ? ` · ${bookableDuration} min` : ""}
+              </p>
+            ) : (
+              <p className="text-center text-xs text-salon-muted lg:text-left">
+                {activeStep === "service" &&
+                  "Select a service, then tap Next Step"}
+                {activeStep === "date" && "Select a date, then tap Next Step"}
+                {activeStep === "time" && "Select a time slot to confirm"}
+              </p>
+            )}
           </div>
-        </section>
-      ) : null}
-
-      <div className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 border-t border-salon-gold/15 bg-salon-white/95 px-4 pb-3 pt-3 backdrop-blur md:bottom-0 md:pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto flex w-full max-w-lg flex-col gap-2">
-          {error ? (
-            <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-center text-xs text-red-300">
-              {error}
-            </p>
-          ) : null}
-
-          {hasSelection ? (
-            <p className="truncate text-center text-xs text-salon-muted">
-              {selectedService
-                ? getBookableServiceLabel(selectedService)
-                : ""}{" "}
-              · {selectedDate ? format(selectedDate, "MMM d") : ""} ·{" "}
-              {selectedSlot}
-              {needsPhone && !phoneInput.trim()
-                ? " · add phone to confirm"
-                : ""}
-              {needsConsultation ? ` · ${bookableDuration} min` : ""}
-            </p>
-          ) : (
-            <p className="text-center text-xs text-salon-muted">
-              {activeStep === "service" &&
-                "Select a service, then tap Next"}
-              {activeStep === "date" && "Select a date, then tap Next"}
-              {activeStep === "time" && "Select a time slot to confirm"}
-            </p>
-          )}
           {activeStep === "time" ? (
             <button
               type="button"
               disabled={!canConfirm}
               onClick={handleConfirmBooking}
-              className="salon-gold-btn flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:bg-salon-surface disabled:text-salon-muted"
+              className="salon-gold-btn flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-bold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:bg-salon-surface disabled:text-salon-muted lg:w-auto lg:min-w-[220px] lg:px-8"
             >
               {saving ? (
                 <>
@@ -657,9 +691,9 @@ export function BookingFlow() {
               type="button"
               disabled={!canGoNext}
               onClick={goToNextStep}
-              className="salon-gold-btn flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:bg-salon-surface disabled:text-salon-muted"
+              className="salon-gold-btn flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-bold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:bg-salon-surface disabled:text-salon-muted lg:w-auto lg:min-w-[220px] lg:px-8"
             >
-              Next
+              Next Step
               <ChevronRight className="h-5 w-5" />
             </button>
           )}
@@ -671,31 +705,71 @@ export function BookingFlow() {
 
 function ServiceListSkeleton() {
   return (
-    <ul className="grid gap-3" aria-busy="true" aria-label="Loading services">
-      {[0, 1, 2].map((i) => (
-        <li
+    <div
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+      aria-busy="true"
+      aria-label="Loading services"
+    >
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <div
           key={i}
-          className="animate-pulse rounded-2xl border border-salon-surface bg-salon-surface/60 px-4 py-4"
+          className="animate-pulse overflow-hidden rounded-2xl border border-salon-beige/30 bg-salon-surface"
         >
-          <div className="mb-3 flex justify-between gap-3">
-            <div className="h-4 w-28 rounded bg-zinc-800" />
-            <div className="h-4 w-16 rounded bg-zinc-800" />
+          <div className="aspect-[16/10] bg-salon-beige/30" />
+          <div className="space-y-2 p-3">
+            <div className="h-4 w-28 rounded bg-salon-beige/40" />
+            <div className="h-3 w-20 rounded bg-salon-beige/30" />
           </div>
-          <div className="mb-3 h-3 w-48 rounded bg-zinc-800/80" />
-          <div className="h-5 w-20 rounded-full bg-zinc-800" />
-        </li>
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }
 
-function StepHeader({ step }: { step: Step }) {
+function StepHeader({
+  step,
+  horizontal = false,
+}: {
+  step: Step;
+  horizontal?: boolean;
+}) {
   const steps: { id: Step; label: string; num: number }[] = [
-    { id: "service", label: "Select Service", num: 1 },
-    { id: "date", label: "Pick Date & Time", num: 2 },
-    { id: "time", label: "Confirm", num: 3 },
+    { id: "service", label: "Service", num: 1 },
+    { id: "date", label: "Date & Time", num: 2 },
+    { id: "time", label: "Confirmation", num: 3 },
   ];
   const activeIndex = steps.findIndex((s) => s.id === step);
+
+  if (horizontal) {
+    return (
+      <ol className="flex items-center justify-between gap-2">
+        {steps.map((s, index) => {
+          const done = index < activeIndex;
+          const active = index === activeIndex;
+          return (
+            <li key={s.id} className="flex flex-1 flex-col items-center gap-1.5">
+              <span
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
+                  done || active
+                    ? "bg-salon-gold text-black"
+                    : "bg-salon-surface text-salon-muted ring-1 ring-salon-beige/50"
+                }`}
+              >
+                {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : s.num}
+              </span>
+              <span
+                className={`text-center text-[10px] font-medium uppercase tracking-wide ${
+                  active ? "text-salon-ink" : "text-salon-muted"
+                }`}
+              >
+                {s.label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    );
+  }
 
   return (
     <ol className="space-y-4">
@@ -707,14 +781,14 @@ function StepHeader({ step }: { step: Step }) {
             <span
               className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition ${
                 done || active
-                  ? "bg-salon-gold text-salon-black"
+                  ? "bg-salon-gold text-black"
                   : "bg-salon-surface text-salon-muted ring-1 ring-salon-beige/50"
               }`}
             >
               {done ? <Check className="h-4 w-4" strokeWidth={3} /> : s.num}
             </span>
             <span
-              className={`font-serif text-base ${
+              className={`text-sm ${
                 active
                   ? "font-semibold text-salon-ink"
                   : done
@@ -722,7 +796,7 @@ function StepHeader({ step }: { step: Step }) {
                     : "text-salon-muted"
               }`}
             >
-              {s.label}
+              {s.num}. {s.label}
             </span>
           </li>
         );
@@ -744,7 +818,9 @@ function SectionLabel({
     <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 text-salon-gold">
         <span className="text-salon-gold">{icon}</span>
-        <h2 className="text-sm font-semibold text-salon-ink">{title}</h2>
+        <h2 className="text-sm font-semibold text-salon-ink md:text-base">
+          {title}
+        </h2>
       </div>
       {action}
     </div>
@@ -759,7 +835,7 @@ function SelectedSummary({
   subtitle: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-salon-gold/15 bg-salon-surface/50 px-4 py-3">
+    <div className="flex items-center gap-3 rounded-2xl border border-salon-gold/20 bg-salon-surface/80 px-4 py-3">
       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-salon-gold/15 text-salon-gold">
         <Check className="h-4 w-4" strokeWidth={2.5} />
       </span>

@@ -202,12 +202,12 @@ export function LoginForm() {
 
   return (
     <>
-      <div className="relative flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-salon-gold/25 bg-salon-white shadow-xl shadow-salon-gold/10">
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-salon-gold/10 to-transparent" />
+      <div className="relative flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-salon-gold/25 bg-salon-white shadow-2xl shadow-salon-gold/15">
+        <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-salon-gold/15 to-transparent" />
 
         <div className="relative px-8 pb-8 pt-10">
           <div className="mb-8 flex flex-col items-center text-center">
-            <CustomerLogoHero />
+            <CustomerLogoHero className="mx-auto" />
             <p className="mt-4 text-sm leading-relaxed text-salon-muted">
               Book your next haircut, styling, or treatment in seconds.
             </p>

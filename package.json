@@ -11,6 +11,7 @@
     "emulators": "powershell -ExecutionPolicy Bypass -File scripts/start-emulators.ps1",
     "seed:emulator": "node scripts/seed-emulator.mjs",
     "connect:firebase": "powershell -ExecutionPolicy Bypass -File scripts/connect-firebase.ps1",
+    "connect:cli": "powershell -ExecutionPolicy Bypass -File scripts/connect-cli.ps1",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"

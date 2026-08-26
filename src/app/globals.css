@@ -1,8 +1,42 @@
 @import "tailwindcss";
 
-:root {
+/* Light (default) — white / ivory + gold */
+:root,
+html[data-theme="light"] {
   --background: #f8f5f0;
   --foreground: #1a1a1a;
+  --salon-bg: #f8f5f0;
+  --salon-white: #ffffff;
+  --salon-surface: #faf8f5;
+  --salon-ink: #1a1a1a;
+  --salon-muted: #6b6560;
+  --salon-gold: #c6a664;
+  --salon-champagne: #e8d9a8;
+  --salon-ivory: #f8f5f0;
+  --salon-beige: #d8c3a5;
+  --salon-black: #1a1a1a;
+  --salon-script: #b33a3a;
+  --salon-card-border: rgba(216, 195, 165, 0.45);
+  --salon-shadow: 0 8px 28px rgba(26, 26, 26, 0.06);
+}
+
+/* Dark — black + gold (mockup set) */
+html[data-theme="dark"] {
+  --background: #0b0b0b;
+  --foreground: #f5f5f5;
+  --salon-bg: #0b0b0b;
+  --salon-white: #141414;
+  --salon-surface: #1a1a1a;
+  --salon-ink: #f5f5f5;
+  --salon-muted: #a3a3a3;
+  --salon-gold: #c6a664;
+  --salon-champagne: #e8d9a8;
+  --salon-ivory: #121212;
+  --salon-beige: #3d3428;
+  --salon-black: #f5f5f5;
+  --salon-script: #e85d5d;
+  --salon-card-border: rgba(198, 166, 100, 0.22);
+  --salon-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
 }
 
 @theme inline {
@@ -11,28 +45,30 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  /* Salon I Squad — luxury white + gold (customer) */
-  --color-salon-bg: #f8f5f0;
-  --color-salon-white: #ffffff;
-  --color-salon-surface: #faf8f5;
-  --color-salon-ink: #1a1a1a;
-  --color-salon-muted: #6b6560;
-  --color-salon-gold: #d4af37;
-  --color-salon-champagne: #e8d9a8;
-  --color-salon-ivory: #f8f5f0;
-  --color-salon-beige: #d8c3a5;
-  /* Legacy aliases used in a few spots */
-  --color-salon-black: #1a1a1a;
+  --color-salon-bg: var(--salon-bg);
+  --color-salon-white: var(--salon-white);
+  --color-salon-surface: var(--salon-surface);
+  --color-salon-ink: var(--salon-ink);
+  --color-salon-muted: var(--salon-muted);
+  --color-salon-gold: var(--salon-gold);
+  --color-salon-champagne: var(--salon-champagne);
+  --color-salon-ivory: var(--salon-ivory);
+  --color-salon-beige: var(--salon-beige);
+  --color-salon-black: var(--salon-black);
+  --color-salon-script: var(--salon-script);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
 }
 
 .salon-gold-btn {
-  background: linear-gradient(135deg, #e8d9a8 0%, #d4af37 45%, #b8942e 100%);
+  background: linear-gradient(135deg, #e8d9a8 0%, #c6a664 45%, #a8893f 100%);
   color: #000000;
   transition:
     transform 0.35s ease,
@@ -43,7 +79,7 @@ body {
 .salon-gold-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   filter: brightness(1.06);
-  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.28);
+  box-shadow: 0 8px 24px rgba(198, 166, 100, 0.28);
 }
 
 .salon-gold-btn:disabled {
@@ -151,6 +187,11 @@ body {
 
 .logo-png-enter {
   animation: logo-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.customer-logo-img {
+  image-rendering: auto;
+  -webkit-font-smoothing: antialiased;
 }
 
 @media (prefers-reduced-motion: reduce) {

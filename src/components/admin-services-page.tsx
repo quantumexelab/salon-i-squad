@@ -7,6 +7,7 @@ import { serviceImageFor } from "@/lib/service-images";
 import {
   createService,
   deleteService,
+  seedCatalogServices,
   subscribeToServices,
   updateService,
   uploadServiceImageFile,
@@ -51,6 +52,7 @@ export function AdminServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -93,6 +95,26 @@ export function AdminServicesPage() {
     });
     setFormOpen(true);
     setError(null);
+  }
+
+  async function handleSeedCatalog() {
+    setSeeding(true);
+    setError(null);
+    try {
+      const result = await seedCatalogServices(services);
+      setError(null);
+      window.alert(
+        `Catalog updated: ${result.created} new service(s), ${result.updated} image(s) filled.`,
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not seed catalog. Sign in as admin/master first.",
+      );
+    } finally {
+      setSeeding(false);
+    }
   }
 
   async function handleImageUpload(file: File | null) {
@@ -186,14 +208,25 @@ export function AdminServicesPage() {
             Manage offerings shown on the client booking app.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 text-sm font-bold text-zinc-950 hover:bg-amber-300"
-        >
-          <Plus className="h-4 w-4" />
-          Add service
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handleSeedCatalog()}
+            disabled={saving || seeding}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-400/40 px-4 text-sm font-semibold text-amber-300 hover:bg-amber-400/10 disabled:opacity-60"
+          >
+            {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Add sample services + images
+          </button>
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 text-sm font-bold text-zinc-950 hover:bg-amber-300"
+          >
+            <Plus className="h-4 w-4" />
+            Add service
+          </button>
+        </div>
       </div>
 
       {error ? (
