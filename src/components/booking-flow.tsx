@@ -573,13 +573,23 @@ export function BookingFlow() {
               <div className="grid grid-cols-7 gap-1">
                 {calendarDays.map((day) => {
                   const inMonth = isSameMonth(day, monthCursor);
+                  if (!inMonth) {
+                    return (
+                      <div
+                        key={day.toISOString()}
+                        className="aspect-square"
+                        aria-hidden
+                      />
+                    );
+                  }
+
                   const past = isBefore(day, today);
                   const closed = closedDateKeys.has(toDateKey(day));
                   const selected = selectedDate
                     ? isSameDay(day, selectedDate)
                     : false;
                   const isToday = isSameDay(day, today);
-                  const disabled = past || closed || !inMonth || saving;
+                  const disabled = past || closed || saving;
 
                   return (
                     <button
@@ -599,7 +609,7 @@ export function BookingFlow() {
                       }`}
                     >
                       {format(day, "d")}
-                      {closed && inMonth && !past ? (
+                      {closed && !past ? (
                         <span className="absolute bottom-1 h-1 w-1 rounded-full bg-red-400/80" />
                       ) : null}
                     </button>
