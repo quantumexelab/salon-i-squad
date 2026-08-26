@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import {
   CalendarDays,
   ClipboardList,
@@ -10,43 +11,121 @@ import {
   Scissors,
 } from "lucide-react";
 
-const tabs = [
+type Tab = {
+  id: string;
+  href: string;
+  label: string;
+  icon: typeof Home;
+  /** Optional landing-page section id for in-page scroll. */
+  sectionId?: string;
+};
+
+const tabs: Tab[] = [
+  { id: "home", href: "/", label: "Home", icon: Home, sectionId: "home" },
   {
-    href: "/",
-    label: "Home",
-    icon: Home,
-    match: (p: string) => p === "/",
-  },
-  {
+    id: "services",
     href: "/#services",
     label: "Services",
     icon: Scissors,
-    match: () => false,
+    sectionId: "services",
   },
   {
+    id: "booking",
     href: "/booking",
     label: "Booking",
     icon: CalendarDays,
-    match: (p: string) =>
-      p.startsWith("/booking") || p.startsWith("/reschedule"),
   },
   {
+    id: "my-bookings",
     href: "/my-bookings",
     label: "My bookings",
     icon: ClipboardList,
-    match: (p: string) =>
-      p.startsWith("/my-bookings") || p.startsWith("/bookings"),
   },
   {
+    id: "contact",
     href: "/#contact",
     label: "Contact",
     icon: Phone,
-    match: () => false,
+    sectionId: "contact",
   },
-] as const;
+];
+
+function readHash(): string {
+  if (typeof window === "undefined") return "";
+  return window.location.hash.replace(/^#/, "");
+}
+
+function scrollToSection(sectionId: string) {
+  const el = document.getElementById(sectionId);
+  if (!el) return false;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  window.history.replaceState(null, "", sectionId === "home" ? "/" : `/#${sectionId}`);
+  return true;
+}
 
 export function ClientMobileNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [hash, setHash] = useState("");
+
+  const syncHash = useCallback(() => {
+    setHash(readHash());
+  }, []);
+
+  useEffect(() => {
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, [syncHash, pathname]);
+
+  // After navigating to home with a hash, scroll to the section.
+  useEffect(() => {
+    if (pathname !== "/") return;
+    const id = readHash();
+    if (!id) {
+      syncHash();
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      scrollToSection(id);
+      syncHash();
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [pathname, syncHash]);
+
+  function isActive(tab: Tab): boolean {
+    if (tab.id === "booking") {
+      return (
+        pathname.startsWith("/booking") || pathname.startsWith("/reschedule")
+      );
+    }
+    if (tab.id === "my-bookings") {
+      return (
+        pathname.startsWith("/my-bookings") || pathname.startsWith("/bookings")
+      );
+    }
+    if (pathname !== "/") return false;
+    if (tab.id === "home") {
+      return !hash || hash === "home";
+    }
+    return hash === tab.sectionId;
+  }
+
+  function handleClick(tab: Tab, e: MouseEvent<HTMLAnchorElement>) {
+    // Real app routes — let Next.js handle.
+    if (!tab.sectionId) return;
+
+    e.preventDefault();
+
+    if (pathname === "/") {
+      scrollToSection(tab.sectionId);
+      setHash(tab.sectionId === "home" ? "" : tab.sectionId);
+      return;
+    }
+
+    // From booking / my-bookings → go home then scroll.
+    router.push(tab.sectionId === "home" ? "/" : `/#${tab.sectionId}`);
+  }
 
   return (
     <nav
@@ -55,13 +134,14 @@ export function ClientMobileNav() {
     >
       <div className="mx-auto flex max-w-lg items-end justify-around px-1">
         {tabs.map((tab) => {
-          const active = tab.match(pathname);
+          const active = isActive(tab);
           const Icon = tab.icon;
-          const isBooking = tab.href === "/booking";
+          const isBooking = tab.id === "booking";
           return (
             <Link
-              key={tab.href}
+              key={tab.id}
               href={tab.href}
+              onClick={(e) => handleClick(tab, e)}
               className={`flex min-w-[3.75rem] flex-col items-center gap-1 px-1.5 py-1 transition ${
                 active ? "text-salon-gold" : "text-salon-muted"
               }`}
