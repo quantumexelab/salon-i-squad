@@ -25,8 +25,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
     pathname.startsWith("/my-bookings") ||
     pathname.startsWith("/reschedule");
 
-  const hideChromeHeader =
-    pathname.startsWith("/booking") || pathname === "/login";
+  const hideChromeHeader = pathname === "/login";
 
   return (
     <div className="flex min-h-full flex-col bg-salon-bg pb-[calc(4.5rem+env(safe-area-inset-bottom))] text-salon-ink md:pb-0">

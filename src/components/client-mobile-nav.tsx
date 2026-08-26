@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
+  ClipboardList,
   Home,
-  Images,
   Phone,
   Scissors,
 } from "lucide-react";
@@ -31,10 +31,11 @@ const tabs = [
       p.startsWith("/booking") || p.startsWith("/reschedule"),
   },
   {
-    href: "/#gallery",
-    label: "Gallery",
-    icon: Images,
-    match: () => false,
+    href: "/my-bookings",
+    label: "My bookings",
+    icon: ClipboardList,
+    match: (p: string) =>
+      p.startsWith("/my-bookings") || p.startsWith("/bookings"),
   },
   {
     href: "/#contact",

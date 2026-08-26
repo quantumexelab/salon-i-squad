@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ClipboardList, Loader2 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { BookingFlow } from "@/components/booking-flow";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/contexts/auth-context";
 import {
   canBootstrapMaster,
@@ -96,11 +95,17 @@ export function BookingPageContent() {
                 Book Your Appointment
               </h1>
               <p className="mt-1 text-sm text-salon-muted">
-                Choose a service and continue to date & time.
+                Select one or more services, then continue to date & time.
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <ThemeToggle size="compact" />
+              <Link
+                href="/my-bookings"
+                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-salon-gold/40 bg-salon-gold/10 px-3 text-xs font-semibold text-salon-gold hover:bg-salon-gold/20"
+              >
+                <ClipboardList className="h-3.5 w-3.5" />
+                My bookings
+              </Link>
               <Link
                 href="/"
                 className="inline-flex h-9 items-center gap-1.5 rounded-full border border-salon-beige/40 bg-salon-white px-3 text-xs font-semibold text-salon-ink hover:border-salon-gold/40"

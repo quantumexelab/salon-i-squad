@@ -79,7 +79,7 @@ export function BookingFlow() {
   const [confirmedBookings, setConfirmedBookings] = useState<SavedBooking[]>(
     [],
   );
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState<Step>("service");
@@ -138,7 +138,7 @@ export function BookingFlow() {
   const step = activeStep;
 
   function goToNextStep() {
-    if (activeStep === "service" && selectedService) {
+    if (activeStep === "service" && selectedServices.length > 0) {
       setActiveStep("date");
       setError(null);
       return;
@@ -151,7 +151,7 @@ export function BookingFlow() {
 
   const canGoNext =
     !saving &&
-    ((activeStep === "service" && Boolean(selectedService)) ||
+    ((activeStep === "service" && selectedServices.length > 0) ||
       (activeStep === "date" && Boolean(selectedDate)));
 
   const calendarDays = useMemo(() => {
@@ -163,19 +163,39 @@ export function BookingFlow() {
     });
   }, [monthCursor]);
 
-  const bookableDuration = selectedService
-    ? getBookableDurationMinutes(selectedService)
-    : 0;
-  const needsConsultation = Boolean(selectedService?.requiresConsultation);
+  const bookableDuration = useMemo(
+    () =>
+      selectedServices.reduce(
+        (sum, service) => sum + getBookableDurationMinutes(service),
+        0,
+      ),
+    [selectedServices],
+  );
+
+  const totalPrice = useMemo(
+    () => selectedServices.reduce((sum, service) => sum + service.price, 0),
+    [selectedServices],
+  );
+
+  const needsConsultation = selectedServices.some(
+    (service) => service.requiresConsultation,
+  );
+
+  const combinedServiceLabel = useMemo(() => {
+    if (selectedServices.length === 0) return "";
+    if (selectedServices.length === 1) {
+      return getBookableServiceLabel(selectedServices[0]!);
+    }
+    return selectedServices.map((s) => getBookableServiceLabel(s)).join(" + ");
+  }, [selectedServices]);
 
   const availableSlots = useMemo(() => {
-    if (!selectedService || !selectedDate) return [];
-    const serviceMinutes = getBookableDurationMinutes(selectedService);
+    if (selectedServices.length === 0 || !selectedDate) return [];
     const padding = effectiveCleanupPaddingMinutes(
       selectedDate,
       businessHours.cleanupPadding,
     );
-    const durationMinutes = serviceMinutes + padding;
+    const durationMinutes = bookableDuration + padding;
     const slots = generateTimeSlots(
       businessHours.openTime,
       businessHours.closeTime,
@@ -189,8 +209,9 @@ export function BookingFlow() {
       bookings: confirmedBookings,
     });
   }, [
-    selectedService,
+    selectedServices,
     selectedDate,
+    bookableDuration,
     businessHours,
     buffers,
     confirmedBookings,
@@ -203,7 +224,7 @@ export function BookingFlow() {
   }, [availableSlots, selectedSlot]);
 
   function resetBooking() {
-    setSelectedService(null);
+    setSelectedServices([]);
     setSelectedDate(null);
     setSelectedSlot(null);
     setActiveStep("service");
@@ -211,12 +232,27 @@ export function BookingFlow() {
     setError(null);
   }
 
-  function selectService(service: Service) {
-    setSelectedService(service);
+  function toggleService(service: Service) {
     setSelectedDate(null);
     setSelectedSlot(null);
     setError(null);
     setSuccessMessage(null);
+
+    setSelectedServices((prev) => {
+      const already = prev.some((s) => s.id === service.id);
+      if (already) {
+        return prev.filter((s) => s.id !== service.id);
+      }
+
+      // Consultation services must be booked alone.
+      if (service.requiresConsultation) {
+        return [service];
+      }
+      if (prev.some((s) => s.requiresConsultation)) {
+        return [service];
+      }
+      return [...prev, service];
+    });
   }
 
   function selectDate(day: Date) {
@@ -230,7 +266,7 @@ export function BookingFlow() {
 
   function resetFrom(stepToReset: Step) {
     if (stepToReset === "service") {
-      setSelectedService(null);
+      setSelectedServices([]);
       setSelectedDate(null);
       setSelectedSlot(null);
       setActiveStep("service");
@@ -248,7 +284,7 @@ export function BookingFlow() {
   const resolvedPhone = profilePhone || phoneInput.trim();
 
   const hasSelection = Boolean(
-    selectedService && selectedDate && selectedSlot && user,
+    selectedServices.length > 0 && selectedDate && selectedSlot && user,
   );
   const canConfirm =
     hasSelection &&
@@ -257,7 +293,12 @@ export function BookingFlow() {
     (!needsPhone || isValidMobile(phoneInput));
 
   async function handleConfirmBooking() {
-    if (!user || !selectedService || !selectedDate || !selectedSlot) {
+    if (
+      !user ||
+      selectedServices.length === 0 ||
+      !selectedDate ||
+      !selectedSlot
+    ) {
       return;
     }
 
@@ -280,23 +321,33 @@ export function BookingFlow() {
         ? `${profile.firstName} ${profile.lastName}`.trim()
         : user.displayName ?? "";
 
+      const primary = selectedServices[0]!;
+      const consultationNotes = selectedServices
+        .filter((s) => s.requiresConsultation)
+        .map(
+          (s) =>
+            `Prior consultation for ${s.name} (full service ${s.durationMinutes} mins).`,
+        );
+      const multiNote =
+        selectedServices.length > 1
+          ? `Services: ${selectedServices.map((s) => s.name).join(", ")}`
+          : "";
+
       const booking = await createBooking({
         userId: user.uid,
         service: {
-          id: selectedService.id,
-          name: getBookableServiceLabel(selectedService),
-          durationMinutes: getBookableDurationMinutes(selectedService),
-          price: selectedService.price,
+          id: primary.id,
+          name: combinedServiceLabel,
+          durationMinutes: bookableDuration,
+          price: totalPrice,
         },
         selectedDate,
         selectedTime: selectedSlot,
         phoneNumber,
         customerName: customerName || undefined,
         customerEmail: profile?.email ?? user.email ?? undefined,
-        isConsultation: selectedService.requiresConsultation,
-        notes: selectedService.requiresConsultation
-          ? `Prior consultation for ${selectedService.name} (full service ${selectedService.durationMinutes} mins).`
-          : undefined,
+        isConsultation: needsConsultation,
+        notes: [multiNote, ...consultationNotes].filter(Boolean).join(" · ") || undefined,
       });
 
       void applyBookingCalendarSync("create", booking);
@@ -366,8 +417,11 @@ export function BookingFlow() {
           <section className="space-y-4">
             <SectionLabel
               icon={<Scissors className="h-3.5 w-3.5" />}
-              title="Choose Your Service"
+              title="Choose Your Services"
             />
+            <p className="text-xs text-salon-muted">
+              Tap multiple services to book together in one visit.
+            </p>
 
             {servicesLoading ? (
               <ServiceListSkeleton />
@@ -383,12 +437,14 @@ export function BookingFlow() {
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {services.map((service) => {
-                  const selected = selectedService?.id === service.id;
+                  const selected = selectedServices.some(
+                    (s) => s.id === service.id,
+                  );
                   return (
                     <button
                       key={service.id}
                       type="button"
-                      onClick={() => selectService(service)}
+                      onClick={() => toggleService(service)}
                       disabled={saving}
                       className={`relative overflow-hidden rounded-2xl border bg-salon-white text-left transition active:scale-[0.99] disabled:opacity-60 ${
                         selected
@@ -423,14 +479,25 @@ export function BookingFlow() {
                 })}
               </div>
             )}
+            {selectedServices.length > 0 ? (
+              <p className="rounded-xl border border-salon-gold/25 bg-salon-gold/10 px-3 py-2 text-xs text-salon-ink">
+                Selected {selectedServices.length}: {combinedServiceLabel} ·{" "}
+                {bookableDuration} mins ·{" "}
+                <span className="font-semibold text-salon-gold">
+                  {formatLkr(totalPrice)}
+                </span>
+              </p>
+            ) : null}
           </section>
         ) : null}
 
-        {activeStep !== "service" && selectedService ? (
+        {activeStep !== "service" && selectedServices.length > 0 ? (
           <section className="space-y-3">
             <SectionLabel
               icon={<Scissors className="h-3.5 w-3.5" />}
-              title="Service"
+              title={
+                selectedServices.length > 1 ? "Services" : "Service"
+              }
               action={
                 <button
                   type="button"
@@ -442,17 +509,13 @@ export function BookingFlow() {
               }
             />
             <SelectedSummary
-              title={getBookableServiceLabel(selectedService)}
-              subtitle={
-                needsConsultation
-                  ? `${CONSULTATION_DURATION_MINUTES} min consultation · ${formatLkr(selectedService.price)}`
-                  : `${selectedService.durationMinutes} min · ${formatLkr(selectedService.price)}`
-              }
+              title={combinedServiceLabel}
+              subtitle={`${bookableDuration} min · ${formatLkr(totalPrice)}`}
             />
           </section>
         ) : null}
 
-        {activeStep === "date" && selectedService ? (
+        {activeStep === "date" && selectedServices.length > 0 ? (
           <section className="space-y-3">
             {needsConsultation ? (
               <div
@@ -545,7 +608,7 @@ export function BookingFlow() {
           </section>
         ) : null}
 
-        {activeStep === "time" && selectedService && selectedDate ? (
+        {activeStep === "time" && selectedServices.length > 0 && selectedDate ? (
           <section className="space-y-3">
             <SectionLabel
               icon={<CalendarDays className="h-3.5 w-3.5" />}
@@ -567,7 +630,7 @@ export function BookingFlow() {
           </section>
         ) : null}
 
-        {activeStep === "time" && selectedService && selectedDate ? (
+        {activeStep === "time" && selectedServices.length > 0 && selectedDate ? (
           <section className="space-y-3">
             <SectionLabel
               icon={<Clock className="h-3.5 w-3.5" />}
@@ -607,7 +670,7 @@ export function BookingFlow() {
         ) : null}
 
         {activeStep === "time" &&
-        selectedService &&
+        selectedServices.length > 0 &&
         selectedDate &&
         needsPhone ? (
           <section className="space-y-3">
@@ -651,20 +714,18 @@ export function BookingFlow() {
               </p>
             ) : hasSelection ? (
               <p className="truncate text-center text-xs text-salon-muted lg:text-left">
-                {selectedService
-                  ? getBookableServiceLabel(selectedService)
-                  : ""}{" "}
-                · {selectedDate ? format(selectedDate, "MMM d") : ""} ·{" "}
+                {combinedServiceLabel} ·{" "}
+                {selectedDate ? format(selectedDate, "MMM d") : ""} ·{" "}
                 {selectedSlot}
                 {needsPhone && !phoneInput.trim()
                   ? " · add phone to confirm"
                   : ""}
-                {needsConsultation ? ` · ${bookableDuration} min` : ""}
+                {` · ${bookableDuration} min · ${formatLkr(totalPrice)}`}
               </p>
             ) : (
               <p className="text-center text-xs text-salon-muted lg:text-left">
                 {activeStep === "service" &&
-                  "Select a service, then tap Next Step"}
+                  "Select one or more services, then tap Next Step"}
                 {activeStep === "date" && "Select a date, then tap Next Step"}
                 {activeStep === "time" && "Select a time slot to confirm"}
               </p>
