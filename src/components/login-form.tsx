@@ -251,7 +251,7 @@ export function LoginForm() {
             onClick={() => setShowStaffLogin((v) => !v)}
             className="mt-4 w-full text-center text-xs font-medium text-salon-muted hover:text-salon-gold"
           >
-            {showStaffLogin ? "Hide staff sign-in" : "Staff / admin sign-in"}
+            {showStaffLogin ? "Hide sign-in" : "Sign in"}
           </button>
 
           {showStaffLogin ? (

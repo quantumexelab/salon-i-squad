@@ -17,7 +17,7 @@ import {
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getClientStorage, initFirebaseClient } from "@/lib/firebase/client";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
-import { serviceImageFor } from "@/lib/service-images";
+import { serviceImageFor, CATALOG_SERVICE_IMAGES } from "@/lib/service-images";
 import {
   isDummyCatalogService,
   isDummyCatalogServiceName,
@@ -203,8 +203,7 @@ const SAMPLE_CATALOG: ServiceInput[] = [
     description: "Classic cut and finish tailored to your face shape.",
     durationMinutes: 30,
     price: 1500,
-    imageUrl:
-      "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800&q=80",
+    imageUrl: CATALOG_SERVICE_IMAGES.haircut,
     isActive: true,
     requiresConsultation: false,
   },
@@ -213,8 +212,7 @@ const SAMPLE_CATALOG: ServiceInput[] = [
     description: "Trim, shape, and clean beard finish.",
     durationMinutes: 25,
     price: 1000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1621607512214-68297480165e?auto=format&fit=crop&w=800&q=80",
+    imageUrl: CATALOG_SERVICE_IMAGES.beard,
     isActive: true,
     requiresConsultation: false,
   },
@@ -223,8 +221,7 @@ const SAMPLE_CATALOG: ServiceInput[] = [
     description: "Hot towel traditional shave.",
     durationMinutes: 20,
     price: 1200,
-    imageUrl:
-      "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80",
+    imageUrl: CATALOG_SERVICE_IMAGES.shave,
     isActive: true,
     requiresConsultation: false,
   },
@@ -233,8 +230,7 @@ const SAMPLE_CATALOG: ServiceInput[] = [
     description: "Wash, blow-dry, and style.",
     durationMinutes: 40,
     price: 2000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80",
+    imageUrl: CATALOG_SERVICE_IMAGES.styling,
     isActive: true,
     requiresConsultation: false,
   },
@@ -243,8 +239,7 @@ const SAMPLE_CATALOG: ServiceInput[] = [
     description: "Full colour or refresh — consultation first.",
     durationMinutes: 90,
     price: 5500,
-    imageUrl:
-      "https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=800&q=80",
+    imageUrl: CATALOG_SERVICE_IMAGES.color,
     isActive: true,
     requiresConsultation: true,
   },
@@ -253,12 +248,36 @@ const SAMPLE_CATALOG: ServiceInput[] = [
     description: "Deep cleanse and glow-restoring facial.",
     durationMinutes: 45,
     price: 3500,
-    imageUrl:
-      "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=800&q=80",
+    imageUrl: CATALOG_SERVICE_IMAGES.facial,
     isActive: true,
     requiresConsultation: false,
   },
 ];
+
+/** Sample offerings as Service rows (used when Firestore catalog is empty). */
+export function getSampleCatalogServices(): Service[] {
+  return SAMPLE_CATALOG.map((sample) => {
+    const slug = sample.name.trim().toLowerCase().replace(/\s+/g, "-");
+    return {
+      id: `sample-${slug}`,
+      name: sample.name,
+      description: sample.description,
+      durationMinutes: sample.durationMinutes,
+      price: sample.price,
+      imageUrl: sample.imageUrl,
+      requiresConsultation: Boolean(sample.requiresConsultation),
+      isActive: true,
+      createdAt: "",
+      updatedAt: "",
+    };
+  });
+}
+
+/** Live active catalog, or sample list so landing/booking stay in sync. */
+export function resolveBookableServices(live: Service[]): Service[] {
+  const real = live.filter((s) => s.isActive !== false && !isDummyCatalogService(s));
+  return real.length > 0 ? real : getSampleCatalogServices();
+}
 
 /**
  * Creates sample catalog services (skips names that already exist) and

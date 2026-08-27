@@ -194,12 +194,47 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+@keyframes salon-kenburns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+.salon-zoom-kenburns {
+  transform-origin: center center;
+  animation: salon-kenburns 4.2s ease-out forwards;
+  will-change: transform;
+}
+
+.salon-zoom-kenburns-hero {
+  transform-origin: center center;
+  animation: salon-kenburns 5s ease-out forwards;
+  will-change: transform;
+}
+
+.salon-hero-bottom-blur {
+  background: linear-gradient(
+    to top,
+    var(--salon-bg, #f8f5f0) 0%,
+    transparent 100%
+  );
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  -webkit-mask-image: linear-gradient(to top, black 10%, transparent 90%);
+  mask-image: linear-gradient(to top, black 10%, transparent 90%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .logo-draw,
   .logo-fill-in,
   .logo-rise-wordmark,
   .logo-shimmer,
-  .logo-png-enter {
+  .logo-png-enter,
+  .salon-zoom-kenburns,
+  .salon-zoom-kenburns-hero {
     animation: none !important;
     opacity: 1 !important;
     stroke-dashoffset: 0 !important;

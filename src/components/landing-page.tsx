@@ -7,9 +7,7 @@ import {
   CalendarDays,
   Headphones,
   Menu,
-  Play,
   Scissors,
-  Share2,
   Sparkles,
   Star,
   Trophy,
@@ -17,12 +15,15 @@ import {
   X,
 } from "lucide-react";
 import { formatLkr } from "@/lib/booking/dummy-services";
+import { AnimatedStatCard } from "@/components/animated-stat-card";
 import { ClientMobileNav } from "@/components/client-mobile-nav";
 import { CustomerLogo } from "@/components/logo";
+import { SalonHeroSection } from "@/components/salon-zoom-carousel";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { serviceImageFor, CATALOG_SERVICE_IMAGES } from "@/lib/service-images";
+import { serviceImageFor } from "@/lib/service-images";
 import {
-  isDummyCatalogService,
+  getSampleCatalogServices,
+  resolveBookableServices,
   subscribeToServices,
 } from "@/lib/services";
 import { siteConfig } from "@/lib/site";
@@ -40,14 +41,11 @@ const sans = Outfit({
   variable: "--font-landing-sans",
 });
 
-const HERO_PORTRAIT =
-  "https://images.unsplash.com/photo-1621607512214-68297480165e?auto=format&fit=crop&w=1200&q=80";
-
 const STATS = [
-  { value: "1500+", label: "Happy Clients", icon: Users },
-  { value: "4.9", label: "Client Rating", icon: Star },
-  { value: "10+", label: "Expert Stylists", icon: Scissors },
-  { value: "5+", label: "Years Experience", icon: Trophy },
+  { end: 1500, decimals: 0, suffix: "+", label: "Happy Clients", icon: Users },
+  { end: 4.9, decimals: 1, suffix: "", label: "Client Rating", icon: Star },
+  { end: 10, decimals: 0, suffix: "+", label: "Expert Stylists", icon: Scissors },
+  { end: 5, decimals: 0, suffix: "+", label: "Years Experience", icon: Trophy },
 ] as const;
 
 const SERVICE_CATEGORIES = [
@@ -81,84 +79,27 @@ const NAV = [
   { href: "#contact", label: "Contact" },
 ] as const;
 
-const FALLBACK_POPULAR = [
-  {
-    id: "fallback-1",
-    name: "Haircut",
-    durationMinutes: 30,
-    price: 1500,
-    imageUrl: CATALOG_SERVICE_IMAGES.haircut,
-  },
-  {
-    id: "fallback-2",
-    name: "Beard Grooming",
-    durationMinutes: 25,
-    price: 1000,
-    imageUrl: CATALOG_SERVICE_IMAGES.beard,
-  },
-  {
-    id: "fallback-3",
-    name: "Classic Shave",
-    durationMinutes: 20,
-    price: 1200,
-    imageUrl: CATALOG_SERVICE_IMAGES.shave,
-  },
-  {
-    id: "fallback-4",
-    name: "Hair Styling",
-    durationMinutes: 40,
-    price: 2000,
-    imageUrl: CATALOG_SERVICE_IMAGES.styling,
-  },
-  {
-    id: "fallback-5",
-    name: "Hair Colour",
-    durationMinutes: 90,
-    price: 5500,
-    imageUrl: CATALOG_SERVICE_IMAGES.color,
-  },
-  {
-    id: "fallback-6",
-    name: "Facial Treatment",
-    durationMinutes: 45,
-    price: 3500,
-    imageUrl: CATALOG_SERVICE_IMAGES.facial,
-  },
-];
-
 export function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [services, setServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<Service[]>(() =>
+    getSampleCatalogServices(),
+  );
 
   useEffect(() => {
     return subscribeToServices(
-      (next) =>
-        setServices(
-          next.filter((s) => s.isActive && !isDummyCatalogService(s)),
-        ),
+      (next) => setServices(resolveBookableServices(next)),
       undefined,
       { activeOnly: true },
     );
   }, []);
 
-  const popular =
-    services.length > 0
-      ? (() => {
-          const live = services.slice(0, 6).map((s) => ({
-            id: s.id,
-            name: s.name,
-            durationMinutes: s.durationMinutes,
-            price: s.price,
-            imageUrl: s.imageUrl,
-          }));
-          if (live.length >= 6) return live;
-          const names = new Set(live.map((s) => s.name.toLowerCase()));
-          const extras = FALLBACK_POPULAR.filter(
-            (f) => !names.has(f.name.toLowerCase()),
-          ).slice(0, 6 - live.length);
-          return [...live, ...extras];
-        })()
-      : FALLBACK_POPULAR;
+  const popular = services.slice(0, 6).map((s) => ({
+    id: s.id,
+    name: s.name,
+    durationMinutes: s.durationMinutes,
+    price: s.price,
+    imageUrl: s.imageUrl,
+  }));
 
   return (
     <div
@@ -189,6 +130,12 @@ export function LandingPage() {
                 {item.label}
               </a>
             ))}
+            <Link
+              href="/login"
+              className="salon-nav-link hover:text-salon-ink"
+            >
+              Sign In
+            </Link>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -225,6 +172,13 @@ export function LandingPage() {
                 </a>
               ))}
               <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                className="text-sm font-medium uppercase tracking-[0.16em] text-salon-ink"
+              >
+                Sign In
+              </Link>
+              <Link
                 href="/booking"
                 onClick={() => setMenuOpen(false)}
                 className="salon-gold-btn mt-2 inline-flex h-11 items-center justify-center gap-2 rounded-full text-sm font-bold text-black"
@@ -237,83 +191,8 @@ export function LandingPage() {
         ) : null}
       </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-salon-bg">
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-8 px-4 py-10 md:grid-cols-2 md:gap-10 md:px-8 md:py-16 lg:py-20">
-          <div className="relative z-10 order-2 md:order-1">
-            <h1
-              className="text-4xl font-semibold leading-[1.05] tracking-tight text-salon-ink sm:text-5xl lg:text-6xl"
-              style={{ fontFamily: "var(--font-landing-display), serif" }}
-            >
-              Where{" "}
-              <span
-                className="italic text-salon-script"
-                style={{ fontFamily: "var(--font-landing-display), serif" }}
-              >
-                Style
-              </span>
-              <br />
-              <span className="uppercase">Meets Confidence</span>
-            </h1>
-            <p className="mt-4 max-w-md text-sm leading-relaxed text-salon-muted md:text-base">
-              Premium grooming & styling services crafted just for you.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/booking"
-                className="salon-gold-btn inline-flex h-12 items-center gap-2 rounded-full px-6 text-sm font-bold text-black"
-              >
-                <CalendarDays className="h-4 w-4" />
-                Book Appointment
-              </Link>
-              <a
-                href="#gallery"
-                className="inline-flex h-12 items-center gap-2 rounded-full border border-salon-ink/20 bg-transparent px-6 text-sm font-semibold text-salon-ink transition hover:border-salon-gold hover:text-salon-gold"
-              >
-                <Play className="h-4 w-4" />
-                Watch Video
-              </a>
-            </div>
-          </div>
-
-          <div className="relative order-1 mx-auto w-full max-w-md md:order-2 md:max-w-none">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -right-4 top-6 hidden h-[85%] w-[70%] rounded-[2rem] border border-salon-gold/35 md:block"
-            />
-            <div className="relative overflow-hidden rounded-[1.5rem] border border-salon-beige/30 bg-salon-surface shadow-[var(--salon-shadow)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={HERO_PORTRAIT}
-                alt="Premium salon style"
-                className="aspect-[4/5] w-full object-cover object-top"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-salon-bg/40 via-transparent to-transparent" />
-            </div>
-          </div>
-        </div>
-
-        {/* Social rail — desktop */}
-        <div className="absolute right-4 top-1/2 z-20 hidden -translate-y-1/2 flex-col items-center gap-3 xl:flex">
-          <span className="mb-1 rotate-90 text-[10px] uppercase tracking-[0.28em] text-salon-muted">
-            Follow Us
-          </span>
-          <a
-            href="#contact"
-            className="rounded-full border border-salon-beige/40 p-2 text-salon-muted hover:text-salon-gold"
-            aria-label="Social"
-          >
-            <Share2 className="h-4 w-4" />
-          </a>
-          <a
-            href="#contact"
-            className="rounded-full border border-salon-beige/40 p-2 text-salon-muted hover:text-salon-gold"
-            aria-label="Contact"
-          >
-            <Users className="h-4 w-4" />
-          </a>
-        </div>
-      </section>
+      {/* Full-bleed hero — salon images zoom (BuddyBerlin layout, our photos) */}
+      <SalonHeroSection />
 
       {/* Stats */}
       <section className="border-y border-salon-beige/30 bg-salon-white">
@@ -321,25 +200,14 @@ export function LandingPage() {
           {STATS.map((stat) => {
             const Icon = stat.icon;
             return (
-              <div
+              <AnimatedStatCard
                 key={stat.label}
-                className="flex items-center gap-3 rounded-2xl border border-salon-beige/30 bg-salon-surface/80 px-3 py-3 md:px-4"
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-salon-gold/15 text-salon-gold">
-                  <Icon className="h-4 w-4" />
-                </span>
-                <div className="min-w-0">
-                  <p
-                    className="text-lg font-semibold text-salon-ink md:text-xl"
-                    style={{ fontFamily: "var(--font-landing-display), serif" }}
-                  >
-                    {stat.value}
-                  </p>
-                  <p className="truncate text-[11px] text-salon-muted">
-                    {stat.label}
-                  </p>
-                </div>
-              </div>
+                end={stat.end}
+                decimals={stat.decimals}
+                suffix={stat.suffix}
+                label={stat.label}
+                icon={<Icon className="h-4 w-4" />}
+              />
             );
           })}
         </div>
@@ -430,7 +298,7 @@ export function LandingPage() {
       </section>
 
       {/* Popular / Most booked */}
-      <section id="gallery" className="scroll-mt-20 bg-salon-bg">
+      <section className="scroll-mt-20 bg-salon-bg">
         <div className="mx-auto w-full max-w-6xl px-4 py-14 md:px-8 md:py-20">
           <div className="mb-8 flex items-end justify-between gap-4">
             <div>
@@ -520,29 +388,23 @@ export function LandingPage() {
                     Need help booking?
                   </p>
                   <a
-                    href="tel:+94771234567"
-                    className="mt-1 block text-sm text-salon-gold hover:underline"
+                    href={`tel:${siteConfig.phoneTel}`}
+                    className="mt-1 block text-sm font-medium text-salon-gold hover:underline"
                   >
-                    +94 77 123 4567
+                    {siteConfig.phoneDisplay}
                   </a>
                   <p className="mt-2 text-xs text-salon-muted">
-                    Update this number in the contact section when ready.
+                    Call us anytime — or book online in a few taps.
                   </p>
                 </div>
               </div>
             </div>
-            <Link
-              href="/login"
-              className="inline-flex text-sm font-medium text-salon-muted underline-offset-4 hover:text-salon-gold hover:underline"
-            >
-              Staff / client sign-in →
-            </Link>
           </div>
         </div>
       </section>
 
       <footer className="border-t border-salon-beige/30 bg-salon-bg px-4 py-8 text-center text-xs text-salon-muted md:px-8">
-        © {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
+        © {new Date().getFullYear()} QuantumExe (Pvt) Ltd. All rights reserved.
       </footer>
 
       <ClientMobileNav />

@@ -50,7 +50,8 @@ import {
   CONSULTATION_DURATION_MINUTES,
   getBookableDurationMinutes,
   getBookableServiceLabel,
-  isDummyCatalogService,
+  getSampleCatalogServices,
+  resolveBookableServices,
   subscribeToServices,
 } from "@/lib/services";
 import {
@@ -69,7 +70,9 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 export function BookingFlow() {
   const { user, profile, refreshProfile } = useAuth();
-  const [services, setServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<Service[]>(() =>
+    getSampleCatalogServices(),
+  );
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesError, setServicesError] = useState<string | null>(null);
   const [businessHours, setBusinessHours] = useState<BusinessHours>({
@@ -95,7 +98,7 @@ export function BookingFlow() {
   useEffect(() => {
     const unsubscribe = subscribeToServices(
       (next) => {
-        setServices(next.filter((s) => !isDummyCatalogService(s)));
+        setServices(resolveBookableServices(next));
         setServicesLoading(false);
         setServicesError(null);
       },
@@ -380,12 +383,9 @@ export function BookingFlow() {
               <p className="text-xs font-semibold uppercase tracking-wider text-salon-muted">
                 Need help?
               </p>
-              <a
-                href="tel:+94771234567"
-                className="mt-1 block text-sm font-semibold text-salon-gold hover:underline"
-              >
-                +94 77 123 4567
-              </a>
+              <p className="mt-1 text-sm leading-snug text-salon-ink">
+                Follow the steps — we will confirm once your booking is in.
+              </p>
             </div>
           </div>
         </div>
@@ -424,8 +424,7 @@ export function BookingFlow() {
               </p>
             ) : services.length === 0 ? (
               <p className="rounded-2xl border border-salon-gold/15 bg-salon-surface/50 px-4 py-6 text-center text-sm text-salon-muted">
-                No services available yet. Ask the salon to add offerings in
-                Admin → Services.
+                No services
               </p>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

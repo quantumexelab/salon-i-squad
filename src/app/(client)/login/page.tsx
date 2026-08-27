@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { LoginForm } from "@/components/login-form";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -14,7 +16,14 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute -right-24 bottom-1/4 h-64 w-64 rounded-full bg-salon-champagne/5 blur-3xl" />
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-salon-beige/40 bg-salon-white text-salon-ink transition hover:border-salon-gold hover:text-salon-gold"
+            aria-label="Back to home"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
           <ThemeToggle size="compact" />
         </div>
         <LoginForm />
