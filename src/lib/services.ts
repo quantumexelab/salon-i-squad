@@ -18,6 +18,10 @@ import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getClientStorage, initFirebaseClient } from "@/lib/firebase/client";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
 import { serviceImageFor } from "@/lib/service-images";
+import {
+  isDummyCatalogService,
+  isDummyCatalogServiceName,
+} from "@/lib/catalog-dummy";
 import type { Service } from "@/types/firestore";
 
 export type ServiceInput = {
@@ -176,6 +180,21 @@ export async function updateService(
 export async function deleteService(serviceId: string): Promise<void> {
   initFirebase();
   await deleteDoc(doc(getFirebaseDb(), COLLECTIONS.services, serviceId));
+}
+
+export { isDummyCatalogService, isDummyCatalogServiceName };
+
+/** Permanently delete test / dummy catalog rows. */
+export async function purgeDummyCatalogServices(
+  existing: Service[],
+): Promise<{ deleted: number; names: string[] }> {
+  const dummies = existing.filter(isDummyCatalogService);
+  const names: string[] = [];
+  for (const service of dummies) {
+    await deleteService(service.id);
+    names.push(service.name);
+  }
+  return { deleted: names.length, names };
 }
 
 const SAMPLE_CATALOG: ServiceInput[] = [

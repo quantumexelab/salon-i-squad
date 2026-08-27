@@ -7,6 +7,8 @@ import { serviceImageFor } from "@/lib/service-images";
 import {
   createService,
   deleteService,
+  isDummyCatalogService,
+  purgeDummyCatalogServices,
   seedCatalogServices,
   subscribeToServices,
   updateService,
@@ -53,6 +55,7 @@ export function AdminServicesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [purging, setPurging] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -114,6 +117,37 @@ export function AdminServicesPage() {
       );
     } finally {
       setSeeding(false);
+    }
+  }
+
+  async function handlePurgeDummies() {
+    const dummies = services.filter(isDummyCatalogService);
+    if (dummies.length === 0) {
+      window.alert("No dummy / test services found.");
+      return;
+    }
+    const ok = window.confirm(
+      `Delete ${dummies.length} dummy service(s)?\n\n${dummies.map((s) => `• ${s.name}`).join("\n")}`,
+    );
+    if (!ok) return;
+
+    setPurging(true);
+    setError(null);
+    try {
+      const result = await purgeDummyCatalogServices(services);
+      window.alert(
+        result.deleted > 0
+          ? `Removed ${result.deleted}: ${result.names.join(", ")}`
+          : "No dummy services deleted.",
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not remove dummy services. Sign in as admin/master first.",
+      );
+    } finally {
+      setPurging(false);
     }
   }
 
@@ -211,8 +245,17 @@ export function AdminServicesPage() {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
+            onClick={() => void handlePurgeDummies()}
+            disabled={saving || seeding || purging}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-400/40 px-4 text-sm font-semibold text-red-300 hover:bg-red-400/10 disabled:opacity-60"
+          >
+            {purging ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Remove dummy services
+          </button>
+          <button
+            type="button"
             onClick={() => void handleSeedCatalog()}
-            disabled={saving || seeding}
+            disabled={saving || seeding || purging}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-400/40 px-4 text-sm font-semibold text-amber-300 hover:bg-amber-400/10 disabled:opacity-60"
           >
             {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

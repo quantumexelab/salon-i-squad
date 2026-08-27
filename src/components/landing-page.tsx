@@ -21,7 +21,10 @@ import { ClientMobileNav } from "@/components/client-mobile-nav";
 import { CustomerLogo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { serviceImageFor, CATALOG_SERVICE_IMAGES } from "@/lib/service-images";
-import { subscribeToServices } from "@/lib/services";
+import {
+  isDummyCatalogService,
+  subscribeToServices,
+} from "@/lib/services";
 import { siteConfig } from "@/lib/site";
 import type { Service } from "@/types/firestore";
 
@@ -129,7 +132,10 @@ export function LandingPage() {
 
   useEffect(() => {
     return subscribeToServices(
-      (next) => setServices(next.filter((s) => s.isActive)),
+      (next) =>
+        setServices(
+          next.filter((s) => s.isActive && !isDummyCatalogService(s)),
+        ),
       undefined,
       { activeOnly: true },
     );

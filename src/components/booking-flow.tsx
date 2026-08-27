@@ -50,6 +50,7 @@ import {
   CONSULTATION_DURATION_MINUTES,
   getBookableDurationMinutes,
   getBookableServiceLabel,
+  isDummyCatalogService,
   subscribeToServices,
 } from "@/lib/services";
 import {
@@ -94,7 +95,7 @@ export function BookingFlow() {
   useEffect(() => {
     const unsubscribe = subscribeToServices(
       (next) => {
-        setServices(next);
+        setServices(next.filter((s) => !isDummyCatalogService(s)));
         setServicesLoading(false);
         setServicesError(null);
       },
