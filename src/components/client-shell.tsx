@@ -26,9 +26,14 @@ export function ClientShell({ children }: { children: ReactNode }) {
     pathname.startsWith("/reschedule");
 
   const hideChromeHeader = pathname === "/login";
+  const isLogin = pathname === "/login";
 
   return (
-    <div className="flex min-h-full flex-col bg-salon-bg pb-[calc(4.5rem+env(safe-area-inset-bottom))] text-salon-ink md:pb-0">
+    <div
+      className={`flex min-h-full flex-col bg-salon-bg text-salon-ink ${
+        isLogin ? "" : "pb-[calc(4.5rem+env(safe-area-inset-bottom))]"
+      } md:pb-0`}
+    >
       <PushNotificationBootstrap />
       {!hideChromeHeader ? (
         <header className="sticky top-0 z-20 border-b border-salon-beige/30 bg-salon-white/95 shadow-sm shadow-black/5 backdrop-blur">

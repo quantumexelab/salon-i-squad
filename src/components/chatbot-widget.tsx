@@ -49,7 +49,7 @@ export function ChatbotWidget() {
     el.scrollTop = el.scrollHeight;
   }, [messages, open, busy]);
 
-  if (isStaffPath(pathname)) return null;
+  if (isStaffPath(pathname) || pathname === "/login") return null;
 
   async function handleSend() {
     const text = input.trim();
@@ -95,7 +95,7 @@ export function ChatbotWidget() {
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] left-3 z-40 flex flex-col items-start gap-3 md:bottom-5 md:left-5">
+    <div className="pointer-events-none fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-3 z-40 flex flex-col items-end gap-3 md:bottom-5 md:right-5">
       {open ? (
         <div
           className="pointer-events-auto flex w-[min(100vw-1.5rem,22rem)] flex-col overflow-hidden rounded-2xl border border-salon-gold/30 bg-salon-white shadow-2xl shadow-black/20"

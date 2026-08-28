@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2, Phone, UserRound, X } from "lucide-react";
 
 type GuestDetailsModalProps = {
@@ -18,8 +19,22 @@ export function GuestDetailsModal({
   const [mobile, setMobile] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  if (!open) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  if (!open || !mounted) return null;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,8 +66,8 @@ export function GuestDetailsModal({
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-salon-ink/40 p-4 sm:items-center">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-salon-ink/60 p-4">
       <button
         type="button"
         aria-label="Close guest form"
@@ -134,6 +149,7 @@ export function GuestDetailsModal({
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

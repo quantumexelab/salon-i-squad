@@ -127,6 +127,8 @@ export function ClientMobileNav() {
     router.push(tab.sectionId === "home" ? "/" : `/#${tab.sectionId}`);
   }
 
+  if (pathname === "/login") return null;
+
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-30 border-t border-salon-beige/30 bg-salon-white/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"

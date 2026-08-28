@@ -127,7 +127,7 @@ export function InstallAppPrompt() {
     }
   }
 
-  if (!visible || isStaffPath(pathname)) return null;
+  if (!visible || isStaffPath(pathname) || pathname === "/login") return null;
 
   return (
     <div
