@@ -7,12 +7,12 @@ import { CalendarDays } from "lucide-react";
 /** Salon atmosphere images for the landing hero. */
 export const SALON_HERO_SLIDES = [
   {
-    src: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1920&q=80",
-    alt: "Salon interior",
-  },
-  {
     src: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=1920&q=80",
     alt: "Haircut",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1920&q=80",
+    alt: "Salon interior",
   },
   {
     src: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1920&q=80",
@@ -147,6 +147,11 @@ export function SalonHeroSection() {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
+    const img = new Image();
+    img.src = SALON_HERO_SLIDES[0].src;
+  }, []);
+
+  useEffect(() => {
     const id = window.setInterval(() => {
       setIndex((i) => (i + 1) % SALON_HERO_SLIDES.length);
     }, INTERVAL_MS);
@@ -174,7 +179,9 @@ export function SalonHeroSection() {
               <img
                 src={slide.src}
                 alt=""
-                decoding="async"
+                decoding={i === 0 ? "sync" : "async"}
+                loading={i === 0 ? "eager" : "lazy"}
+                fetchPriority={i === 0 ? "high" : "auto"}
                 className={`h-full w-full object-cover ${
                   active ? "salon-zoom-kenburns-hero" : ""
                 }`}
