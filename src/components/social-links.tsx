@@ -12,30 +12,6 @@ function SocialIcon({ id }: { id: SiteSocialId | "whatsapp" }) {
   const common = "h-[1.15em] w-[1.15em]";
 
   switch (id) {
-    case "instagram":
-      return (
-        <svg viewBox="0 0 24 24" className={common} aria-hidden>
-          <rect
-            x="3"
-            y="3"
-            width="18"
-            height="18"
-            rx="5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          />
-          <circle
-            cx="12"
-            cy="12"
-            r="4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          />
-          <circle cx="17.25" cy="6.75" r="1" fill="currentColor" />
-        </svg>
-      );
     case "facebook":
       return (
         <svg viewBox="0 0 24 24" className={common} aria-hidden>
@@ -51,15 +27,6 @@ function SocialIcon({ id }: { id: SiteSocialId | "whatsapp" }) {
           <path
             d="M16.5 5.2c.9.8 2 1.3 3.2 1.4V9.8a5.9 5.9 0 0 1-3.2-.9v6.4a4.7 4.7 0 1 1-4.7-4.7c.2 0 .5 0 .7.1v2.9a1.9 1.9 0 1 0 1.3 1.8V5.2h2.7Z"
             fill="currentColor"
-          />
-        </svg>
-      );
-    case "youtube":
-      return (
-        <svg viewBox="0 0 24 24" className={common} aria-hidden>
-          <path
-            fill="currentColor"
-            d="M21.593 7.203a2.969 2.969 0 0 0-2.103-2.109C17.885 4.5 12 4.5 12 4.5s-5.885 0-7.49.594A2.969 2.969 0 0 0 2.407 7.203 31.15 31.15 0 0 0 2 12a31.15 31.15 0 0 0 .407 4.797 2.969 2.969 0 0 0 2.103 2.109c1.605.594 7.49.594 7.49.594s5.885 0 7.49-.594a2.969 2.969 0 0 0 2.103-2.109A31.15 31.15 0 0 0 22 12a31.15 31.15 0 0 0-.407-4.797zM10 15.179V8.821L15.682 12 10 15.179z"
           />
         </svg>
       );

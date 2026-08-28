@@ -10,11 +10,13 @@ import {
 } from "@/lib/chatbot";
 
 const FAB_SIZE = 56;
-const FAB_MARGIN = 10;
+const FAB_MARGIN = 12;
 const FAB_POS_KEY = "sis-chat-fab-pos";
 const DRAG_THRESHOLD = 6;
+const SNAP_TRANSITION_MS = 320;
 
 type FabPosition = { x: number; y: number };
+type FabCorner = "tl" | "tr" | "bl" | "br";
 
 function isStaffPath(pathname: string): boolean {
   return (
@@ -38,26 +40,63 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function defaultFabPosition(): FabPosition {
-  if (typeof window === "undefined") {
-    return { x: FAB_MARGIN, y: FAB_MARGIN };
-  }
+function bottomFabInset(): number {
+  if (typeof window === "undefined") return FAB_MARGIN;
 
   const mobile = window.matchMedia("(max-width: 767px)").matches;
-  const bottomInset =
+  return (
     FAB_MARGIN +
     (mobile
-      ? 72 + Number.parseFloat(
+      ? 72 +
+        Number.parseFloat(
           getComputedStyle(document.documentElement).getPropertyValue(
             "env(safe-area-inset-bottom)",
           ) || "0",
         )
-      : 20);
+      : 20)
+  );
+}
+
+function cornerPositions(): Record<FabCorner, FabPosition> {
+  if (typeof window === "undefined") {
+    return {
+      tl: { x: FAB_MARGIN, y: FAB_MARGIN },
+      tr: { x: FAB_MARGIN, y: FAB_MARGIN },
+      bl: { x: FAB_MARGIN, y: FAB_MARGIN },
+      br: { x: FAB_MARGIN, y: FAB_MARGIN },
+    };
+  }
+
+  const maxX = window.innerWidth - FAB_SIZE - FAB_MARGIN;
+  const topY = FAB_MARGIN;
+  const bottomY = window.innerHeight - FAB_SIZE - bottomFabInset();
 
   return {
-    x: window.innerWidth - FAB_SIZE - FAB_MARGIN,
-    y: window.innerHeight - FAB_SIZE - bottomInset,
+    tl: { x: FAB_MARGIN, y: topY },
+    tr: { x: maxX, y: topY },
+    bl: { x: FAB_MARGIN, y: bottomY },
+    br: { x: maxX, y: bottomY },
   };
+}
+
+function nearestCorner(pos: FabPosition): FabPosition {
+  const corners = cornerPositions();
+  let best: FabPosition = corners.br;
+  let bestDist = Number.POSITIVE_INFINITY;
+
+  for (const corner of Object.values(corners)) {
+    const dist = (corner.x - pos.x) ** 2 + (corner.y - pos.y) ** 2;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = corner;
+    }
+  }
+
+  return best;
+}
+
+function defaultFabPosition(): FabPosition {
+  return cornerPositions().br;
 }
 
 function clampFabPosition(pos: FabPosition): FabPosition {
@@ -65,7 +104,11 @@ function clampFabPosition(pos: FabPosition): FabPosition {
 
   return {
     x: clamp(pos.x, FAB_MARGIN, window.innerWidth - FAB_SIZE - FAB_MARGIN),
-    y: clamp(pos.y, FAB_MARGIN, window.innerHeight - FAB_SIZE - FAB_MARGIN),
+    y: clamp(
+      pos.y,
+      FAB_MARGIN,
+      window.innerHeight - FAB_SIZE - bottomFabInset(),
+    ),
   };
 }
 
@@ -75,19 +118,52 @@ function readSavedFabPosition(): FabPosition | null {
   try {
     const raw = localStorage.getItem(FAB_POS_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as FabPosition;
-    if (
-      typeof parsed.x !== "number" ||
-      typeof parsed.y !== "number" ||
-      !Number.isFinite(parsed.x) ||
-      !Number.isFinite(parsed.y)
-    ) {
-      return null;
+
+    const parsed = JSON.parse(raw) as
+      | FabPosition
+      | { corner?: FabCorner; x?: number; y?: number };
+
+    if (parsed && typeof parsed === "object" && "corner" in parsed && parsed.corner) {
+      return cornerPositions()[parsed.corner];
     }
-    return clampFabPosition(parsed);
+
+    if (
+      typeof parsed.x === "number" &&
+      typeof parsed.y === "number" &&
+      Number.isFinite(parsed.x) &&
+      Number.isFinite(parsed.y)
+    ) {
+      return nearestCorner({ x: parsed.x, y: parsed.y });
+    }
+
+    return null;
   } catch {
     return null;
   }
+}
+
+function cornerForPosition(pos: FabPosition): FabCorner {
+  const corners = cornerPositions();
+  for (const [id, corner] of Object.entries(corners) as [FabCorner, FabPosition][]) {
+    if (corner.x === pos.x && corner.y === pos.y) return id;
+  }
+
+  return pos.x < window.innerWidth / 2
+    ? pos.y < window.innerHeight / 2
+      ? "tl"
+      : "bl"
+    : pos.y < window.innerHeight / 2
+      ? "tr"
+      : "br";
+}
+
+function panelPlacement(pos: FabPosition, viewport: { w: number; h: number }) {
+  const centerX = pos.x + FAB_SIZE / 2;
+  const centerY = pos.y + FAB_SIZE / 2;
+  return {
+    vertical: centerY < viewport.h / 2 ? "bottom" : "top",
+    horizontal: centerX < viewport.w / 2 ? "left" : "right",
+  } as const;
 }
 
 export function ChatbotWidget() {
@@ -97,6 +173,7 @@ export function ChatbotWidget() {
   const [busy, setBusy] = useState(false);
   const [fabPos, setFabPos] = useState<FabPosition | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [viewport, setViewport] = useState({ w: 0, h: 0 });
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: "welcome",
@@ -116,14 +193,26 @@ export function ChatbotWidget() {
   });
 
   useEffect(() => {
+    const syncViewport = () => {
+      setViewport({ w: window.innerWidth, h: window.innerHeight });
+    };
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+    return () => window.removeEventListener("resize", syncViewport);
+  }, []);
+
+  useEffect(() => {
     setFabPos(readSavedFabPosition() ?? defaultFabPosition());
   }, []);
 
-  const persistFabPosition = useCallback((pos: FabPosition) => {
-    const next = clampFabPosition(pos);
+  const persistFabPosition = useCallback((pos: FabPosition, snap = true) => {
+    const next = snap ? nearestCorner(clampFabPosition(pos)) : clampFabPosition(pos);
     setFabPos(next);
     try {
-      localStorage.setItem(FAB_POS_KEY, JSON.stringify(next));
+      localStorage.setItem(
+        FAB_POS_KEY,
+        JSON.stringify({ corner: cornerForPosition(next), ...next }),
+      );
     } catch {
       /* ignore */
     }
@@ -133,7 +222,9 @@ export function ChatbotWidget() {
     if (!fabPos) return;
 
     function handleResize() {
-      setFabPos((current) => (current ? clampFabPosition(current) : current));
+      setFabPos((current) =>
+        current ? nearestCorner(current) : defaultFabPosition(),
+      );
     }
 
     window.addEventListener("resize", handleResize);
@@ -178,10 +269,13 @@ export function ChatbotWidget() {
 
     if (!dragRef.current.moved) return;
 
-    persistFabPosition({
-      x: dragRef.current.originX + dx,
-      y: dragRef.current.originY + dy,
-    });
+    persistFabPosition(
+      {
+        x: dragRef.current.originX + dx,
+        y: dragRef.current.originY + dy,
+      },
+      false,
+    );
   }
 
   function handleFabPointerUp(event: React.PointerEvent<HTMLButtonElement>) {
@@ -194,6 +288,11 @@ export function ChatbotWidget() {
 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (wasDrag && fabPos) {
+      persistFabPosition(fabPos, true);
+      return;
     }
 
     if (!wasDrag) {
@@ -247,12 +346,24 @@ export function ChatbotWidget() {
     }
   }
 
+  const placement =
+    viewport.w > 0 && viewport.h > 0
+      ? panelPlacement(fabPos, viewport)
+      : { vertical: "top" as const, horizontal: "right" as const };
+
   return (
     <div
-      className={`pointer-events-none fixed z-40 flex items-end gap-3 ${
-        fabPos.y < 320 ? "flex-col-reverse" : "flex-col"
-      }`}
-      style={{ left: fabPos.x, top: fabPos.y, width: FAB_SIZE }}
+      className={`pointer-events-none fixed z-40 flex gap-3 ${
+        placement.vertical === "bottom" ? "flex-col-reverse" : "flex-col"
+      } ${placement.horizontal === "left" ? "items-start" : "items-end"}`}
+      style={{
+        left: fabPos.x,
+        top: fabPos.y,
+        width: FAB_SIZE,
+        transition: dragging
+          ? "none"
+          : `left ${SNAP_TRANSITION_MS}ms ease, top ${SNAP_TRANSITION_MS}ms ease`,
+      }}
     >
       {open ? (
         <div
@@ -338,7 +449,7 @@ export function ChatbotWidget() {
         }`}
         aria-label={open ? "Close chat" : "Open chat"}
         aria-expanded={open}
-        title="Drag to move · Tap to open chat"
+        title="Drag to a corner · Tap to open chat"
       >
         {open ? (
           <X className="h-6 w-6" strokeWidth={2.25} />
