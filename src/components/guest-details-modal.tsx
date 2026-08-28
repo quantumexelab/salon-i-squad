@@ -67,7 +67,7 @@ export function GuestDetailsModal({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-salon-ink/60 p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black p-4">
       <button
         type="button"
         aria-label="Close guest form"

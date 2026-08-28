@@ -19,6 +19,7 @@ import { AnimatedStatCard } from "@/components/animated-stat-card";
 import { ClientMobileNav } from "@/components/client-mobile-nav";
 import { CustomerLogo } from "@/components/logo";
 import { SalonHeroSection } from "@/components/salon-zoom-carousel";
+import { SocialLinks } from "@/components/social-links";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { serviceImageFor } from "@/lib/service-images";
 import {
@@ -371,12 +372,26 @@ export function LandingPage() {
                 </div>
               </div>
             </div>
+
+            <div className="rounded-2xl border border-salon-beige/35 bg-salon-surface p-5">
+              <p className="text-sm font-semibold text-salon-ink">Follow us</p>
+              <p className="mt-1 text-xs text-salon-muted">
+                Stay updated with styles, offers, and salon news.
+              </p>
+              <SocialLinks className="mt-4" />
+            </div>
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-salon-beige/30 bg-salon-bg px-4 py-8 text-center text-xs text-salon-muted md:px-8">
-        © {new Date().getFullYear()} QuantumExe (Pvt) Ltd. All rights reserved.
+      <footer className="border-t border-salon-beige/30 bg-salon-bg px-4 py-8 md:px-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-4">
+          <SocialLinks iconClassName="h-9 w-9 text-sm" />
+          <p className="text-center text-xs text-salon-muted">
+            © {new Date().getFullYear()} QuantumExe (Pvt) Ltd. All rights
+            reserved.
+          </p>
+        </div>
       </footer>
 
       <ClientMobileNav />

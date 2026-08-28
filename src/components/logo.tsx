@@ -18,7 +18,7 @@ type CustomerLogoProps = {
   className?: string;
   /** compact = header, hero = login / landing hero, mark = icon only */
   size?: "compact" | "hero" | "mark";
-  /** Soft entrance animation on the SVG logo. */
+  /** Soft entrance animation on the logo mark. */
   animated?: boolean;
 };
 
@@ -85,7 +85,7 @@ function RemoteLogoImage({
   );
 }
 
-/** Customer-facing logo — remote branding upload or built-in SVG mark. */
+/** Customer-facing logo — remote branding upload or official mark artwork. */
 export function CustomerLogo({
   className,
   size = "compact",
@@ -114,7 +114,7 @@ export function CustomerLogo({
       <SalonLogoMark
         variant={markVariant}
         animated={animated}
-        className={`h-10 w-10 shrink-0 ${className ?? ""}`}
+        className={`aspect-[160/188] h-10 w-auto shrink-0 ${className ?? ""}`}
       />
     );
   }
@@ -124,7 +124,7 @@ export function CustomerLogo({
       <SalonLogoFull
         variant={markVariant}
         animated={animated}
-        markClassName="h-[4.5rem] w-[4.5rem] sm:h-20 sm:w-20"
+        markClassName="aspect-[160/188] h-[4.5rem] w-auto sm:h-20"
         wordmarkClassName="text-xs sm:text-sm"
         className={className}
       />
@@ -139,7 +139,7 @@ export function CustomerLogo({
       <SalonLogoMark
         variant={markVariant}
         animated={animated}
-        className="h-9 w-9 shrink-0"
+        className="aspect-[160/188] h-9 w-auto shrink-0"
       />
       <SalonWordmark
         variant={markVariant}

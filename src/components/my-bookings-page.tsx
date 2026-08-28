@@ -20,7 +20,6 @@ import {
 } from "@/lib/booking-policy";
 import {
   cancelBooking,
-  clientOwnsBooking,
   rescheduleBooking,
   subscribeToClientBookings,
   type SavedBooking,
@@ -76,14 +75,8 @@ export function MyBookingsPage() {
     );
   }, [user, profile]);
 
-  const { upcoming, past } = useMemo(() => {
-    const up: SavedBooking[] = [];
-    const pa: SavedBooking[] = [];
-    for (const booking of bookings) {
-      if (isUpcomingBooking(booking, nowTick)) up.push(booking);
-      else pa.push(booking);
-    }
-    return { upcoming: up, past: pa };
+  const upcoming = useMemo(() => {
+    return bookings.filter((booking) => isUpcomingBooking(booking, nowTick));
   }, [bookings, nowTick]);
 
   async function handleCancel(booking: SavedBooking) {
@@ -197,14 +190,6 @@ export function MyBookingsPage() {
                 onCancel={handleCancel}
                 onReschedule={setRescheduleTarget}
               />
-              <BookingSection
-                title="Past"
-                empty="No past bookings yet."
-                bookings={past}
-                now={nowTick}
-                actionId={actionId}
-                past
-              />
             </div>
           )}
         </div>
@@ -245,7 +230,6 @@ function BookingSection({
   actionId,
   onCancel,
   onReschedule,
-  past = false,
 }: {
   title: string;
   empty: string;
@@ -254,7 +238,6 @@ function BookingSection({
   actionId: string | null;
   onCancel?: (booking: SavedBooking) => void;
   onReschedule?: (booking: SavedBooking) => void;
-  past?: boolean;
 }) {
   return (
     <section>
@@ -271,7 +254,6 @@ function BookingSection({
               booking={booking}
               now={now}
               busy={actionId === booking.id}
-              past={past}
               onCancel={onCancel}
               onReschedule={onReschedule}
             />
@@ -286,23 +268,20 @@ function BookingCard({
   booking,
   now,
   busy,
-  past,
   onCancel,
   onReschedule,
 }: {
   booking: SavedBooking;
   now: Date;
   busy: boolean;
-  past: boolean;
   onCancel?: (booking: SavedBooking) => void;
   onReschedule?: (booking: SavedBooking) => void;
 }) {
   const canModify =
-    !past &&
     booking.status === "confirmed" &&
     canClientModifyBooking(booking, now);
   const showCutoffNote =
-    !past && booking.status === "confirmed" && !canModify;
+    booking.status === "confirmed" && !canModify;
 
   return (
     <li className="rounded-2xl border border-salon-gold/15 bg-salon-surface/50 p-4">
@@ -319,7 +298,7 @@ function BookingCard({
         <StatusPill status={booking.status} />
       </div>
 
-      {!past && booking.status === "confirmed" ? (
+      {booking.status === "confirmed" ? (
         <div className="mt-3 space-y-2">
           <div className="flex flex-wrap gap-2">
             <button

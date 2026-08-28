@@ -5,8 +5,36 @@ export const siteConfig = {
   /** Public contact number shown on the landing page. */
   phoneDisplay: "+94 77 123 4567",
   phoneTel: "+94771234567",
+  email: "hello@salonisquad.lk",
+  address: "Colombo, Sri Lanka",
   /** Browser chrome / PWA theme (metallic gold). */
   themeColor: "#D4AF37",
   /** Splash / install background. */
   backgroundColor: "#F8F5F0",
 } as const;
+
+/** Public social profiles — update URLs when accounts go live. */
+export const siteSocialLinks = [
+  {
+    id: "instagram",
+    label: "Instagram",
+    href: "https://www.instagram.com/salonisquad",
+  },
+  {
+    id: "facebook",
+    label: "Facebook",
+    href: "https://www.facebook.com/salonisquad",
+  },
+  {
+    id: "tiktok",
+    label: "TikTok",
+    href: "https://www.tiktok.com/@salonisquad",
+  },
+  {
+    id: "youtube",
+    label: "YouTube",
+    href: "https://www.youtube.com/@salonisquad",
+  },
+] as const;
+
+export type SiteSocialId = (typeof siteSocialLinks)[number]["id"];

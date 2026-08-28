@@ -11,10 +11,6 @@ export const SALON_HERO_SLIDES = [
     alt: "Haircut",
   },
   {
-    src: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1920&q=80",
-    alt: "Salon interior",
-  },
-  {
     src: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1920&q=80",
     alt: "Classic shave",
   },
