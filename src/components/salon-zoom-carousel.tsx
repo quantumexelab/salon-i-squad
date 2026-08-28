@@ -33,6 +33,112 @@ export const SALON_HERO_SLIDES = [
 ] as const;
 
 const INTERVAL_MS = 5000;
+const HERO_TITLE = "Salon I Squad";
+const HERO_TAGLINE = "Premium grooming & styling in Colombo";
+const TITLE_CHAR_MS = 90;
+const TAGLINE_CHAR_MS = 35;
+const TYPING_START_DELAY_MS = 450;
+
+function heroTitleCharClass(index: number): string {
+  if (index === 6) return "text-salon-script";
+  if (index >= 8) {
+    return "text-transparent [-webkit-text-stroke:1.5px_white] sm:[-webkit-text-stroke:2px_white]";
+  }
+  return "text-white";
+}
+
+function HeroTypewriterHeadline() {
+  const [titleCount, setTitleCount] = useState(0);
+  const [taglineCount, setTaglineCount] = useState(0);
+  const [titleDone, setTitleDone] = useState(false);
+
+  useEffect(() => {
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reduced) {
+      setTitleCount(HERO_TITLE.length);
+      setTaglineCount(HERO_TAGLINE.length);
+      setTitleDone(true);
+      return;
+    }
+
+    if (!titleDone) {
+      if (titleCount >= HERO_TITLE.length) {
+        setTitleDone(true);
+        return;
+      }
+      const delay =
+        titleCount === 0 ? TYPING_START_DELAY_MS : TITLE_CHAR_MS;
+      const id = window.setTimeout(
+        () => setTitleCount((count) => count + 1),
+        delay,
+      );
+      return () => window.clearTimeout(id);
+    }
+
+    if (taglineCount >= HERO_TAGLINE.length) return;
+    const delay = taglineCount === 0 ? 280 : TAGLINE_CHAR_MS;
+    const id = window.setTimeout(
+      () => setTaglineCount((count) => count + 1),
+      delay,
+    );
+    return () => window.clearTimeout(id);
+  }, [titleCount, taglineCount, titleDone]);
+
+  const showTitleCaret = titleCount < HERO_TITLE.length;
+  const showTaglineCaret =
+    titleDone && taglineCount < HERO_TAGLINE.length;
+  const typingComplete =
+    titleDone && taglineCount >= HERO_TAGLINE.length;
+
+  return (
+    <>
+      <h1
+        className="text-4xl font-bold uppercase tracking-[0.08em] text-white sm:text-5xl md:text-6xl lg:text-7xl"
+        style={{ fontFamily: "var(--font-landing-sans), sans-serif" }}
+      >
+        <span aria-hidden className="inline-flex flex-wrap justify-center">
+          {HERO_TITLE.slice(0, titleCount).split("").map((char, index) => (
+            <span key={`${index}-${char}`} className={heroTitleCharClass(index)}>
+              {char}
+            </span>
+          ))}
+          {showTitleCaret ? (
+            <span
+              aria-hidden
+              className="salon-typewriter-caret ml-0.5 inline-block h-[0.85em] w-[3px] translate-y-[0.06em] bg-salon-gold"
+            />
+          ) : null}
+        </span>
+        <span className="sr-only">Salon I Squad</span>
+      </h1>
+      <p className="mt-4 min-h-[1.5rem] max-w-md text-sm font-medium text-white/90 md:text-base">
+        <span aria-hidden>
+          {HERO_TAGLINE.slice(0, taglineCount)}
+          {showTaglineCaret ? (
+            <span
+              aria-hidden
+              className="salon-typewriter-caret ml-0.5 inline-block h-[1em] w-[2px] translate-y-[0.12em] bg-white/80"
+            />
+          ) : null}
+        </span>
+        <span className="sr-only">{HERO_TAGLINE}</span>
+      </p>
+      <Link
+        href="/booking"
+        className={`salon-gold-btn mt-8 inline-flex h-12 items-center gap-2 rounded-md px-8 text-sm font-bold uppercase tracking-wide text-black transition-all duration-700 ${
+          typingComplete
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-2 opacity-0"
+        }`}
+      >
+        <CalendarDays className="h-4 w-4" />
+        Book Appointment
+      </Link>
+    </>
+  );
+}
 
 /**
  * Full-bleed hero like BuddyBerlin — zooming salon photos + centered brand CTA.
@@ -82,26 +188,7 @@ export function SalonHeroSection() {
 
       {/* Centered brand + CTA */}
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 py-24 text-center md:px-8">
-        <h1
-          className="text-4xl font-bold uppercase tracking-[0.08em] text-white sm:text-5xl md:text-6xl lg:text-7xl"
-          style={{ fontFamily: "var(--font-landing-sans), sans-serif" }}
-        >
-          <span className="text-white">Salon</span>{" "}
-          <span className="text-salon-gold">I</span>{" "}
-          <span className="text-transparent [-webkit-text-stroke:1.5px_white] sm:[-webkit-text-stroke:2px_white]">
-            Squad
-          </span>
-        </h1>
-        <p className="mt-4 max-w-md text-sm font-medium text-white/90 md:text-base">
-          Premium grooming & styling in Colombo
-        </p>
-        <Link
-          href="/booking"
-          className="salon-gold-btn mt-8 inline-flex h-12 items-center gap-2 rounded-md px-8 text-sm font-bold uppercase tracking-wide text-black"
-        >
-          <CalendarDays className="h-4 w-4" />
-          Book Appointment
-        </Link>
+        <HeroTypewriterHeadline />
       </div>
 
       {/* Slide dots */}

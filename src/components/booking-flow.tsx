@@ -61,6 +61,7 @@ import {
 } from "@/lib/users";
 import { useAuth } from "@/contexts/auth-context";
 import { serviceImageFor } from "@/lib/service-images";
+import { siteConfig } from "@/lib/site";
 import type { ClosedDay, TimeBuffer } from "@/types/calendar";
 import type { Service } from "@/types/firestore";
 
@@ -394,6 +395,12 @@ export function BookingFlow() {
               <p className="mt-1 text-sm leading-snug text-salon-ink">
                 Follow the steps — we will confirm once your booking is in.
               </p>
+              <a
+                href={`tel:${siteConfig.phoneTel}`}
+                className="mt-2 inline-block text-sm font-semibold text-salon-gold hover:underline"
+              >
+                {siteConfig.phoneDisplay}
+              </a>
             </div>
           </div>
         </div>

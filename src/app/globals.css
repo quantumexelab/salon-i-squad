@@ -227,6 +227,21 @@ body {
   mask-image: linear-gradient(to top, black 10%, transparent 90%);
 }
 
+@keyframes salon-typewriter-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.salon-typewriter-caret {
+  animation: salon-typewriter-blink 1s step-end infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .logo-draw,
   .logo-fill-in,
@@ -234,7 +249,8 @@ body {
   .logo-shimmer,
   .logo-png-enter,
   .salon-zoom-kenburns,
-  .salon-zoom-kenburns-hero {
+  .salon-zoom-kenburns-hero,
+  .salon-typewriter-caret {
     animation: none !important;
     opacity: 1 !important;
     stroke-dashoffset: 0 !important;
