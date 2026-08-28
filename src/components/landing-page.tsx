@@ -269,34 +269,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Mid CTA banner */}
-      <section className="px-4 md:px-8">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-4 rounded-2xl border border-salon-gold/25 bg-salon-surface px-5 py-6 shadow-[var(--salon-shadow)] sm:flex-row sm:items-center md:px-8">
-          <div className="flex items-center gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-salon-gold/15 text-salon-gold">
-              <CalendarDays className="h-5 w-5" />
-            </span>
-            <div>
-              <p
-                className="text-lg font-semibold text-salon-ink"
-                style={{ fontFamily: "var(--font-landing-display), serif" }}
-              >
-                Book Your Appointment
-              </p>
-              <p className="text-xs text-salon-muted">
-                Quick & easy booking in just a few steps.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/booking"
-            className="salon-gold-btn inline-flex h-11 shrink-0 items-center rounded-full px-5 text-sm font-bold text-black"
-          >
-            Book Now →
-          </Link>
-        </div>
-      </section>
-
       {/* Popular / Most booked */}
       <section className="scroll-mt-20 bg-salon-bg">
         <div className="mx-auto w-full max-w-6xl px-4 py-14 md:px-8 md:py-20">

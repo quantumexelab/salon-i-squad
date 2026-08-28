@@ -7,7 +7,7 @@ import { CalendarDays } from "lucide-react";
 /** Salon atmosphere images for the landing hero. */
 export const SALON_HERO_SLIDES = [
   {
-    src: "https://images.unsplash.com/photo-1585747860715-2ba37e789b2b?auto=format&fit=crop&w=1920&q=80",
+    src: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1920&q=80",
     alt: "Salon interior",
   },
   {
