@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import {
   addMonths,
   eachDayOfInterval,
@@ -70,6 +71,7 @@ type Step = "service" | "date" | "time";
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 export function BookingFlow() {
+  const router = useRouter();
   const { user, profile, refreshProfile } = useAuth();
   const [services, setServices] = useState<Service[]>(() =>
     getSampleCatalogServices(),
@@ -94,7 +96,6 @@ export function BookingFlow() {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
 
   useEffect(() => {
@@ -236,15 +237,6 @@ export function BookingFlow() {
     }
   }, [availableSlots, selectedSlot]);
 
-  function resetBooking() {
-    setSelectedServices([]);
-    setSelectedDate(null);
-    setSelectedSlot(null);
-    setActiveStep("service");
-    setMonthCursor(startOfMonth(new Date()));
-    setError(null);
-  }
-
   function toggleService(service: Service) {
     setSelectedServices((prev) => {
       const exists = prev.some((s) => s.id === service.id);
@@ -257,7 +249,6 @@ export function BookingFlow() {
     setSelectedDate(null);
     setSelectedSlot(null);
     setError(null);
-    setSuccessMessage(null);
   }
 
   function selectDate(day: Date) {
@@ -266,7 +257,6 @@ export function BookingFlow() {
     setSelectedDate(day);
     setSelectedSlot(null);
     setError(null);
-    setSuccessMessage(null);
   }
 
   function resetFrom(stepToReset: Step) {
@@ -309,7 +299,6 @@ export function BookingFlow() {
 
     setSaving(true);
     setError(null);
-    setSuccessMessage(null);
 
     try {
       let phoneNumber = profilePhone;
@@ -357,10 +346,7 @@ export function BookingFlow() {
 
       void applyBookingCalendarSync("create", booking);
 
-      setSuccessMessage(
-        `Booked ${booking.serviceName} on ${format(selectedDate, "MMM d")} at ${selectedSlot}.`,
-      );
-      resetBooking();
+      router.push("/my-bookings");
     } catch (err) {
       setError(
         err instanceof Error
@@ -411,15 +397,6 @@ export function BookingFlow() {
         <div className="rounded-2xl border border-salon-beige/35 bg-salon-white p-4 lg:hidden">
           <StepHeader step={step} horizontal />
         </div>
-
-        {successMessage ? (
-          <div
-            role="status"
-            className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300"
-          >
-            {successMessage}
-          </div>
-        ) : null}
 
         {activeStep === "service" ? (
           <section className="space-y-4">
@@ -679,7 +656,6 @@ export function BookingFlow() {
                       onClick={() => {
                         setSelectedSlot(slot);
                         setError(null);
-                        setSuccessMessage(null);
                       }}
                       className={`rounded-xl border px-2 py-3 text-center text-xs font-semibold transition active:scale-[0.98] disabled:opacity-60 sm:text-sm ${
                         selected

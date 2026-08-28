@@ -4,27 +4,27 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 
-/** Salon atmosphere images for the landing hero. */
+/** Salon atmosphere images for the landing hero — bright, well-lit action shots. */
 export const SALON_HERO_SLIDES = [
   {
-    src: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=1920&q=80",
+    src: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=1920&q=85",
     alt: "Haircut",
   },
   {
-    src: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1920&q=80",
+    src: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1920&q=85",
     alt: "Classic shave",
   },
   {
-    src: "https://images.unsplash.com/photo-1621607512214-68297480165e?auto=format&fit=crop&w=1920&q=80",
-    alt: "Grooming tools",
+    src: "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&w=1920&q=85",
+    alt: "Beard grooming",
   },
   {
-    src: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=1920&q=80",
+    src: "https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=1920&q=85",
     alt: "Hair styling",
   },
   {
-    src: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1920&q=80",
-    alt: "Studio",
+    src: "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=1920&q=85",
+    alt: "Salon studio",
   },
 ] as const;
 
@@ -178,15 +178,15 @@ export function SalonHeroSection() {
                 decoding={i === 0 ? "sync" : "async"}
                 loading={i === 0 ? "eager" : "lazy"}
                 fetchPriority={i === 0 ? "high" : "auto"}
-                className={`h-full w-full object-cover ${
+                className={`h-full w-full object-cover brightness-105 contrast-105 ${
                   active ? "salon-zoom-kenburns-hero" : ""
                 }`}
               />
             </div>
           );
         })}
-        <div className="absolute inset-0 bg-black/50" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/45" />
+        <div className="absolute inset-0 bg-black/35" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-black/30" />
       </div>
 
       {/* Centered brand + CTA */}
