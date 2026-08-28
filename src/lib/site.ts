@@ -23,12 +23,12 @@ export const siteSocialLinks = [
   {
     id: "facebook",
     label: "Facebook",
-    href: "https://www.facebook.com/salonisquad",
+    href: "https://www.facebook.com/share/1dZvqWEsU8/",
   },
   {
     id: "tiktok",
     label: "TikTok",
-    href: "https://www.tiktok.com/@salonisquad",
+    href: "https://www.tiktok.com/@salon.i7",
   },
   {
     id: "youtube",
