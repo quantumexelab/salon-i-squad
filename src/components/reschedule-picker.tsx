@@ -64,6 +64,12 @@ export function ReschedulePicker({
   const [monthCursor, setMonthCursor] = useState(() =>
     startOfMonth(new Date()),
   );
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => subscribeToBusinessHours(setBusinessHours), []);
   useEffect(() => subscribeToClosedDays(setClosedDays), []);
@@ -105,6 +111,7 @@ export function ReschedulePicker({
       bookingPaddingMinutes: padding,
       buffers,
       bookings: others,
+      now: new Date(nowTick),
     });
   }, [
     selectedDate,
@@ -113,6 +120,7 @@ export function ReschedulePicker({
     booking.id,
     buffers,
     confirmedBookings,
+    nowTick,
   ]);
 
   useEffect(() => {

@@ -125,6 +125,8 @@ export function filterAvailableSlots(
       duration: number;
       status: string;
     }>;
+    /** When omitted, uses the current time to drop past slots for today. */
+    now?: Date;
   },
 ): string[] {
   const dayBuffers = options.buffers.filter(
@@ -137,6 +139,15 @@ export function filterAvailableSlots(
   const bookingPadding = Math.max(0, options.bookingPaddingMinutes ?? 0);
 
   return slots.filter((slot) => {
+    const slotStart = parseSlotMinutes(slot);
+    if (Number.isNaN(slotStart)) return false;
+
+    const now = options.now ?? new Date();
+    if (options.dateKey === toDateKey(now)) {
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      if (slotStart <= nowMinutes) return false;
+    }
+
     for (const buffer of dayBuffers) {
       if (
         slotOverlapsWindow(
@@ -150,8 +161,6 @@ export function filterAvailableSlots(
       }
     }
 
-    const slotStart = parseSlotMinutes(slot);
-    if (Number.isNaN(slotStart)) return false;
     const slotEnd = slotStart + Math.max(options.durationMinutes, 1);
 
     for (const booking of dayBookings) {

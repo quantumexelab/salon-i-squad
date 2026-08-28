@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
-import { toDateKey } from "@/lib/calendar-utils";
+import { toDateKey, parseSlotMinutes } from "@/lib/calendar-utils";
 import type { DummyService } from "@/lib/booking/dummy-services";
 import type { Service } from "@/types/firestore";
 
@@ -55,18 +55,22 @@ export type SavedBooking = {
   createdAt: string;
 };
 
-function parseSlotMinutes(slot: string): number {
-  const match = slot.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!match) return 0;
+function assertBookingSlotNotInPast(
+  selectedDate: Date,
+  selectedTime: string,
+  now = new Date(),
+): void {
+  if (toDateKey(selectedDate) !== toDateKey(now)) return;
 
-  let hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  const period = match[3].toUpperCase();
+  const slotStart = parseSlotMinutes(selectedTime);
+  if (Number.isNaN(slotStart)) {
+    throw new Error("Invalid time slot.");
+  }
 
-  if (period === "PM" && hours < 12) hours += 12;
-  if (period === "AM" && hours === 12) hours = 0;
-
-  return hours * 60 + minutes;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  if (slotStart <= nowMinutes) {
+    throw new Error("This time has already passed. Please choose a later slot.");
+  }
 }
 
 function bookingSortKey(booking: SavedBooking): number {
@@ -128,6 +132,8 @@ function mapBookingDoc(
 export async function createBooking(
   input: CreateBookingInput,
 ): Promise<SavedBooking> {
+  assertBookingSlotNotInPast(input.selectedDate, input.selectedTime);
+
   initFirebase();
   const db = getFirebaseDb();
   const now = new Date().toISOString();
@@ -217,6 +223,8 @@ export async function rescheduleBooking(
   bookingId: string,
   input: { selectedDate: Date; selectedTime: string },
 ): Promise<void> {
+  assertBookingSlotNotInPast(input.selectedDate, input.selectedTime);
+
   initFirebase();
   const selectedDate = input.selectedDate.toISOString();
   const dateKey = toDateKey(input.selectedDate);

@@ -94,6 +94,12 @@ export function BookingFlow() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = subscribeToServices(
@@ -211,6 +217,7 @@ export function BookingFlow() {
       bookingPaddingMinutes: padding,
       buffers,
       bookings: confirmedBookings,
+      now: new Date(nowTick),
     });
   }, [
     selectedServices,
@@ -219,6 +226,7 @@ export function BookingFlow() {
     businessHours,
     buffers,
     confirmedBookings,
+    nowTick,
   ]);
 
   useEffect(() => {
