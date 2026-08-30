@@ -92,6 +92,18 @@ export function sortBookingsChronologically(
   });
 }
 
+/** Same-day admin list: earliest appointment time first. */
+export function sortBookingsByTimeAsc(
+  bookings: SavedBooking[],
+): SavedBooking[] {
+  return [...bookings].sort((a, b) => {
+    const byTime =
+      parseSlotMinutes(a.selectedTime) - parseSlotMinutes(b.selectedTime);
+    if (!Number.isNaN(byTime) && byTime !== 0) return byTime;
+    return (a.createdAt ?? "").localeCompare(b.createdAt ?? "");
+  });
+}
+
 function mapBookingDoc(
   id: string,
   data: Record<string, unknown>,
@@ -267,6 +279,31 @@ export function subscribeToBookings(
         mapBookingDoc(docSnap.id, docSnap.data()),
       );
       onData(sortBookingsChronologically(bookings));
+    },
+    (error) => onError?.(error),
+  );
+}
+
+/** Admin dashboard — only bookings for one calendar day (fewer Firestore reads). */
+export function subscribeToAdminBookingsByDate(
+  dateKey: string,
+  onData: (bookings: SavedBooking[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  initFirebase();
+  const db = getFirebaseDb();
+  const bookingsQuery = query(
+    collection(db, COLLECTIONS.bookings),
+    where("dateKey", "==", dateKey),
+  );
+
+  return onSnapshot(
+    bookingsQuery,
+    (snapshot) => {
+      const bookings = snapshot.docs.map((docSnap) =>
+        mapBookingDoc(docSnap.id, docSnap.data()),
+      );
+      onData(sortBookingsByTimeAsc(bookings));
     },
     (error) => onError?.(error),
   );

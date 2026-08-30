@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { format, isValid, parseISO } from "date-fns";
+import { format, addDays, isValid, parseISO, parse } from "date-fns";
 import {
   CalendarDays,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   CreditCard,
   Loader2,
@@ -14,9 +16,10 @@ import {
 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { formatLkr } from "@/lib/booking/dummy-services";
+import { toDateKey } from "@/lib/calendar-utils";
 import {
   completeBookingWithPayment,
-  subscribeToBookings,
+  subscribeToAdminBookingsByDate,
   updateBookingStatus,
   type PaymentMethod,
   type SavedBooking,
@@ -33,7 +36,16 @@ function formatBookingDate(iso: string): string {
   return format(date, "EEE, MMM d, yyyy");
 }
 
+function formatDateKeyLabel(dateKey: string): string {
+  const date = parse(dateKey, "yyyy-MM-dd", new Date());
+  if (!isValid(date)) return dateKey;
+  return format(date, "EEE, MMM d, yyyy");
+}
+
 export function AdminDashboard() {
+  const [selectedDateKey, setSelectedDateKey] = useState(() =>
+    toDateKey(new Date()),
+  );
   const [bookings, setBookings] = useState<SavedBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +58,8 @@ export function AdminDashboard() {
 
   useEffect(() => {
     setLoading(true);
-    const unsubscribe = subscribeToBookings(
+    const unsubscribe = subscribeToAdminBookingsByDate(
+      selectedDateKey,
       (next) => {
         setBookings(next);
         setError(null);
@@ -59,7 +72,15 @@ export function AdminDashboard() {
     );
 
     return unsubscribe;
-  }, []);
+  }, [selectedDateKey]);
+
+  const isToday = selectedDateKey === toDateKey(new Date());
+
+  function shiftSelectedDate(days: number) {
+    const base = parse(selectedDateKey, "yyyy-MM-dd", new Date());
+    if (!isValid(base)) return;
+    setSelectedDateKey(toDateKey(addDays(base, days)));
+  }
 
   const stats = useMemo(() => {
     const confirmed = bookings.filter((b) => b.status === "confirmed");
@@ -189,11 +210,49 @@ export function AdminDashboard() {
         ) : null}
 
         <section className="overflow-hidden rounded-2xl border border-salon-beige/30 bg-salon-surface">
-          <div className="flex items-center justify-between border-b border-salon-beige/30 px-4 py-3 sm:px-6">
-            <h2 className="text-sm font-semibold text-salon-ink">Appointment list</h2>
-            <span className="text-xs text-salon-ink0">
-              {loading ? "Loading…" : `${bookings.length} records`}
-            </span>
+          <div className="flex flex-col gap-3 border-b border-salon-beige/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+              <h2 className="text-sm font-semibold text-salon-ink">
+                Appointment list
+              </h2>
+              <p className="mt-0.5 text-xs text-salon-muted">
+                {loading
+                  ? "Loading…"
+                  : `Showing ${formatDateKeyLabel(selectedDateKey)} · ${bookings.length} record${bookings.length === 1 ? "" : "s"}`}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => shiftSelectedDate(-1)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-salon-beige/40 text-salon-muted transition hover:border-salon-gold/40 hover:text-salon-gold"
+                aria-label="Previous day"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <input
+                type="date"
+                value={selectedDateKey}
+                onChange={(e) => setSelectedDateKey(e.target.value)}
+                className="h-9 rounded-lg border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
+              />
+              <button
+                type="button"
+                onClick={() => shiftSelectedDate(1)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-salon-beige/40 text-salon-muted transition hover:border-salon-gold/40 hover:text-salon-gold"
+                aria-label="Next day"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                disabled={isToday}
+                onClick={() => setSelectedDateKey(toDateKey(new Date()))}
+                className="h-9 rounded-lg border border-salon-gold/30 px-3 text-xs font-semibold text-salon-gold transition hover:bg-salon-gold/10 disabled:cursor-default disabled:opacity-50"
+              >
+                Today
+              </button>
+            </div>
           </div>
 
           {loading ? (
@@ -211,9 +270,11 @@ export function AdminDashboard() {
             </div>
           ) : bookings.length === 0 ? (
             <div className="px-4 py-16 text-center sm:px-6">
-              <p className="text-sm font-medium text-salon-muted">No bookings yet</p>
+              <p className="text-sm font-medium text-salon-muted">
+                No bookings on this day
+              </p>
               <p className="mt-1 text-xs text-salon-ink0">
-                New appointments from /booking will appear here automatically.
+                Pick another date or wait for new appointments from /booking.
               </p>
             </div>
           ) : (
@@ -453,14 +514,33 @@ function GenderCell({
   gender?: SavedBooking["customerGender"];
   inline?: boolean;
 }) {
-  const label =
-    gender === "male" ? "Male" : gender === "female" ? "Female" : "—";
-
-  if (inline) {
-    return <span className="font-medium text-salon-ink">{label}</span>;
+  if (gender === "male") {
+    return (
+      <span
+        className={`inline-flex rounded-full border border-salon-gold/35 bg-salon-gold/10 px-2.5 py-0.5 text-[11px] font-semibold text-salon-gold ${inline ? "" : ""}`}
+      >
+        Male
+      </span>
+    );
   }
 
-  return <span className="text-sm">{label}</span>;
+  if (gender === "female") {
+    return (
+      <span className="inline-flex rounded-full border border-salon-beige/50 bg-salon-surface px-2.5 py-0.5 text-[11px] font-semibold text-salon-ink">
+        Female
+      </span>
+    );
+  }
+
+  if (inline) {
+    return <span className="font-medium text-salon-muted">—</span>;
+  }
+
+  return (
+    <span className="inline-flex rounded-full border border-salon-beige/30 bg-salon-bg/60 px-2.5 py-0.5 text-[11px] font-medium text-salon-muted">
+      —
+    </span>
+  );
 }
 
 function ClientCell({ booking }: { booking: SavedBooking }) {
