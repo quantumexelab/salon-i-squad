@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Users } from "lucide-react";
 import { subscribeToBookings } from "@/lib/bookings";
-import { getProfilePhone, subscribeToClientUsers } from "@/lib/users";
+import { getProfilePhone, phoneDocId, subscribeToClientUsers } from "@/lib/users";
 import {
   buildWhatsAppUrl,
   customerGreetingMessage,
@@ -57,12 +57,39 @@ export function AdminCustomersPage() {
   }, []);
 
   const rows = useMemo<CustomerRow[]>(() => {
-    return clients
-      .map((user) => ({
-        user,
-        totalBookings: bookingCounts[user.uid] ?? 0,
-      }))
-      .sort((a, b) => b.totalBookings - a.totalBookings);
+    const byPhone = new Map<string, { users: UserProfile[]; totalBookings: number }>();
+    const withoutPhone: CustomerRow[] = [];
+
+    for (const user of clients) {
+      const phone = getProfilePhone(user);
+      if (!phone) {
+        withoutPhone.push({
+          user,
+          totalBookings: bookingCounts[user.uid] ?? 0,
+        });
+        continue;
+      }
+
+      const key = phoneDocId(phone);
+      const entry = byPhone.get(key) ?? { users: [], totalBookings: 0 };
+      entry.users.push(user);
+      entry.totalBookings += bookingCounts[user.uid] ?? 0;
+      byPhone.set(key, entry);
+    }
+
+    const merged: CustomerRow[] = [...byPhone.values()].map(({ users, totalBookings }) => {
+      const sorted = [...users].sort((a, b) =>
+        b.updatedAt.localeCompare(a.updatedAt),
+      );
+      return {
+        user: sorted[0]!,
+        totalBookings,
+      };
+    });
+
+    return [...merged, ...withoutPhone].sort(
+      (a, b) => b.totalBookings - a.totalBookings,
+    );
   }, [clients, bookingCounts]);
 
   const loading = loadingClients || loadingBookings;
@@ -77,7 +104,7 @@ export function AdminCustomersPage() {
           Customers
         </h1>
         <p className="mt-2 max-w-xl text-sm text-salon-muted">
-          Unique clients from the booking app, with contact details and total
+          Unique clients by phone number, with contact details and total
           appointments. Tap a phone number to open WhatsApp.
         </p>
       </div>

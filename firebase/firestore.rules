@@ -52,6 +52,13 @@ service cloud.firestore {
       allow delete: if isMaster();
     }
 
+    // One canonical row per phone for guest dedupe (clients read/write own phone row).
+    match /customerPhones/{phoneId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isMaster();
+    }
+
     match /services/{serviceId} {
       // Public catalog — clients can list services before/after login.
       allow read: if true;

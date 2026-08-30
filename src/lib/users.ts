@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   query,
   setDoc,
@@ -199,6 +200,49 @@ export async function upsertEmailUserProfile(user: User) {
   return profile;
 }
 
+/** Digits-only key for one customer per phone (guest dedupe). */
+export function phoneDocId(mobile: string): string {
+  const normalized = normalizeMobile(mobile);
+  const digits = normalized.replace(/\D/g, "");
+  return digits || normalized;
+}
+
+export async function findClientProfileByPhone(
+  mobile: string,
+): Promise<UserProfile | null> {
+  initFirebase();
+  const phone = normalizeMobile(mobile);
+  const db = getFirebaseDb();
+
+  const byPhoneNumber = query(
+    collection(db, COLLECTIONS.users),
+    where("role", "==", "client"),
+    where("phoneNumber", "==", phone),
+  );
+  const snap = await getDocs(byPhoneNumber);
+  if (!snap.empty) {
+    const docSnap = snap.docs[0]!;
+    return mapUserDoc(docSnap.id, docSnap.data());
+  }
+
+  const byMobile = query(
+    collection(db, COLLECTIONS.users),
+    where("role", "==", "client"),
+    where("mobile", "==", phone),
+  );
+  const legacy = await getDocs(byMobile);
+  if (!legacy.empty) {
+    const docSnap = legacy.docs[0]!;
+    return mapUserDoc(docSnap.id, docSnap.data());
+  }
+
+  return null;
+}
+
+/**
+ * Guest login — one canonical customer per phone in `customerPhones`,
+ * plus a session `users/{uid}` doc for the current anonymous auth uid.
+ */
 export async function createGuestUserProfile(
   uid: string,
   name: string,
@@ -207,22 +251,51 @@ export async function createGuestUserProfile(
   initFirebase();
   const db = getFirebaseDb();
   const now = new Date().toISOString();
-  const { firstName, lastName } = parseName(name);
   const phone = normalizeMobile(mobile);
+  const { firstName, lastName } = parseName(name.trim());
+  const phoneKey = phoneDocId(phone);
+
+  const customerPhoneRef = doc(db, COLLECTIONS.customerPhones, phoneKey);
+  const existingCustomer = await getDoc(customerPhoneRef);
+  const existingData = existingCustomer.exists()
+    ? existingCustomer.data()
+    : null;
+
+  const canonicalFirst =
+    firstName || String(existingData?.firstName ?? "") || "Guest";
+  const canonicalLast =
+    lastName || String(existingData?.lastName ?? "");
+
+  await setDoc(
+    customerPhoneRef,
+    {
+      phoneNumber: phone,
+      firstName: canonicalFirst,
+      lastName: canonicalLast,
+      lastAuthUid: uid,
+      updatedAt: now,
+      createdAt: existingData?.createdAt
+        ? String(existingData.createdAt)
+        : now,
+    },
+    { merge: true },
+  );
 
   const profile: UserProfile = {
     uid,
-    firstName,
-    lastName,
+    firstName: canonicalFirst,
+    lastName: canonicalLast,
     phoneNumber: phone,
     mobile: phone,
     role: "client",
     isGuest: true,
-    createdAt: now,
+    createdAt: existingData?.createdAt
+      ? String(existingData.createdAt)
+      : now,
     updatedAt: now,
   };
 
-  await setDoc(doc(db, COLLECTIONS.users, uid), profile);
+  await setDoc(doc(db, COLLECTIONS.users, uid), profile, { merge: true });
   return profile;
 }
 
