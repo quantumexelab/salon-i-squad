@@ -7,9 +7,6 @@ import { serviceImageFor } from "@/lib/service-images";
 import {
   createService,
   deleteService,
-  isDummyCatalogService,
-  purgeDummyCatalogServices,
-  seedCatalogServices,
   subscribeToServices,
   updateService,
   uploadServiceImageFile,
@@ -54,10 +51,9 @@ export function AdminServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [seeding, setSeeding] = useState(false);
-  const [purging, setPurging] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<ServiceFormState>(emptyForm);
@@ -100,65 +96,16 @@ export function AdminServicesPage() {
     setError(null);
   }
 
-  async function handleSeedCatalog() {
-    setSeeding(true);
-    setError(null);
-    try {
-      const result = await seedCatalogServices(services);
-      setError(null);
-      window.alert(
-        `Catalog updated: ${result.created} new service(s), ${result.updated} image(s) filled.`,
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Could not seed catalog. Sign in as admin/master first.",
-      );
-    } finally {
-      setSeeding(false);
-    }
-  }
-
-  async function handlePurgeDummies() {
-    const dummies = services.filter(isDummyCatalogService);
-    if (dummies.length === 0) {
-      window.alert("No dummy / test services found.");
-      return;
-    }
-    const ok = window.confirm(
-      `Delete ${dummies.length} dummy service(s)?\n\n${dummies.map((s) => `• ${s.name}`).join("\n")}`,
-    );
-    if (!ok) return;
-
-    setPurging(true);
-    setError(null);
-    try {
-      const result = await purgeDummyCatalogServices(services);
-      window.alert(
-        result.deleted > 0
-          ? `Removed ${result.deleted}: ${result.names.join(", ")}`
-          : "No dummy services deleted.",
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Could not remove dummy services. Sign in as admin/master first.",
-      );
-    } finally {
-      setPurging(false);
-    }
-  }
-
   async function handleImageUpload(file: File | null) {
     if (!file) return;
 
     setUploadingImage(true);
     setError(null);
+    setUploadMessage(null);
     try {
       const url = await uploadServiceImageFile(file);
       setForm((f) => ({ ...f, imageUrl: url }));
+      setUploadMessage("Image uploaded. Save the service to keep it.");
     } catch (err) {
       setError(
         err instanceof Error
@@ -242,34 +189,14 @@ export function AdminServicesPage() {
             Manage offerings shown on the client booking app.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void handlePurgeDummies()}
-            disabled={saving || seeding || purging}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-400/40 px-4 text-sm font-semibold text-red-300 hover:bg-red-400/10 disabled:opacity-60"
-          >
-            {purging ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Remove dummy services
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleSeedCatalog()}
-            disabled={saving || seeding || purging}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-salon-gold/40 px-4 text-sm font-semibold text-salon-gold hover:bg-salon-gold/10 disabled:opacity-60"
-          >
-            {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Add sample services + images
-          </button>
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl salon-gold-btn text-black"
-          >
-            <Plus className="h-4 w-4" />
-            Add service
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={openCreate}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl salon-gold-btn text-black"
+        >
+          <Plus className="h-4 w-4" />
+          Add service
+        </button>
       </div>
 
       {error ? (
@@ -342,19 +269,24 @@ export function AdminServicesPage() {
               <div className="h-24 w-full shrink-0 overflow-hidden rounded-xl border border-salon-beige/35 bg-salon-bg sm:w-32">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={serviceImageFor(form.name || "Service", form.imageUrl)}
+                  src={
+                    form.imageUrl.trim()
+                      ? form.imageUrl.trim()
+                      : serviceImageFor(form.name || "Service")
+                  }
                   alt="Service preview"
                   className="h-full w-full object-cover"
                 />
               </div>
               <div className="grid min-w-0 flex-1 gap-2">
                 <input
-                  type="url"
+                  type="text"
                   value={form.imageUrl}
                   placeholder="https://… or upload below"
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, imageUrl: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    setUploadMessage(null);
+                    setForm((f) => ({ ...f, imageUrl: e.target.value }));
+                  }}
                   className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
                 />
                 <div className="flex flex-wrap gap-2">
@@ -382,6 +314,11 @@ export function AdminServicesPage() {
                     </button>
                   ) : null}
                 </div>
+                {uploadMessage ? (
+                  <p className="text-[11px] font-medium text-emerald-300">
+                    {uploadMessage}
+                  </p>
+                ) : null}
                 <p className="text-[11px] text-salon-muted">
                   Shown on the client booking cards. Leave blank for a default
                   salon photo.

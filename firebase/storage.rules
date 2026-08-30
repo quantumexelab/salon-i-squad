@@ -2,15 +2,28 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    function isMaster() {
+    function hasUserDoc() {
       return request.auth != null
-        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
-        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'master';
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid));
+    }
+
+    function userRole() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isMaster() {
+      return hasUserDoc() && userRole() == 'master';
+    }
+
+    function isStaff() {
+      return hasUserDoc() && (userRole() == 'admin' || userRole() == 'master');
     }
 
     match /services/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isStaff()
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
     }
 
     match /profiles/{userId}/{allPaths=**} {

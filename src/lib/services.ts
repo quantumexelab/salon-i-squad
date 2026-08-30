@@ -16,7 +16,7 @@ import {
 } from "firebase/storage";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getClientStorage, initFirebaseClient } from "@/lib/firebase/client";
-import { getFirebaseDb, initFirebase } from "@/lib/firebase";
+import { getFirebaseAuth, getFirebaseDb, initFirebase } from "@/lib/firebase";
 import { serviceImageFor, CATALOG_SERVICE_IMAGES } from "@/lib/service-images";
 import {
   isDummyCatalogService,
@@ -85,14 +85,44 @@ export async function uploadServiceImageFile(file: File): Promise<string> {
     throw new Error("Image must be 2MB or smaller.");
   }
 
+  initFirebase();
   initFirebaseClient();
+
+  const user = getFirebaseAuth().currentUser;
+  if (!user) {
+    throw new Error("Sign in again to upload images.");
+  }
+
   const ext =
     file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") ||
     "jpg";
   const path = `services/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const storageRef = ref(getClientStorage(), path);
-  await uploadBytes(storageRef, file, { contentType: file.type });
-  return getDownloadURL(storageRef);
+
+  try {
+    await uploadBytes(storageRef, file, { contentType: file.type });
+    return getDownloadURL(storageRef);
+  } catch (err) {
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? String((err as { code?: string }).code)
+        : "";
+    if (code === "storage/unauthorized") {
+      throw new Error(
+        "Upload blocked by storage rules. Ask your master admin to deploy Firebase Storage rules.",
+      );
+    }
+    if (
+      code === "storage/unknown" ||
+      code === "storage/bucket-not-found" ||
+      code === "storage/object-not-found"
+    ) {
+      throw new Error(
+        "Firebase Storage is not set up yet. Open Firebase Console → Storage → Get started, then try again.",
+      );
+    }
+    throw err instanceof Error ? err : new Error("Image upload failed.");
+  }
 }
 
 export function subscribeToServices(
