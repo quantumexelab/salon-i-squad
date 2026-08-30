@@ -374,19 +374,20 @@ export function LandingPage() {
             </div>
 
             <div className="rounded-2xl border border-salon-beige/35 bg-salon-surface p-5">
-              <p className="text-sm font-semibold text-salon-ink">Follow us</p>
-              <p className="mt-1 text-xs text-salon-muted">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-salon-gold">
+                Follow us
+              </p>
+              <p className="mt-2 text-sm text-salon-muted">
                 Stay updated with styles, offers, and salon news.
               </p>
-              <SocialLinks className="mt-4" />
+              <SocialLinks className="mt-4" variant="brand" />
             </div>
           </div>
         </div>
       </section>
 
       <footer className="border-t border-salon-beige/30 bg-salon-bg px-4 py-8 md:px-8">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-4">
-          <SocialLinks iconClassName="h-9 w-9 text-sm" />
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center">
           <p className="text-center text-xs text-salon-muted">
             © {new Date().getFullYear()} QuantumExe (Pvt) Ltd. All rights
             reserved.

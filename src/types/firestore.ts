@@ -2,6 +2,9 @@ export type UserRole = "client" | "admin" | "master";
 
 export type Gender = "male" | "female" | "other" | "prefer_not_to_say";
 
+/** Gender captured on a booking (client-facing). */
+export type BookingGender = "male" | "female";
+
 export type BookingStatus =
   | "pending"
   | "confirmed"
@@ -54,6 +57,7 @@ export type Booking = {
   consultationBookingId?: string;
   customerName: string;
   customerMobile: string;
+  customerGender?: BookingGender;
   notes?: string;
   createdAt: string;
   updatedAt: string;

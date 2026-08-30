@@ -90,26 +90,26 @@ export function SettingsPageContent() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-salon-gold">
           Salon account
         </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-salon-ink">
           Settings
         </h1>
-        <p className="mt-2 text-sm text-zinc-400">
+        <p className="mt-2 text-sm text-salon-muted">
           Configure business hours, cleanup padding, and session. Client booking
           slots follow these settings.
         </p>
       </div>
 
-      <section className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+      <section className="mb-6 rounded-2xl border border-salon-beige/30 bg-salon-surface p-5">
         <div className="mb-4 flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 text-amber-400">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-salon-gold/10 text-salon-gold">
             <Clock className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-white">Salon schedule</h2>
-            <p className="mt-1 text-xs text-zinc-500">
+            <h2 className="text-sm font-semibold text-salon-ink">Salon schedule</h2>
+            <p className="mt-1 text-xs text-salon-ink0">
               Bookable slots use open/close times (30 min steps). Cleanup padding
               only affects tomorrow and later.
             </p>
@@ -117,15 +117,15 @@ export function SettingsPageContent() {
         </div>
 
         {hoursLoading ? (
-          <div className="flex justify-center py-8 text-zinc-400">
-            <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
+          <div className="flex justify-center py-8 text-salon-muted">
+            <Loader2 className="h-5 w-5 animate-spin text-salon-gold" />
           </div>
         ) : (
           <form
             onSubmit={handleSaveHours}
             className="grid gap-3 sm:grid-cols-2"
           >
-            <label className="grid gap-1.5 text-xs text-zinc-400">
+            <label className="grid gap-1.5 text-xs text-salon-muted">
               Open time
               <select
                 value={openTime}
@@ -145,7 +145,7 @@ export function SettingsPageContent() {
                     if (fallback) setCloseTime(fallback);
                   }
                 }}
-                className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+                className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
               >
                 {openOptions.map((slot) => (
                   <option key={slot} value={slot}>
@@ -154,7 +154,7 @@ export function SettingsPageContent() {
                 ))}
               </select>
             </label>
-            <label className="grid gap-1.5 text-xs text-zinc-400">
+            <label className="grid gap-1.5 text-xs text-salon-muted">
               Close time
               <select
                 value={closeTime}
@@ -162,7 +162,7 @@ export function SettingsPageContent() {
                   setCloseTime(e.target.value);
                   setHoursSaved(false);
                 }}
-                className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+                className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
               >
                 {closeOptions.map((slot) => (
                   <option key={slot} value={slot}>
@@ -171,7 +171,7 @@ export function SettingsPageContent() {
                 ))}
               </select>
             </label>
-            <label className="grid gap-1.5 text-xs text-zinc-400 sm:col-span-2">
+            <label className="grid gap-1.5 text-xs text-salon-muted sm:col-span-2">
               Cleanup padding (minutes)
               <input
                 type="number"
@@ -183,9 +183,9 @@ export function SettingsPageContent() {
                   setCleanupPadding(Number(e.target.value));
                   setHoursSaved(false);
                 }}
-                className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+                className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
               />
-              <span className="text-[11px] text-zinc-500">
+              <span className="text-[11px] text-salon-ink0">
                 Extra sanitation time after each appointment. Applies from
                 tomorrow onward only — today&apos;s schedule ignores padding so
                 live bookings are not disrupted. Default 0.
@@ -194,7 +194,7 @@ export function SettingsPageContent() {
             <button
               type="submit"
               disabled={savingHours}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 text-sm font-bold text-zinc-950 disabled:opacity-60 sm:col-span-2"
+              className="inline-flex h-11 items-center justify-center gap-2 salon-gold-btn rounded-xl px-4 text-sm font-bold text-black disabled:opacity-60 sm:col-span-2"
             >
               {savingHours ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -211,21 +211,21 @@ export function SettingsPageContent() {
         )}
       </section>
 
-      <section className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+      <section className="mb-6 rounded-2xl border border-salon-beige/30 bg-salon-surface p-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 text-amber-400">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-salon-gold/10 text-salon-gold">
             <Shield className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-white">Signed in</h2>
-            <p className="mt-1 text-sm text-zinc-300">
+            <h2 className="text-sm font-semibold text-salon-ink">Signed in</h2>
+            <p className="mt-1 text-sm text-salon-muted">
               {profile
                 ? `${profile.firstName} ${profile.lastName}`.trim()
                 : user?.email ?? user?.uid}
             </p>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-salon-ink0">
               {user?.email ?? "No email"} · role:{" "}
-              <span className="text-amber-300">{profile?.role ?? "…"}</span>
+              <span className="text-salon-gold">{profile?.role ?? "…"}</span>
             </p>
           </div>
         </div>
@@ -234,12 +234,12 @@ export function SettingsPageContent() {
           type="button"
           onClick={handleLogout}
           disabled={loggingOut}
-          className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:border-zinc-500 disabled:opacity-60"
+          className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-salon-beige/40 bg-salon-bg px-4 text-sm font-semibold text-salon-ink transition hover:border-salon-gold/40 disabled:opacity-60"
         >
           {loggingOut ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <LogOut className="h-4 w-4 text-amber-400" />
+            <LogOut className="h-4 w-4 text-salon-gold" />
           )}
           Logout
         </button>

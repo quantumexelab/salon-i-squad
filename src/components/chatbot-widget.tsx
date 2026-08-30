@@ -11,6 +11,10 @@ import {
 
 const FAB_SIZE = 56;
 const FAB_MARGIN = 12;
+/** Extra lift on mobile so the FAB clears the bottom nav bar. */
+const FAB_BOTTOM_MOBILE_LIFT = 24;
+/** Extra inward offset on mobile bottom corners so nav tabs stay tappable. */
+const FAB_BOTTOM_MOBILE_SIDE = 20;
 const FAB_POS_KEY = "sis-chat-fab-pos";
 const DRAG_THRESHOLD = 6;
 const SNAP_TRANSITION_MS = 320;
@@ -40,20 +44,33 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function isMobileViewport(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(max-width: 767px)").matches;
+}
+
+function safeAreaBottom(): number {
+  if (typeof window === "undefined") return 0;
+  return Number.parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(
+      "env(safe-area-inset-bottom)",
+    ) || "0",
+  );
+}
+
+function sideMargin(corner: FabCorner): number {
+  const mobile = isMobileViewport();
+  const isBottomCorner = corner === "bl" || corner === "br";
+  return FAB_MARGIN + (mobile && isBottomCorner ? FAB_BOTTOM_MOBILE_SIDE : 0);
+}
+
 function bottomFabInset(): number {
   if (typeof window === "undefined") return FAB_MARGIN;
 
-  const mobile = window.matchMedia("(max-width: 767px)").matches;
+  const mobile = isMobileViewport();
   return (
     FAB_MARGIN +
-    (mobile
-      ? 72 +
-        Number.parseFloat(
-          getComputedStyle(document.documentElement).getPropertyValue(
-            "env(safe-area-inset-bottom)",
-          ) || "0",
-        )
-      : 20)
+    (mobile ? 72 + safeAreaBottom() + FAB_BOTTOM_MOBILE_LIFT : 20)
   );
 }
 
@@ -67,15 +84,16 @@ function cornerPositions(): Record<FabCorner, FabPosition> {
     };
   }
 
-  const maxX = window.innerWidth - FAB_SIZE - FAB_MARGIN;
+  const maxX = (corner: FabCorner) =>
+    window.innerWidth - FAB_SIZE - sideMargin(corner);
   const topY = FAB_MARGIN;
   const bottomY = window.innerHeight - FAB_SIZE - bottomFabInset();
 
   return {
-    tl: { x: FAB_MARGIN, y: topY },
-    tr: { x: maxX, y: topY },
-    bl: { x: FAB_MARGIN, y: bottomY },
-    br: { x: maxX, y: bottomY },
+    tl: { x: sideMargin("tl"), y: topY },
+    tr: { x: maxX("tr"), y: topY },
+    bl: { x: sideMargin("bl"), y: bottomY },
+    br: { x: maxX("br"), y: bottomY },
   };
 }
 
@@ -102,8 +120,11 @@ function defaultFabPosition(): FabPosition {
 function clampFabPosition(pos: FabPosition): FabPosition {
   if (typeof window === "undefined") return pos;
 
+  const minX = sideMargin("bl");
+  const maxX = window.innerWidth - FAB_SIZE - sideMargin("br");
+
   return {
-    x: clamp(pos.x, FAB_MARGIN, window.innerWidth - FAB_SIZE - FAB_MARGIN),
+    x: clamp(pos.x, minX, maxX),
     y: clamp(
       pos.y,
       FAB_MARGIN,
@@ -157,13 +178,58 @@ function cornerForPosition(pos: FabPosition): FabCorner {
       : "br";
 }
 
-function panelPlacement(pos: FabPosition, viewport: { w: number; h: number }) {
+type FabLayout = {
+  flexDirection: "column" | "column-reverse";
+  alignItems: "flex-start" | "flex-end";
+  style: React.CSSProperties;
+};
+
+function getFabLayout(
+  pos: FabPosition,
+  viewport: { w: number; h: number },
+  dragging: boolean,
+): FabLayout {
+  const corner = cornerForPosition(pos);
+  const isBottomCorner = corner === "bl" || corner === "br";
+  const isRightCorner = corner === "tr" || corner === "br";
+  const flexDirection = isBottomCorner ? "column" : "column-reverse";
+  const alignItems = isRightCorner ? "flex-end" : "flex-start";
+
+  if (!dragging) {
+    const side = sideMargin(corner);
+    return {
+      flexDirection,
+      alignItems,
+      style: isBottomCorner
+        ? {
+            bottom: bottomFabInset(),
+            ...(isRightCorner ? { right: side } : { left: side }),
+          }
+        : {
+            top: FAB_MARGIN,
+            ...(isRightCorner ? { right: side } : { left: side }),
+          },
+    };
+  }
+
   const centerX = pos.x + FAB_SIZE / 2;
   const centerY = pos.y + FAB_SIZE / 2;
+  const isBottom = centerY >= viewport.h / 2;
+  const isRight = centerX >= viewport.w / 2;
+
   return {
-    vertical: centerY < viewport.h / 2 ? "bottom" : "top",
-    horizontal: centerX < viewport.w / 2 ? "left" : "right",
-  } as const;
+    flexDirection: isBottom ? "column" : "column-reverse",
+    alignItems: isRight ? "flex-end" : "flex-start",
+    style: isBottom
+      ? {
+          bottom: viewport.h - pos.y - FAB_SIZE,
+          left: pos.x,
+        }
+      : {
+          top: pos.y,
+          left: pos.x,
+        },
+  };
 }
 
 export function ChatbotWidget() {
@@ -346,23 +412,26 @@ export function ChatbotWidget() {
     }
   }
 
-  const placement =
+  const layout =
     viewport.w > 0 && viewport.h > 0
-      ? panelPlacement(fabPos, viewport)
-      : { vertical: "top" as const, horizontal: "right" as const };
+      ? getFabLayout(fabPos, viewport, dragging)
+      : {
+          flexDirection: "column-reverse" as const,
+          alignItems: "flex-end" as const,
+          style: { bottom: bottomFabInset(), right: sideMargin("br") },
+        };
+
+  const snapTransition = `left ${SNAP_TRANSITION_MS}ms ease, top ${SNAP_TRANSITION_MS}ms ease, right ${SNAP_TRANSITION_MS}ms ease, bottom ${SNAP_TRANSITION_MS}ms ease`;
 
   return (
     <div
       className={`pointer-events-none fixed z-40 flex gap-3 ${
-        placement.vertical === "bottom" ? "flex-col-reverse" : "flex-col"
-      } ${placement.horizontal === "left" ? "items-start" : "items-end"}`}
+        layout.flexDirection === "column-reverse" ? "flex-col-reverse" : "flex-col"
+      } ${layout.alignItems === "flex-start" ? "items-start" : "items-end"}`}
       style={{
-        left: fabPos.x,
-        top: fabPos.y,
+        ...layout.style,
         width: FAB_SIZE,
-        transition: dragging
-          ? "none"
-          : `left ${SNAP_TRANSITION_MS}ms ease, top ${SNAP_TRANSITION_MS}ms ease`,
+        transition: dragging ? "none" : snapTransition,
       }}
     >
       {open ? (

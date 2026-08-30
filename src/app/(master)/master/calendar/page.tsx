@@ -12,14 +12,14 @@ export default function MasterCalendarPage() {
       <div>
         <Link
           href="/master"
-          className="text-xs font-medium text-amber-400 hover:text-amber-300"
+          className="text-xs font-medium text-salon-gold hover:text-salon-gold"
         >
           ← Master console
         </Link>
-        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">
+        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-salon-ink">
           Google Calendar
         </h2>
-        <p className="mt-2 max-w-2xl text-sm text-zinc-400">
+        <p className="mt-2 max-w-2xl text-sm text-salon-muted">
           Configure credentials so new, rescheduled, and cancelled bookings sync
           to the salon owner&apos;s calendar.
         </p>

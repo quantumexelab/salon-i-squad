@@ -140,19 +140,19 @@ export function AdminDashboard() {
       <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-salon-gold">
               Owner console
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-salon-ink">
               Bookings
             </h1>
-            <p className="mt-2 max-w-xl text-sm text-zinc-400">
+            <p className="mt-2 max-w-xl text-sm text-salon-muted">
               Track appointments and tally expected vs realized income when you
               complete a visit.
             </p>
           </div>
-          <div className="inline-flex items-center gap-2 self-start rounded-full border border-zinc-800 bg-zinc-900/70 px-3 py-1.5 text-xs text-zinc-400">
-            <RefreshCw className="h-3.5 w-3.5 text-amber-400" />
+          <div className="inline-flex items-center gap-2 self-start rounded-full border border-salon-beige/30 bg-salon-surface px-3 py-1.5 text-xs text-salon-muted">
+            <RefreshCw className="h-3.5 w-3.5 text-salon-gold" />
             Real-time Firestore sync
           </div>
         </div>
@@ -188,31 +188,31 @@ export function AdminDashboard() {
           </p>
         ) : null}
 
-        <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40">
-          <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3 sm:px-6">
-            <h2 className="text-sm font-semibold text-white">Appointment list</h2>
-            <span className="text-xs text-zinc-500">
+        <section className="overflow-hidden rounded-2xl border border-salon-beige/30 bg-salon-surface">
+          <div className="flex items-center justify-between border-b border-salon-beige/30 px-4 py-3 sm:px-6">
+            <h2 className="text-sm font-semibold text-salon-ink">Appointment list</h2>
+            <span className="text-xs text-salon-ink0">
               {loading ? "Loading…" : `${bookings.length} records`}
             </span>
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center gap-2 py-16 text-zinc-400">
-              <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
+            <div className="flex items-center justify-center gap-2 py-16 text-salon-muted">
+              <Loader2 className="h-5 w-5 animate-spin text-salon-gold" />
               Loading bookings…
             </div>
           ) : error ? (
             <div className="px-4 py-10 text-center sm:px-6">
               <p className="text-sm text-red-300">{error}</p>
-              <p className="mt-2 text-xs text-zinc-500">
+              <p className="mt-2 text-xs text-salon-ink0">
                 If this is a permissions error, make sure Firestore rules allow
                 signed-in reads on <code>bookings</code>, then refresh.
               </p>
             </div>
           ) : bookings.length === 0 ? (
             <div className="px-4 py-16 text-center sm:px-6">
-              <p className="text-sm font-medium text-zinc-300">No bookings yet</p>
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="text-sm font-medium text-salon-muted">No bookings yet</p>
+              <p className="mt-1 text-xs text-salon-ink0">
                 New appointments from /booking will appear here automatically.
               </p>
             </div>
@@ -220,9 +220,10 @@ export function AdminDashboard() {
             <>
               <div className="hidden md:block">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-zinc-950/60 text-xs uppercase tracking-wide text-zinc-500">
+                  <thead className="bg-salon-bg/60 text-xs uppercase tracking-wide text-salon-ink0">
                     <tr>
                       <th className="px-6 py-3 font-medium">Client</th>
+                      <th className="px-6 py-3 font-medium">Gender</th>
                       <th className="px-6 py-3 font-medium">Service</th>
                       <th className="px-6 py-3 font-medium">Date</th>
                       <th className="px-6 py-3 font-medium">Time</th>
@@ -231,30 +232,33 @@ export function AdminDashboard() {
                       <th className="px-6 py-3 font-medium">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-800">
+                  <tbody className="divide-y divide-salon-beige/30">
                     {bookings.map((booking) => (
                       <tr
                         key={booking.id}
-                        className="transition hover:bg-zinc-900/80"
+                        className="transition hover:bg-salon-surface"
                       >
                         <td className="px-6 py-4">
                           <ClientCell booking={booking} />
                         </td>
+                        <td className="px-6 py-4 text-salon-muted">
+                          <GenderCell gender={booking.customerGender} />
+                        </td>
                         <td className="px-6 py-4">
-                          <p className="font-medium text-white">
+                          <p className="font-medium text-salon-ink">
                             {booking.serviceName}
                           </p>
-                          <p className="mt-0.5 text-xs text-zinc-500">
+                          <p className="mt-0.5 text-xs text-salon-ink0">
                             {booking.duration} mins
                           </p>
                         </td>
-                        <td className="px-6 py-4 text-zinc-300">
+                        <td className="px-6 py-4 text-salon-muted">
                           {formatBookingDate(booking.selectedDate)}
                         </td>
-                        <td className="px-6 py-4 text-zinc-300">
+                        <td className="px-6 py-4 text-salon-muted">
                           {booking.selectedTime}
                         </td>
-                        <td className="px-6 py-4 font-medium text-amber-400">
+                        <td className="px-6 py-4 font-medium text-salon-gold">
                           {formatLkr(booking.price)}
                         </td>
                         <td className="px-6 py-4">
@@ -277,28 +281,32 @@ export function AdminDashboard() {
                 </table>
               </div>
 
-              <ul className="divide-y divide-zinc-800 md:hidden">
+              <ul className="divide-y divide-salon-beige/30 md:hidden">
                 {bookings.map((booking) => (
                   <li key={booking.id} className="px-4 py-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-white">
+                        <p className="font-semibold text-salon-ink">
                           {booking.serviceName}
                         </p>
                         <div className="mt-2">
                           <ClientCell booking={booking} />
                         </div>
-                        <p className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400">
+                        <p className="mt-1 text-xs text-salon-muted">
+                          Gender:{" "}
+                          <GenderCell gender={booking.customerGender} inline />
+                        </p>
+                        <p className="mt-2 flex items-center gap-1.5 text-xs text-salon-muted">
                           <CalendarDays className="h-3.5 w-3.5" />
                           {formatBookingDate(booking.selectedDate)}
                         </p>
-                        <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-400">
+                        <p className="mt-1 flex items-center gap-1.5 text-xs text-salon-muted">
                           <Clock className="h-3.5 w-3.5" />
                           {booking.selectedTime} · {booking.duration} mins
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-amber-400">
+                        <p className="text-sm font-semibold text-salon-gold">
                           {formatLkr(booking.price)}
                         </p>
                         <div className="mt-2 flex justify-end">
@@ -373,17 +381,17 @@ function CompletePaymentModal({
         disabled={busy}
         onClick={onCancel}
       />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-950 p-5 shadow-2xl">
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-salon-beige/40 bg-salon-bg p-5 shadow-2xl">
         <h2
           id="complete-payment-title"
-          className="text-lg font-semibold text-white"
+          className="text-lg font-semibold text-salon-ink"
         >
           Complete booking
         </h2>
-        <p className="mt-2 text-sm text-zinc-400">
+        <p className="mt-2 text-sm text-salon-muted">
           {client} · {booking.serviceName} · {formatLkr(booking.price)}
         </p>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-1 text-xs text-salon-ink0">
           How did the client pay?
         </p>
 
@@ -394,8 +402,8 @@ function CompletePaymentModal({
             onClick={() => onPaymentMethodChange("cash")}
             className={`rounded-xl border px-3 py-3 text-sm font-semibold transition ${
               paymentMethod === "cash"
-                ? "border-amber-500/50 bg-amber-400/15 text-amber-300"
-                : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500"
+                ? "border-salon-gold/50 bg-salon-gold/15 text-salon-gold"
+                : "border-salon-beige/40 bg-salon-surface text-salon-muted hover:border-salon-gold/40"
             }`}
           >
             Cash
@@ -406,8 +414,8 @@ function CompletePaymentModal({
             onClick={() => onPaymentMethodChange("card")}
             className={`rounded-xl border px-3 py-3 text-sm font-semibold transition ${
               paymentMethod === "card"
-                ? "border-amber-500/50 bg-amber-400/15 text-amber-300"
-                : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500"
+                ? "border-salon-gold/50 bg-salon-gold/15 text-salon-gold"
+                : "border-salon-beige/40 bg-salon-surface text-salon-muted hover:border-salon-gold/40"
             }`}
           >
             Card
@@ -419,7 +427,7 @@ function CompletePaymentModal({
             type="button"
             disabled={busy}
             onClick={onCancel}
-            className="flex h-11 flex-1 items-center justify-center rounded-xl border border-zinc-700 text-sm font-semibold text-zinc-300 disabled:opacity-60"
+            className="flex h-11 flex-1 items-center justify-center rounded-xl border border-salon-beige/40 text-sm font-semibold text-salon-muted disabled:opacity-60"
           >
             Cancel
           </button>
@@ -427,7 +435,7 @@ function CompletePaymentModal({
             type="button"
             disabled={busy}
             onClick={onConfirm}
-            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-bold text-zinc-950 disabled:opacity-60"
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 salon-gold-btn rounded-xl text-sm font-bold text-black disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Confirm
@@ -438,6 +446,23 @@ function CompletePaymentModal({
   );
 }
 
+function GenderCell({
+  gender,
+  inline = false,
+}: {
+  gender?: SavedBooking["customerGender"];
+  inline?: boolean;
+}) {
+  const label =
+    gender === "male" ? "Male" : gender === "female" ? "Female" : "—";
+
+  if (inline) {
+    return <span className="font-medium text-salon-ink">{label}</span>;
+  }
+
+  return <span className="text-sm">{label}</span>;
+}
+
 function ClientCell({ booking }: { booking: SavedBooking }) {
   const name = booking.customerName?.trim() || "Client";
   const email = booking.customerEmail?.trim();
@@ -445,11 +470,11 @@ function ClientCell({ booking }: { booking: SavedBooking }) {
 
   return (
     <div>
-      <p className="font-medium text-white">{name}</p>
+      <p className="font-medium text-salon-ink">{name}</p>
       {email ? (
-        <p className="mt-0.5 text-xs text-zinc-500">{email}</p>
+        <p className="mt-0.5 text-xs text-salon-ink0">{email}</p>
       ) : null}
-      <p className="mt-0.5 text-xs text-amber-300/90">{phone || "No phone"}</p>
+      <p className="mt-0.5 text-xs text-salon-gold/90">{phone || "No phone"}</p>
     </div>
   );
 }
@@ -484,7 +509,7 @@ function BookingActions({
       ) : (
         <span
           title="No phone number on this booking"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-800/80 px-3 py-2 text-xs font-semibold text-zinc-500"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-salon-surface px-3 py-2 text-xs font-semibold text-salon-ink0"
         >
           <WhatsAppIcon className="h-3.5 w-3.5" />
           WhatsApp
@@ -550,15 +575,15 @@ function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 px-4 py-4">
-      <div className="flex items-center gap-2 text-zinc-400">
-        <span className="text-amber-400">{icon}</span>
+    <div className="rounded-2xl border border-salon-beige/30 bg-salon-surface px-4 py-4">
+      <div className="flex items-center gap-2 text-salon-muted">
+        <span className="text-salon-gold">{icon}</span>
         <p className="text-xs font-medium uppercase tracking-wide">{label}</p>
       </div>
-      <p className="mt-3 text-2xl font-semibold tracking-tight text-white">
+      <p className="mt-3 text-2xl font-semibold tracking-tight text-salon-ink">
         {value}
       </p>
-      {hint ? <p className="mt-1.5 text-xs text-zinc-500">{hint}</p> : null}
+      {hint ? <p className="mt-1.5 text-xs text-salon-ink0">{hint}</p> : null}
     </div>
   );
 }
@@ -572,7 +597,7 @@ function StatusPill({ booking }: { booking: SavedBooking }) {
         ? "bg-sky-500/15 text-sky-300"
         : status === "cancelled"
           ? "bg-red-500/15 text-red-300"
-          : "bg-zinc-800 text-zinc-300";
+          : "bg-salon-surface text-salon-muted";
 
   return (
     <span className="inline-flex flex-col items-start gap-1">
@@ -582,7 +607,7 @@ function StatusPill({ booking }: { booking: SavedBooking }) {
         {status || "unknown"}
       </span>
       {status === "completed" && booking.paymentMethod ? (
-        <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-salon-ink0">
           {booking.paymentMethod}
         </span>
       ) : null}

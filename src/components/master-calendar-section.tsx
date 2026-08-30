@@ -60,49 +60,49 @@ export function MasterCalendarSection() {
   }
 
   return (
-    <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+    <section className="rounded-2xl border border-salon-beige/30 bg-salon-surface p-5">
       <div className="mb-4 flex items-center gap-2">
-        <CalendarDays className="h-4 w-4 text-amber-400" />
-        <h3 className="text-sm font-semibold text-white">Google Calendar sync</h3>
+        <CalendarDays className="h-4 w-4 text-salon-gold" />
+        <h3 className="text-sm font-semibold text-salon-ink">Google Calendar sync</h3>
       </div>
-      <p className="mb-4 text-xs leading-relaxed text-zinc-400">
+      <p className="mb-4 text-xs leading-relaxed text-salon-muted">
         Push confirmed, rescheduled, and cancelled bookings to the salon
         owner&apos;s Google Calendar. Store the Calendar ID and a Google Cloud
         service account JSON here (master-only). On Vercel, also set{" "}
-        <code className="text-zinc-300">FIREBASE_SERVICE_ACCOUNT_JSON</code> so
+        <code className="text-salon-muted">FIREBASE_SERVICE_ACCOUNT_JSON</code> so
         the API can read this document, or set{" "}
-        <code className="text-zinc-300">GOOGLE_CALENDAR_ID</code> +{" "}
-        <code className="text-zinc-300">GOOGLE_SERVICE_ACCOUNT_JSON</code> as
+        <code className="text-salon-muted">GOOGLE_CALENDAR_ID</code> +{" "}
+        <code className="text-salon-muted">GOOGLE_SERVICE_ACCOUNT_JSON</code> as
         env fallbacks.
       </p>
 
       {loading ? (
-        <div className="flex justify-center py-8 text-zinc-400">
-          <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
+        <div className="flex justify-center py-8 text-salon-muted">
+          <Loader2 className="h-5 w-5 animate-spin text-salon-gold" />
         </div>
       ) : (
         <form onSubmit={handleSave} className="grid gap-3">
-          <label className="flex items-center gap-2 text-sm text-zinc-300">
+          <label className="flex items-center gap-2 text-sm text-salon-muted">
             <input
               type="checkbox"
               checked={enabled}
               onChange={(e) => setEnabled(e.target.checked)}
-              className="h-4 w-4 rounded border-zinc-600 bg-zinc-950 text-amber-400"
+              className="h-4 w-4 rounded border-salon-beige/40 bg-salon-bg text-salon-gold"
             />
             Enable Google Calendar sync
           </label>
 
-          <label className="grid gap-1.5 text-xs text-zinc-400">
+          <label className="grid gap-1.5 text-xs text-salon-muted">
             Google Calendar ID
             <input
               value={calendarId}
               onChange={(e) => setCalendarId(e.target.value)}
               placeholder="owner@gmail.com or …@group.calendar.google.com"
-              className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+              className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
             />
           </label>
 
-          <label className="grid gap-1.5 text-xs text-zinc-400">
+          <label className="grid gap-1.5 text-xs text-salon-muted">
             Service Account JSON
             <textarea
               value={serviceAccountJson}
@@ -110,14 +110,14 @@ export function MasterCalendarSection() {
               rows={8}
               spellCheck={false}
               placeholder='{"type":"service_account","client_email":"…","private_key":"…"}'
-              className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-xs text-white outline-none focus:border-amber-500/50"
+              className="rounded-xl border border-salon-beige/40 bg-salon-bg px-3 py-2 font-mono text-xs text-salon-ink outline-none focus:border-salon-gold/50"
             />
           </label>
 
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-bold text-zinc-950 disabled:opacity-60"
+            className="inline-flex h-11 items-center justify-center gap-2 salon-gold-btn rounded-xl text-sm font-bold text-black disabled:opacity-60"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Save calendar settings

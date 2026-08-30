@@ -13,7 +13,7 @@ import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
 import { toDateKey, parseSlotMinutes } from "@/lib/calendar-utils";
 import type { DummyService } from "@/lib/booking/dummy-services";
-import type { Service } from "@/types/firestore";
+import type { Service, BookingGender } from "@/types/firestore";
 
 export type BookingStatusUpdate = "completed" | "cancelled";
 export type PaymentMethod = "cash" | "card";
@@ -28,6 +28,7 @@ export type CreateBookingInput = {
   phoneNumber: string;
   customerName?: string;
   customerEmail?: string;
+  customerGender?: BookingGender;
   /** Optional note stored on the booking (e.g. consultation). */
   notes?: string;
   isConsultation?: boolean;
@@ -46,6 +47,7 @@ export type SavedBooking = {
   phoneNumber?: string;
   customerName?: string;
   customerEmail?: string;
+  customerGender?: BookingGender;
   paymentMethod?: PaymentMethod;
   notes?: string;
   isConsultation?: boolean;
@@ -118,6 +120,10 @@ function mapBookingDoc(
     customerEmail: data.customerEmail
       ? String(data.customerEmail)
       : undefined,
+    customerGender:
+      data.customerGender === "male" || data.customerGender === "female"
+        ? data.customerGender
+        : undefined,
     paymentMethod,
     notes: data.notes ? String(data.notes) : undefined,
     isConsultation: Boolean(data.isConsultation),
@@ -152,6 +158,7 @@ export async function createBooking(
     phoneNumber: input.phoneNumber,
     customerName: input.customerName ?? "",
     customerEmail: input.customerEmail ?? "",
+    customerGender: input.customerGender ?? "",
     notes: input.notes?.trim() || "",
     isConsultation: Boolean(input.isConsultation),
     status: "confirmed" as const,
@@ -166,6 +173,10 @@ export async function createBooking(
     ...payload,
     customerName: payload.customerName || undefined,
     customerEmail: payload.customerEmail || undefined,
+    customerGender:
+      payload.customerGender === "male" || payload.customerGender === "female"
+        ? payload.customerGender
+        : undefined,
     notes: payload.notes || undefined,
     isConsultation: payload.isConsultation || undefined,
   };

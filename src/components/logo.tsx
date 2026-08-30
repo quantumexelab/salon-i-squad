@@ -177,10 +177,12 @@ type LogoProps = {
 export function Logo({
   className,
   imageClassName = "h-8 w-8",
-  textClassName = "text-sm font-semibold tracking-wide text-zinc-50",
+  textClassName = "text-sm font-semibold tracking-wide text-salon-ink",
 }: LogoProps) {
   const { logoUrl, hasRemote, setFailed } = useRemoteBranding();
+  const { mode } = useThemeMode();
   const fallback = brandingFallbackName();
+  const markVariant = mode === "dark" ? "dark" : "light";
 
   if (hasRemote) {
     return (
@@ -199,7 +201,7 @@ export function Logo({
   return (
     <span className={`inline-flex items-center gap-2 ${className ?? ""}`}>
       <SalonLogoMark
-        variant="dark"
+        variant={markVariant}
         className={`shrink-0 ${imageClassName}`}
       />
       <span className={textClassName}>{fallback}</span>
@@ -212,7 +214,7 @@ export function LogoMark({ className }: { className?: string }) {
     <Logo
       className={className}
       imageClassName="h-7 w-7"
-      textClassName="text-sm font-medium text-zinc-300"
+      textClassName="text-sm font-medium text-salon-ink"
     />
   );
 }

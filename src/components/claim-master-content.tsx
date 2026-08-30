@@ -43,19 +43,19 @@ export function ClaimMasterContent() {
 
   return (
     <AuthGuard>
-      <section className="flex flex-1 items-center justify-center bg-zinc-950 px-4 py-12">
-        <div className="w-full max-w-md rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-400">
+      <section className="flex flex-1 items-center justify-center bg-salon-bg px-4 py-12">
+        <div className="w-full max-w-md rounded-3xl border border-salon-beige/30 bg-salon-surface p-6">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-salon-gold/10 text-salon-gold">
             <Crown className="h-6 w-6" />
           </div>
           <h1 className="text-xl font-semibold text-white">Claim master role</h1>
-          <p className="mt-2 text-sm text-zinc-400">
-            One-time bootstrap for <span className="text-amber-300">{MASTER_BOOTSTRAP_EMAIL}</span>.
-            This finds your <code className="text-zinc-300">users</code> document
-            by email and sets <code className="text-zinc-300">role: &quot;master&quot;</code>.
+          <p className="mt-2 text-sm text-salon-muted">
+            One-time bootstrap for <span className="text-salon-gold">{MASTER_BOOTSTRAP_EMAIL}</span>.
+            This finds your <code className="text-salon-muted">users</code> document
+            by email and sets <code className="text-salon-muted">role: &quot;master&quot;</code>.
           </p>
 
-          <p className="mt-4 text-xs text-zinc-500">
+          <p className="mt-4 text-xs text-salon-muted">
             Signed in as: {user?.email ?? "—"} · current role:{" "}
             {profile?.role ?? "…"}
           </p>
@@ -77,7 +77,7 @@ export function ClaimMasterContent() {
               type="button"
               disabled={loading}
               onClick={handlePromote}
-              className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-bold text-zinc-950 hover:bg-amber-300 disabled:opacity-60"
+              className="mt-5 flex h-12 w-full items-center justify-center gap-2 salon-gold-btn rounded-xl text-sm font-bold text-black hover:brightness-105 disabled:opacity-60"
             >
               {loading ? (
                 <>
@@ -89,7 +89,7 @@ export function ClaimMasterContent() {
               )}
             </button>
           ) : (
-            <p className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+            <p className="mt-4 rounded-xl border border-salon-gold/20 bg-salon-gold/10 px-3 py-2 text-sm text-salon-gold">
               Sign in with Google as <strong>{MASTER_BOOTSTRAP_EMAIL}</strong>{" "}
               first, then reopen this page.
             </p>

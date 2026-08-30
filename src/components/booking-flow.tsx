@@ -64,7 +64,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { serviceImageFor } from "@/lib/service-images";
 import { siteConfig } from "@/lib/site";
 import type { ClosedDay, TimeBuffer } from "@/types/calendar";
-import type { Service } from "@/types/firestore";
+import type { BookingGender, Service } from "@/types/firestore";
 
 type Step = "service" | "date" | "time";
 
@@ -89,6 +89,9 @@ export function BookingFlow() {
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedGender, setSelectedGender] = useState<BookingGender | null>(
+    null,
+  );
   const [activeStep, setActiveStep] = useState<Step>("service");
   const [phoneInput, setPhoneInput] = useState("");
   const [monthCursor, setMonthCursor] = useState(() =>
@@ -264,12 +267,14 @@ export function BookingFlow() {
       setSelectedServices([]);
       setSelectedDate(null);
       setSelectedSlot(null);
+      setSelectedGender(null);
       setActiveStep("service");
       return;
     }
     if (stepToReset === "date") {
       setSelectedDate(null);
       setSelectedSlot(null);
+      setSelectedGender(null);
       setActiveStep("date");
     }
   }
@@ -285,6 +290,7 @@ export function BookingFlow() {
     hasSelection &&
     !saving &&
     Boolean(resolvedPhone) &&
+    Boolean(selectedGender) &&
     (!needsPhone || isValidMobile(phoneInput));
 
   async function handleConfirmBooking() {
@@ -292,7 +298,8 @@ export function BookingFlow() {
       !user ||
       selectedServices.length === 0 ||
       !selectedDate ||
-      !selectedSlot
+      !selectedSlot ||
+      !selectedGender
     ) {
       return;
     }
@@ -340,6 +347,7 @@ export function BookingFlow() {
         phoneNumber,
         customerName: customerName || undefined,
         customerEmail: profile?.email ?? user.email ?? undefined,
+        customerGender: selectedGender ?? undefined,
         isConsultation: needsConsultation,
         notes: [multiNote, ...consultationNotes].filter(Boolean).join(" · ") || undefined,
       });
@@ -675,6 +683,43 @@ export function BookingFlow() {
         {activeStep === "time" &&
         selectedServices.length > 0 &&
         selectedDate &&
+        selectedSlot ? (
+          <section className="space-y-3">
+            <SectionLabel title="Gender" />
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  { id: "male" as const, label: "Male" },
+                  { id: "female" as const, label: "Female" },
+                ] as const
+              ).map((option) => {
+                const selected = selectedGender === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => {
+                      setSelectedGender(option.id);
+                      setError(null);
+                    }}
+                    className={`h-11 rounded-xl border text-sm font-semibold transition active:scale-[0.98] disabled:opacity-60 ${
+                      selected
+                        ? "border-salon-gold/50 bg-salon-gold text-black"
+                        : "border-salon-beige/40 bg-salon-white text-salon-ink hover:border-salon-gold/40"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
+        {activeStep === "time" &&
+        selectedServices.length > 0 &&
+        selectedDate &&
         needsPhone ? (
           <section className="space-y-3">
             <SectionLabel
@@ -723,6 +768,7 @@ export function BookingFlow() {
                 {needsPhone && !phoneInput.trim()
                   ? " · add phone to confirm"
                   : ""}
+                {!selectedGender ? " · select gender" : ""}
                 {` · ${bookableDuration} min · ${formatLkr(totalPrice)}`}
               </p>
             ) : (
@@ -874,14 +920,14 @@ function SectionLabel({
   title,
   action,
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   title: string;
   action?: ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 text-salon-gold">
-        <span className="text-salon-gold">{icon}</span>
+        {icon ? <span className="text-salon-gold">{icon}</span> : null}
         <h2 className="text-sm font-semibold text-salon-ink md:text-base">
           {title}
         </h2>

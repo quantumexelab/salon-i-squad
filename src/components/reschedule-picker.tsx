@@ -141,27 +141,27 @@ export function ReschedulePicker({
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-sm font-medium text-white">
+        <p className="text-sm font-medium text-salon-ink">
           Reschedule {booking.serviceName}
         </p>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-1 text-xs text-salon-muted">
           Pick a new date and time. Closed days, buffers, and taken slots are
           hidden.
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 p-3">
+      <div className="overflow-hidden rounded-2xl border border-salon-beige/35 bg-salon-surface p-3">
         <div className="mb-3 flex items-center justify-between px-1">
           <button
             type="button"
             aria-label="Previous month"
             onClick={() => setMonthCursor((m) => addMonths(m, -1))}
             disabled={isSameMonth(monthCursor, today) || busy}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-300 hover:bg-zinc-800 disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-salon-muted hover:bg-salon-surface disabled:opacity-30"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <p className="text-sm font-semibold text-white">
+          <p className="text-sm font-semibold text-salon-ink">
             {format(monthCursor, "MMMM yyyy")}
           </p>
           <button
@@ -169,7 +169,7 @@ export function ReschedulePicker({
             aria-label="Next month"
             onClick={() => setMonthCursor((m) => addMonths(m, 1))}
             disabled={busy}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-300 hover:bg-zinc-800 disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-salon-muted hover:bg-salon-surface disabled:opacity-30"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -179,7 +179,7 @@ export function ReschedulePicker({
           {WEEKDAYS.map((day) => (
             <div
               key={day}
-              className="py-1 text-center text-[11px] font-medium text-zinc-500"
+              className="py-1 text-center text-[11px] font-medium text-salon-muted"
             >
               {day}
             </div>
@@ -202,10 +202,10 @@ export function ReschedulePicker({
                 onClick={() => selectDate(day)}
                 className={`flex aspect-square items-center justify-center rounded-xl text-sm font-medium transition ${
                   selected
-                    ? "bg-amber-400 text-zinc-950"
+                    ? "salon-gold-btn text-black"
                     : disabled
-                      ? "text-zinc-700"
-                      : "text-zinc-200 hover:bg-zinc-800"
+                      ? "text-salon-muted/40"
+                      : "text-salon-ink hover:bg-salon-surface"
                 }`}
               >
                 {format(day, "d")}
@@ -217,9 +217,9 @@ export function ReschedulePicker({
 
       {selectedDate ? (
         <div className="space-y-2">
-          <p className="text-xs font-medium text-zinc-400">Available times</p>
+          <p className="text-xs font-medium text-salon-muted">Available times</p>
           {availableSlots.length === 0 ? (
-            <p className="rounded-xl border border-zinc-800 px-3 py-4 text-center text-xs text-zinc-500">
+            <p className="rounded-xl border border-salon-beige/35 px-3 py-4 text-center text-xs text-salon-muted">
               No open slots on this day.
             </p>
           ) : (
@@ -234,8 +234,8 @@ export function ReschedulePicker({
                     onClick={() => setSelectedSlot(slot)}
                     className={`rounded-xl border px-2 py-2.5 text-center text-xs font-semibold sm:text-sm ${
                       selected
-                        ? "border-amber-500/50 bg-amber-400 text-zinc-950"
-                        : "border-zinc-800 bg-zinc-900/60 text-zinc-200 hover:border-zinc-600"
+                        ? "border-salon-gold/50 salon-gold-btn text-black"
+                        : "border-salon-beige/35 bg-salon-surface text-salon-ink hover:border-salon-gold/40"
                     }`}
                   >
                     {slot}
@@ -252,7 +252,7 @@ export function ReschedulePicker({
           type="button"
           disabled={busy}
           onClick={onCancel}
-          className="flex h-11 flex-1 items-center justify-center rounded-xl border border-zinc-700 text-sm font-semibold text-zinc-300 disabled:opacity-60"
+          className="flex h-11 flex-1 items-center justify-center rounded-xl border border-salon-beige/40 text-sm font-semibold text-salon-muted disabled:opacity-60"
         >
           Back
         </button>
@@ -263,7 +263,7 @@ export function ReschedulePicker({
             if (!selectedDate || !selectedSlot) return;
             onConfirm(selectedDate, selectedSlot);
           }}
-          className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-bold text-zinc-950 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
+          className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl salon-gold-btn text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Save new time

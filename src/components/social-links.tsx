@@ -6,10 +6,21 @@ type SocialLinksProps = {
   iconClassName?: string;
   /** Include WhatsApp from the salon phone number. */
   includeWhatsApp?: boolean;
+  /** Gold pill links for contact / follow sections. */
+  variant?: "default" | "brand";
+};
+
+const pillLinkClass =
+  "inline-flex items-center gap-2 rounded-full border border-salon-gold/30 bg-salon-bg/40 px-3.5 py-2 text-xs font-semibold text-salon-gold transition hover:border-salon-gold/55 hover:bg-salon-gold/10";
+
+const pillHoverClass: Record<SiteSocialId | "whatsapp", string> = {
+  facebook: "hover:text-[#6ea8ff]",
+  tiktok: "hover:text-salon-ink",
+  whatsapp: "hover:text-[#5fe09a]",
 };
 
 function SocialIcon({ id }: { id: SiteSocialId | "whatsapp" }) {
-  const common = "h-[1.15em] w-[1.15em]";
+  const common = "h-4 w-4 shrink-0";
 
   switch (id) {
     case "facebook":
@@ -44,8 +55,9 @@ function SocialIcon({ id }: { id: SiteSocialId | "whatsapp" }) {
 
 export function SocialLinks({
   className,
-  iconClassName = "h-10 w-10 text-sm",
+  iconClassName = "",
   includeWhatsApp = true,
+  variant = "default",
 }: SocialLinksProps) {
   const whatsappUrl = includeWhatsApp
     ? buildWhatsAppUrl(
@@ -53,6 +65,45 @@ export function SocialLinks({
         `Hi ${siteConfig.name}, I found you online and wanted to get in touch.`,
       )
     : null;
+
+  const defaultLinkClass =
+    "inline-flex items-center justify-center rounded-full border border-salon-beige/40 bg-salon-white text-salon-ink transition hover:border-salon-gold/50 hover:bg-salon-gold/10 hover:text-salon-gold";
+
+  const defaultIconSize = iconClassName || "h-10 w-10 text-sm";
+
+  if (variant === "brand") {
+    return (
+      <div className={`flex flex-wrap items-center gap-2 ${className ?? ""}`}>
+        {siteSocialLinks.map((social) => (
+          <a
+            key={social.id}
+            href={social.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={social.label}
+            title={social.label}
+            className={`${pillLinkClass} ${pillHoverClass[social.id]}`}
+          >
+            <SocialIcon id={social.id} />
+            {social.label}
+          </a>
+        ))}
+        {whatsappUrl ? (
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="WhatsApp"
+            title="WhatsApp"
+            className={`${pillLinkClass} ${pillHoverClass.whatsapp}`}
+          >
+            <SocialIcon id="whatsapp" />
+            WhatsApp
+          </a>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-wrap items-center gap-2.5 ${className ?? ""}`}>
@@ -64,7 +115,7 @@ export function SocialLinks({
           rel="noopener noreferrer"
           aria-label={social.label}
           title={social.label}
-          className={`inline-flex items-center justify-center rounded-full border border-salon-beige/40 bg-salon-white text-salon-ink transition hover:border-salon-gold/50 hover:bg-salon-gold/10 hover:text-salon-gold ${iconClassName}`}
+          className={`${defaultLinkClass} ${defaultIconSize}`}
         >
           <SocialIcon id={social.id} />
         </a>
@@ -76,7 +127,7 @@ export function SocialLinks({
           rel="noopener noreferrer"
           aria-label="WhatsApp"
           title="WhatsApp"
-          className={`inline-flex items-center justify-center rounded-full border border-salon-beige/40 bg-salon-white text-salon-ink transition hover:border-[#25D366]/50 hover:bg-[#25D366]/10 hover:text-[#25D366] ${iconClassName}`}
+          className={`${defaultLinkClass} hover:border-[#25D366]/50 hover:bg-[#25D366]/10 hover:text-[#25D366] ${defaultIconSize}`}
         >
           <SocialIcon id="whatsapp" />
         </a>

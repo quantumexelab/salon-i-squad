@@ -128,11 +128,11 @@ export function AdminBuffersPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
       <div className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-salon-gold">
           Calendar
         </p>
-        <h1 className="mt-2 text-3xl font-semibold text-white">Buffers</h1>
-        <p className="mt-2 text-sm text-zinc-400">
+        <h1 className="mt-2 text-3xl font-semibold text-salon-ink">Buffers</h1>
+        <p className="mt-2 text-sm text-salon-muted">
           Block part of a day (lunch, short leave). Matching client time slots
           will be hidden. Times follow Settings → Business hours.
         </p>
@@ -140,24 +140,24 @@ export function AdminBuffersPage() {
 
       <form
         onSubmit={handleAdd}
-        className="mb-6 grid gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 sm:grid-cols-2"
+        className="mb-6 grid gap-3 rounded-2xl border border-salon-beige/30 bg-salon-surface p-5 sm:grid-cols-2"
       >
-        <label className="grid gap-1.5 text-xs text-zinc-400 sm:col-span-2">
+        <label className="grid gap-1.5 text-xs text-salon-muted sm:col-span-2">
           Date
           <input
             required
             type="date"
             value={dateValue}
             onChange={(e) => setDateValue(e.target.value)}
-            className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+            className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
           />
         </label>
-        <label className="grid gap-1.5 text-xs text-zinc-400">
+        <label className="grid gap-1.5 text-xs text-salon-muted">
           Start time
           <select
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
-            className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+            className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
           >
             {timeOptions.map((slot) => (
               <option key={`start-${slot}`} value={slot}>
@@ -166,12 +166,12 @@ export function AdminBuffersPage() {
             ))}
           </select>
         </label>
-        <label className="grid gap-1.5 text-xs text-zinc-400">
+        <label className="grid gap-1.5 text-xs text-salon-muted">
           End time
           <select
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
-            className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+            className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
           >
             {timeOptions.map((slot) => (
               <option key={`end-${slot}`} value={slot}>
@@ -180,19 +180,19 @@ export function AdminBuffersPage() {
             ))}
           </select>
         </label>
-        <label className="grid gap-1.5 text-xs text-zinc-400 sm:col-span-2">
+        <label className="grid gap-1.5 text-xs text-salon-muted sm:col-span-2">
           Label (optional)
           <input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Lunch break"
-            className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+            className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
           />
         </label>
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 text-sm font-bold text-zinc-950 disabled:opacity-60 sm:col-span-2"
+          className="inline-flex h-11 items-center justify-center gap-2 salon-gold-btn rounded-xl px-4 text-sm font-bold text-black disabled:opacity-60 sm:col-span-2"
         >
           {saving ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -209,27 +209,27 @@ export function AdminBuffersPage() {
         </p>
       ) : null}
 
-      <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40">
+      <section className="overflow-hidden rounded-2xl border border-salon-beige/30 bg-salon-surface">
         {loading ? (
-          <div className="flex justify-center py-14 text-zinc-400">
-            <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
+          <div className="flex justify-center py-14 text-salon-muted">
+            <Loader2 className="h-5 w-5 animate-spin text-salon-gold" />
           </div>
         ) : buffers.length === 0 ? (
-          <p className="px-4 py-14 text-center text-sm text-zinc-500">
+          <p className="px-4 py-14 text-center text-sm text-salon-ink0">
             No buffers yet.
           </p>
         ) : (
-          <ul className="divide-y divide-zinc-800">
+          <ul className="divide-y divide-salon-beige/30">
             {buffers.map((buffer) => (
               <li
                 key={buffer.id}
                 className="flex items-center justify-between gap-3 px-4 py-4 sm:px-6"
               >
                 <div>
-                  <p className="font-medium text-white">
+                  <p className="font-medium text-salon-ink">
                     {buffer.dateKey} · {buffer.startTime} – {buffer.endTime}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-salon-ink0">
                     {buffer.label || "Blocked window"}
                   </p>
                 </div>

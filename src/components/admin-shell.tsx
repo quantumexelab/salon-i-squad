@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { AdminGuard } from "@/components/admin-guard";
 import { LogoMark } from "@/components/logo";
 import { LogoutButton } from "@/components/logout-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/contexts/auth-context";
 
 const adminNav = [
@@ -17,52 +18,58 @@ const adminNav = [
   { href: "/settings", label: "Settings" },
 ] as const;
 
+function navLinkClass(active: boolean, compact = false) {
+  const base = compact
+    ? "whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium transition"
+    : "rounded-xl px-3 py-2.5 text-sm font-medium transition";
+
+  return active
+    ? `${base} bg-salon-gold/10 text-salon-gold`
+    : `${base} text-salon-muted hover:bg-salon-surface hover:text-salon-ink`;
+}
+
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { profile, role } = useAuth();
 
   return (
     <AdminGuard>
-      <div className="flex h-dvh overflow-hidden bg-zinc-950 text-zinc-50">
-        <aside className="hidden h-dvh w-60 shrink-0 flex-col overflow-y-auto border-r border-zinc-800 bg-zinc-950 p-5 md:flex">
+      <div className="flex h-dvh overflow-hidden bg-salon-bg text-salon-ink">
+        <aside className="hidden h-dvh w-60 shrink-0 flex-col overflow-y-auto border-r border-salon-beige/30 bg-salon-white/95 p-5 shadow-sm shadow-black/5 md:flex">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-400">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-salon-gold">
               Salon Owner Admin
             </p>
             <div className="mt-2">
               <LogoMark />
             </div>
             {profile ? (
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="mt-1 text-xs text-salon-muted">
                 {profile.firstName} · {role}
               </p>
             ) : null}
           </div>
 
           <nav className="mt-8 flex flex-1 flex-col gap-1">
-            {adminNav.map((item) => {
-              const active = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                    active
-                      ? "bg-amber-400/10 text-amber-300"
-                      : "text-zinc-300 hover:bg-zinc-900 hover:text-white"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
+            {adminNav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={navLinkClass(pathname === item.href)}
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
 
           <div className="mt-auto space-y-2 pt-4">
-            <LogoutButton className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 px-3 py-2.5 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:text-white disabled:opacity-60" />
+            <div className="flex justify-center pb-1">
+              <ThemeToggle size="compact" />
+            </div>
+            <LogoutButton className="flex w-full items-center justify-center gap-2 rounded-xl border border-salon-beige/40 px-3 py-2.5 text-sm font-semibold text-salon-muted transition hover:border-salon-gold/50 hover:text-salon-gold disabled:opacity-60" />
             <Link
               href="/booking"
-              className="block rounded-xl border border-zinc-800 px-3 py-2 text-center text-xs text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200"
+              className="block rounded-xl border border-salon-beige/35 px-3 py-2 text-center text-xs text-salon-muted transition hover:border-salon-gold/40 hover:text-salon-ink"
             >
               ← Client booking app
             </Link>
@@ -70,13 +77,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 shrink-0 border-b border-zinc-800 bg-zinc-950/95 px-4 py-3 backdrop-blur md:px-6">
+          <header className="sticky top-0 z-20 shrink-0 border-b border-salon-beige/30 bg-salon-white/95 px-4 py-3 shadow-sm shadow-black/5 backdrop-blur md:px-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="md:hidden">
                   <LogoMark />
                 </div>
-                <p className="hidden text-sm font-semibold text-white md:block">
+                <p className="hidden text-sm font-semibold text-salon-ink md:block">
                   Salon Dashboard
                 </p>
               </div>
@@ -86,18 +93,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium ${
-                        pathname === item.href
-                          ? "bg-amber-400/10 text-amber-300"
-                          : "text-zinc-300 hover:bg-zinc-900"
-                      }`}
+                      className={navLinkClass(pathname === item.href, true)}
                     >
                       {item.label}
                     </Link>
                   ))}
                 </nav>
+                <ThemeToggle size="compact" className="md:hidden" />
                 <div className="md:hidden">
-                  <LogoutButton compact />
+                  <LogoutButton compact tone="light" />
                 </div>
               </div>
             </div>

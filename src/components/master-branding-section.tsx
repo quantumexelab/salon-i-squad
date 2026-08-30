@@ -85,24 +85,24 @@ export function MasterBrandingSection() {
   }
 
   return (
-    <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+    <section className="rounded-2xl border border-salon-beige/30 bg-salon-surface p-5">
       <div className="mb-4 flex items-center gap-2">
-        <ImageIcon className="h-4 w-4 text-amber-400" />
-        <h3 className="text-sm font-semibold text-white">System branding</h3>
+        <ImageIcon className="h-4 w-4 text-salon-gold" />
+        <h3 className="text-sm font-semibold text-salon-ink">System branding</h3>
       </div>
-      <p className="mb-4 text-xs leading-relaxed text-zinc-400">
+      <p className="mb-4 text-xs leading-relaxed text-salon-muted">
         Only the master account can change the app logo. Clients and salon
         admins see it in their headers. Leave blank to show “{siteConfig.name}”
         as text.
       </p>
 
       {loading ? (
-        <div className="flex justify-center py-8 text-zinc-400">
-          <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
+        <div className="flex justify-center py-8 text-salon-muted">
+          <Loader2 className="h-5 w-5 animate-spin text-salon-gold" />
         </div>
       ) : (
         <>
-          <div className="mb-4 flex min-h-16 items-center rounded-xl border border-zinc-800 bg-zinc-950/60 px-4 py-3">
+          <div className="mb-4 flex min-h-16 items-center rounded-xl border border-salon-beige/30 bg-salon-bg/60 px-4 py-3">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -111,29 +111,29 @@ export function MasterBrandingSection() {
                 className="h-10 w-auto max-w-[200px] object-contain"
               />
             ) : (
-              <p className="text-sm font-semibold text-zinc-300">
+              <p className="text-sm font-semibold text-salon-muted">
                 {siteConfig.name}{" "}
-                <span className="font-normal text-zinc-500">(text fallback)</span>
+                <span className="font-normal text-salon-ink0">(text fallback)</span>
               </p>
             )}
           </div>
 
           <form onSubmit={handleSaveUrl} className="grid gap-3">
-            <label className="grid gap-1.5 text-xs text-zinc-400">
+            <label className="grid gap-1.5 text-xs text-salon-muted">
               Logo image URL
               <input
                 type="url"
                 value={draftUrl}
                 placeholder="https://…"
                 onChange={(e) => setDraftUrl(e.target.value)}
-                className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+                className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
               />
             </label>
             <div className="flex flex-wrap gap-2">
               <button
                 type="submit"
                 disabled={saving || uploading}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 text-sm font-bold text-zinc-950 disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 salon-gold-btn rounded-xl px-4 text-sm font-bold text-black disabled:opacity-60"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Save logo URL
@@ -142,12 +142,12 @@ export function MasterBrandingSection() {
                 type="button"
                 disabled={saving || uploading}
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-700 px-4 text-sm font-semibold text-zinc-200 disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-salon-beige/40 px-4 text-sm font-semibold text-salon-ink disabled:opacity-60"
               >
                 {uploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Upload className="h-4 w-4 text-amber-400" />
+                  <Upload className="h-4 w-4 text-salon-gold" />
                 )}
                 Upload image
               </button>

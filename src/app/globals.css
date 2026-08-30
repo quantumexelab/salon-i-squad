@@ -50,6 +50,7 @@ html[data-theme="dark"] {
   --color-salon-surface: var(--salon-surface);
   --color-salon-ink: var(--salon-ink);
   --color-salon-muted: var(--salon-muted);
+  --color-salon-ink0: var(--salon-muted);
   --color-salon-gold: var(--salon-gold);
   --color-salon-champagne: var(--salon-champagne);
   --color-salon-ivory: var(--salon-ivory);

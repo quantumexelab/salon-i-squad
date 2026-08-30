@@ -64,25 +64,25 @@ export function MasterDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-white">
+        <h2 className="text-2xl font-semibold tracking-tight text-salon-ink">
           Platform control
         </h2>
-        <p className="mt-2 max-w-2xl text-sm text-zinc-400">
+        <p className="mt-2 max-w-2xl text-sm text-salon-muted">
           Create salon owner accounts. Each admin manages their salon bookings
-          and settings in the separate <code className="text-zinc-300">/admin</code>{" "}
+          and settings in the separate <code className="text-salon-muted">/admin</code>{" "}
           dashboard — not here.
         </p>
       </div>
 
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+      <section className="rounded-2xl border border-salon-beige/30 bg-salon-surface p-5">
         <div className="mb-4 flex items-center gap-2">
-          <UserPlus className="h-4 w-4 text-amber-400" />
-          <h3 className="text-sm font-semibold text-white">
+          <UserPlus className="h-4 w-4 text-salon-gold" />
+          <h3 className="text-sm font-semibold text-salon-ink">
             Create Salon Admin Account
           </h3>
         </div>
-        <p className="mb-4 text-xs leading-relaxed text-zinc-400">
-          Creates an Auth user with role <code className="text-zinc-300">admin</code>{" "}
+        <p className="mb-4 text-xs leading-relaxed text-salon-muted">
+          Creates an Auth user with role <code className="text-salon-muted">admin</code>{" "}
           without signing you out (secondary Auth session).
         </p>
 
@@ -90,7 +90,7 @@ export function MasterDashboard() {
           onSubmit={handleCreateSalonAdmin}
           className="grid gap-3 sm:grid-cols-2"
         >
-          <label className="grid gap-1.5 text-xs text-zinc-400">
+          <label className="grid gap-1.5 text-xs text-salon-muted">
             First name
             <input
               required
@@ -98,20 +98,20 @@ export function MasterDashboard() {
               onChange={(e) =>
                 setForm((f) => ({ ...f, firstName: e.target.value }))
               }
-              className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+              className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
             />
           </label>
-          <label className="grid gap-1.5 text-xs text-zinc-400">
+          <label className="grid gap-1.5 text-xs text-salon-muted">
             Last name
             <input
               value={form.lastName}
               onChange={(e) =>
                 setForm((f) => ({ ...f, lastName: e.target.value }))
               }
-              className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+              className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
             />
           </label>
-          <label className="grid gap-1.5 text-xs text-zinc-400 sm:col-span-2">
+          <label className="grid gap-1.5 text-xs text-salon-muted sm:col-span-2">
             Email
             <input
               required
@@ -120,10 +120,10 @@ export function MasterDashboard() {
               onChange={(e) =>
                 setForm((f) => ({ ...f, email: e.target.value }))
               }
-              className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+              className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
             />
           </label>
-          <label className="grid gap-1.5 text-xs text-zinc-400 sm:col-span-2">
+          <label className="grid gap-1.5 text-xs text-salon-muted sm:col-span-2">
             Temporary password
             <input
               required
@@ -133,13 +133,13 @@ export function MasterDashboard() {
               onChange={(e) =>
                 setForm((f) => ({ ...f, password: e.target.value }))
               }
-              className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+              className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
             />
           </label>
           <button
             type="submit"
             disabled={creating}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-bold text-zinc-950 transition hover:bg-amber-300 disabled:opacity-60 sm:col-span-2"
+            className="inline-flex h-11 items-center justify-center gap-2 salon-gold-btn rounded-xl text-sm font-bold text-black transition hover:brightness-105 disabled:opacity-60 sm:col-span-2"
           >
             {creating ? (
               <>
@@ -172,12 +172,12 @@ export function MasterDashboard() {
         type="button"
         onClick={handleLogout}
         disabled={loggingOut}
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:border-zinc-500 disabled:opacity-60"
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-salon-beige/40 bg-salon-bg px-4 text-sm font-semibold text-salon-ink transition hover:border-salon-gold/40 disabled:opacity-60"
       >
         {loggingOut ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          <LogOut className="h-4 w-4 text-amber-400" />
+          <LogOut className="h-4 w-4 text-salon-gold" />
         )}
         Logout
       </button>

@@ -232,13 +232,13 @@ export function AdminServicesPage() {
     <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-salon-gold">
             Salon catalog
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-salon-ink">
             Services
           </h1>
-          <p className="mt-2 text-sm text-zinc-400">
+          <p className="mt-2 text-sm text-salon-muted">
             Manage offerings shown on the client booking app.
           </p>
         </div>
@@ -256,7 +256,7 @@ export function AdminServicesPage() {
             type="button"
             onClick={() => void handleSeedCatalog()}
             disabled={saving || seeding || purging}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-400/40 px-4 text-sm font-semibold text-amber-300 hover:bg-amber-400/10 disabled:opacity-60"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-salon-gold/40 px-4 text-sm font-semibold text-salon-gold hover:bg-salon-gold/10 disabled:opacity-60"
           >
             {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Add sample services + images
@@ -264,7 +264,7 @@ export function AdminServicesPage() {
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 text-sm font-bold text-zinc-950 hover:bg-amber-300"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl salon-gold-btn text-black"
           >
             <Plus className="h-4 w-4" />
             Add service
@@ -281,21 +281,21 @@ export function AdminServicesPage() {
       {formOpen ? (
         <form
           onSubmit={handleSubmit}
-          className="mb-6 grid gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 sm:grid-cols-2"
+          className="mb-6 grid gap-3 rounded-2xl border border-salon-beige/35 bg-salon-surface p-5 sm:grid-cols-2"
         >
-          <h2 className="text-sm font-semibold text-white sm:col-span-2">
+          <h2 className="text-sm font-semibold text-salon-ink sm:col-span-2">
             {editingId ? "Edit service" : "New service"}
           </h2>
-          <label className="grid gap-1.5 text-xs text-zinc-400 sm:col-span-2">
+          <label className="grid gap-1.5 text-xs text-salon-muted sm:col-span-2">
             Name
             <input
               required
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+              className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
             />
           </label>
-          <label className="grid gap-1.5 text-xs text-zinc-400 sm:col-span-2">
+          <label className="grid gap-1.5 text-xs text-salon-muted sm:col-span-2">
             Description
             <textarea
               value={form.description}
@@ -303,10 +303,10 @@ export function AdminServicesPage() {
                 setForm((f) => ({ ...f, description: e.target.value }))
               }
               rows={2}
-              className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
+              className="rounded-xl border border-salon-beige/40 bg-salon-bg px-3 py-2 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
             />
           </label>
-          <label className="grid gap-1.5 text-xs text-zinc-400">
+          <label className="grid gap-1.5 text-xs text-salon-muted">
             Duration (minutes)
             <input
               required
@@ -317,10 +317,10 @@ export function AdminServicesPage() {
               onChange={(e) =>
                 setForm((f) => ({ ...f, durationMinutes: e.target.value }))
               }
-              className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+              className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
             />
           </label>
-          <label className="grid gap-1.5 text-xs text-zinc-400">
+          <label className="grid gap-1.5 text-xs text-salon-muted">
             Price (LKR)
             <input
               required
@@ -330,16 +330,16 @@ export function AdminServicesPage() {
               value={form.price}
               placeholder="0"
               onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-              className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+              className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
             />
           </label>
-          <label className="grid gap-1.5 text-xs text-zinc-400 sm:col-span-2">
+          <label className="grid gap-1.5 text-xs text-salon-muted sm:col-span-2">
             <span className="inline-flex items-center gap-1.5">
-              <ImageIcon className="h-3.5 w-3.5 text-amber-400" />
+              <ImageIcon className="h-3.5 w-3.5 text-salon-gold" />
               Card image (booking app)
             </span>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-              <div className="h-24 w-full shrink-0 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 sm:w-32">
+              <div className="h-24 w-full shrink-0 overflow-hidden rounded-xl border border-salon-beige/35 bg-salon-bg sm:w-32">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={serviceImageFor(form.name || "Service", form.imageUrl)}
@@ -355,19 +355,19 @@ export function AdminServicesPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, imageUrl: e.target.value }))
                   }
-                  className="h-11 rounded-xl border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-amber-500/50"
+                  className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm text-salon-ink outline-none focus:border-salon-gold/50"
                 />
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     disabled={saving || uploadingImage}
                     onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-700 px-3 text-xs font-semibold text-zinc-200 disabled:opacity-60"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-salon-beige/40 px-3 text-xs font-semibold text-salon-ink disabled:opacity-60"
                   >
                     {uploadingImage ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
-                      <Upload className="h-3.5 w-3.5 text-amber-400" />
+                      <Upload className="h-3.5 w-3.5 text-salon-gold" />
                     )}
                     Upload image
                   </button>
@@ -376,13 +376,13 @@ export function AdminServicesPage() {
                       type="button"
                       disabled={saving || uploadingImage}
                       onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
-                      className="h-10 rounded-xl border border-zinc-700 px-3 text-xs font-semibold text-zinc-400"
+                      className="h-10 rounded-xl border border-salon-beige/40 px-3 text-xs font-semibold text-salon-muted"
                     >
                       Remove
                     </button>
                   ) : null}
                 </div>
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-[11px] text-salon-muted">
                   Shown on the client booking cards. Leave blank for a default
                   salon photo.
                 </p>
@@ -396,18 +396,18 @@ export function AdminServicesPage() {
               onChange={(e) => void handleImageUpload(e.target.files?.[0] ?? null)}
             />
           </label>
-          <label className="flex items-center gap-2 text-sm text-zinc-300 sm:col-span-2">
+          <label className="flex items-center gap-2 text-sm text-salon-muted sm:col-span-2">
             <input
               type="checkbox"
               checked={form.isActive !== false}
               onChange={(e) =>
                 setForm((f) => ({ ...f, isActive: e.target.checked }))
               }
-              className="h-4 w-4 rounded border-zinc-600"
+              className="h-4 w-4 rounded border-salon-beige/50"
             />
             Active (visible on client booking)
           </label>
-          <label className="flex items-start gap-2 text-sm text-zinc-300 sm:col-span-2">
+          <label className="flex items-start gap-2 text-sm text-salon-muted sm:col-span-2">
             <input
               type="checkbox"
               checked={Boolean(form.requiresConsultation)}
@@ -417,11 +417,11 @@ export function AdminServicesPage() {
                   requiresConsultation: e.target.checked,
                 }))
               }
-              className="mt-0.5 h-4 w-4 rounded border-zinc-600"
+              className="mt-0.5 h-4 w-4 rounded border-salon-beige/50"
             />
             <span>
               Requires prior consultation
-              <span className="mt-0.5 block text-xs text-zinc-500">
+              <span className="mt-0.5 block text-xs text-salon-muted">
                 Clients book a 15-minute consultation first (e.g. hair colouring).
               </span>
             </span>
@@ -430,7 +430,7 @@ export function AdminServicesPage() {
             <button
               type="submit"
               disabled={saving || uploadingImage}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 text-sm font-bold text-zinc-950 disabled:opacity-60"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl salon-gold-btn text-black disabled:opacity-60"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {editingId ? "Save changes" : "Create service"}
@@ -441,7 +441,7 @@ export function AdminServicesPage() {
                 setFormOpen(false);
                 setEditingId(null);
               }}
-              className="h-11 rounded-xl border border-zinc-700 px-4 text-sm font-semibold text-zinc-300"
+              className="h-11 rounded-xl border border-salon-beige/40 px-4 text-sm font-semibold text-salon-muted"
             >
               Cancel
             </button>
@@ -449,28 +449,28 @@ export function AdminServicesPage() {
         </form>
       ) : null}
 
-      <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40">
+      <section className="overflow-hidden rounded-2xl border border-salon-beige/35 bg-salon-surface">
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-zinc-400">
-            <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
+          <div className="flex items-center justify-center gap-2 py-16 text-salon-muted">
+            <Loader2 className="h-5 w-5 animate-spin text-salon-gold" />
             Loading services…
           </div>
         ) : services.length === 0 ? (
           <div className="px-4 py-16 text-center">
-            <p className="text-sm font-medium text-zinc-300">No services yet</p>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="text-sm font-medium text-salon-muted">No services yet</p>
+            <p className="mt-1 text-xs text-salon-muted">
               Add your first service to show it on the booking app.
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-zinc-800">
+          <ul className="divide-y divide-salon-beige/30">
             {services.map((service) => (
               <li
                 key={service.id}
                 className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
               >
                 <div className="flex min-w-0 gap-3">
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-salon-beige/35 bg-salon-bg">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={serviceImageFor(service.name, service.imageUrl)}
@@ -480,24 +480,24 @@ export function AdminServicesPage() {
                   </div>
                   <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-white">{service.name}</p>
+                    <p className="font-semibold text-salon-ink">{service.name}</p>
                     {!service.isActive ? (
-                      <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold uppercase text-zinc-400">
+                      <span className="rounded-full bg-salon-surface px-2 py-0.5 text-[10px] font-semibold uppercase text-salon-muted">
                         Hidden
                       </span>
                     ) : null}
                     {service.requiresConsultation ? (
-                      <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-300">
+                      <span className="rounded-full bg-salon-gold/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-salon-gold">
                         Consultation first
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-1 text-xs text-zinc-400">
+                  <p className="mt-1 text-xs text-salon-muted">
                     {service.description || "No description"}
                   </p>
-                  <p className="mt-2 text-xs text-zinc-500">
+                  <p className="mt-2 text-xs text-salon-muted">
                     {service.durationMinutes} mins ·{" "}
-                    <span className="text-amber-400">
+                    <span className="text-salon-gold">
                       {formatLkr(service.price)}
                     </span>
                     {service.requiresConsultation
@@ -511,7 +511,7 @@ export function AdminServicesPage() {
                     type="button"
                     disabled={saving || uploadingImage}
                     onClick={() => openEdit(service)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-salon-beige/40 px-3 py-2 text-xs font-semibold text-salon-ink hover:bg-salon-surface"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                     Edit
