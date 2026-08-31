@@ -18,17 +18,25 @@ import { AuthGuard } from "@/components/auth-guard";
 import { formatLkr } from "@/lib/booking/dummy-services";
 import { toDateKey } from "@/lib/calendar-utils";
 import {
+  cancelBookingWithReason,
+  checkInBooking,
   completeBookingWithPayment,
   subscribeToAdminBookingsByDate,
-  updateBookingStatus,
   type PaymentMethod,
   type SavedBooking,
 } from "@/lib/bookings";
 import { applyBookingCalendarSync } from "@/lib/request-calendar-sync";
 import {
+  getProfilePhone,
+  phoneDocId,
+  subscribeToClientUsers,
+  updateMemberProfileFields,
+} from "@/lib/users";
+import {
   bookingStatusMessage,
   buildWhatsAppUrl,
 } from "@/lib/whatsapp";
+import type { UserProfile } from "@/types/firestore";
 
 function formatBookingDate(iso: string): string {
   const date = parseISO(iso);
@@ -55,6 +63,28 @@ export function AdminDashboard() {
     null,
   );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [hairType, setHairType] = useState("");
+  const [conditions, setConditions] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
+  const [syncMemberProfile, setSyncMemberProfile] = useState(true);
+  const [cancelTarget, setCancelTarget] = useState<SavedBooking | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [clients, setClients] = useState<UserProfile[]>([]);
+
+  useEffect(() => {
+    return subscribeToClientUsers(setClients);
+  }, []);
+
+  const memberLookup = useMemo(() => {
+    const byUid = new Map<string, UserProfile>();
+    const byPhone = new Map<string, UserProfile>();
+    for (const c of clients) {
+      byUid.set(c.uid, c);
+      const phone = getProfilePhone(c);
+      if (phone) byPhone.set(phoneDocId(phone), c);
+    }
+    return { byUid, byPhone };
+  }, [clients]);
 
   useEffect(() => {
     setLoading(true);
@@ -110,26 +140,44 @@ export function AdminDashboard() {
     };
   }, [bookings]);
 
-  async function handleCancel(bookingId: string) {
-    setActionId(bookingId);
+  async function handleCancelConfirm() {
+    if (!cancelTarget) return;
+    if (!cancelReason.trim()) {
+      setActionError("Cancel reason is required.");
+      return;
+    }
+
+    setActionId(cancelTarget.id);
     setActionError(null);
 
-    const booking = bookings.find((b) => b.id === bookingId);
-
     try {
-      await updateBookingStatus(bookingId, "cancelled");
-      if (booking) {
-        void applyBookingCalendarSync("delete", {
-          ...booking,
-          status: "cancelled",
-        });
-      }
+      await cancelBookingWithReason(cancelTarget.id, {
+        cancelReason: cancelReason.trim(),
+        cancelledBy: "admin",
+      });
+      void applyBookingCalendarSync("delete", {
+        ...cancelTarget,
+        status: "cancelled",
+      });
+      setCancelTarget(null);
+      setCancelReason("");
     } catch (err) {
       setActionError(
         err instanceof Error
           ? err.message
           : "Could not update booking status. Try again.",
       );
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function handleCheckIn(bookingId: string) {
+    setActionId(bookingId);
+    try {
+      await checkInBooking(bookingId);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Check-in failed.");
     } finally {
       setActionId(null);
     }
@@ -142,9 +190,28 @@ export function AdminDashboard() {
     setActionError(null);
 
     try {
-      await completeBookingWithPayment(completeTarget.id, paymentMethod);
+      await completeBookingWithPayment(completeTarget.id, {
+        paymentMethod,
+        hairType,
+        conditions,
+        adminNotes,
+      });
+
+      if (syncMemberProfile && completeTarget.userId) {
+        const member = memberLookup.byUid.get(completeTarget.userId);
+        if (member?.isMember) {
+          await updateMemberProfileFields(completeTarget.userId, {
+            hairType: hairType.trim(),
+            conditions: conditions.trim(),
+          });
+        }
+      }
+
       setCompleteTarget(null);
       setPaymentMethod("cash");
+      setHairType("");
+      setConditions("");
+      setAdminNotes("");
     } catch (err) {
       setActionError(
         err instanceof Error
@@ -283,6 +350,7 @@ export function AdminDashboard() {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-salon-bg/60 text-xs uppercase tracking-wide text-salon-ink0">
                     <tr>
+                      <th className="px-6 py-3 font-medium">#</th>
                       <th className="px-6 py-3 font-medium">Client</th>
                       <th className="px-6 py-3 font-medium">Gender</th>
                       <th className="px-6 py-3 font-medium">Service</th>
@@ -299,8 +367,14 @@ export function AdminDashboard() {
                         key={booking.id}
                         className="transition hover:bg-salon-surface"
                       >
+                        <td className="px-6 py-4 font-semibold text-salon-gold">
+                          {booking.appointmentNumber ?? "—"}
+                        </td>
                         <td className="px-6 py-4">
-                          <ClientCell booking={booking} />
+                          <ClientCell
+                            booking={booking}
+                            memberLookup={memberLookup}
+                          />
                         </td>
                         <td className="px-6 py-4 text-salon-muted">
                           <GenderCell gender={booking.customerGender} />
@@ -331,9 +405,16 @@ export function AdminDashboard() {
                             busy={actionId === booking.id}
                             onComplete={() => {
                               setPaymentMethod("cash");
+                              setHairType("");
+                              setConditions("");
+                              setAdminNotes("");
                               setCompleteTarget(booking);
                             }}
-                            onCancel={() => handleCancel(booking.id)}
+                            onCancel={() => {
+                              setCancelReason("");
+                              setCancelTarget(booking);
+                            }}
+                            onCheckIn={() => void handleCheckIn(booking.id)}
                           />
                         </td>
                       </tr>
@@ -351,7 +432,10 @@ export function AdminDashboard() {
                           {booking.serviceName}
                         </p>
                         <div className="mt-2">
-                          <ClientCell booking={booking} />
+                          <ClientCell
+                            booking={booking}
+                            memberLookup={memberLookup}
+                          />
                         </div>
                         <p className="mt-1 text-xs text-salon-muted">
                           Gender:{" "}
@@ -381,9 +465,16 @@ export function AdminDashboard() {
                         busy={actionId === booking.id}
                         onComplete={() => {
                           setPaymentMethod("cash");
+                          setHairType("");
+                          setConditions("");
+                          setAdminNotes("");
                           setCompleteTarget(booking);
                         }}
-                        onCancel={() => handleCancel(booking.id)}
+                        onCancel={() => {
+                          setCancelReason("");
+                          setCancelTarget(booking);
+                        }}
+                        onCheckIn={() => void handleCheckIn(booking.id)}
                       />
                     </div>
                   </li>
@@ -397,13 +488,35 @@ export function AdminDashboard() {
           <CompletePaymentModal
             booking={completeTarget}
             paymentMethod={paymentMethod}
+            hairType={hairType}
+            conditions={conditions}
+            adminNotes={adminNotes}
+            syncMemberProfile={syncMemberProfile}
             busy={actionId === completeTarget.id}
             onPaymentMethodChange={setPaymentMethod}
+            onHairTypeChange={setHairType}
+            onConditionsChange={setConditions}
+            onAdminNotesChange={setAdminNotes}
+            onSyncMemberProfileChange={setSyncMemberProfile}
             onCancel={() => {
               if (actionId) return;
               setCompleteTarget(null);
             }}
             onConfirm={handleConfirmComplete}
+          />
+        ) : null}
+
+        {cancelTarget ? (
+          <CancelReasonModal
+            booking={cancelTarget}
+            reason={cancelReason}
+            busy={actionId === cancelTarget.id}
+            onReasonChange={setCancelReason}
+            onCancel={() => {
+              if (actionId) return;
+              setCancelTarget(null);
+            }}
+            onConfirm={handleCancelConfirm}
           />
         ) : null}
       </div>
@@ -414,15 +527,31 @@ export function AdminDashboard() {
 function CompletePaymentModal({
   booking,
   paymentMethod,
+  hairType,
+  conditions,
+  adminNotes,
+  syncMemberProfile,
   busy,
   onPaymentMethodChange,
+  onHairTypeChange,
+  onConditionsChange,
+  onAdminNotesChange,
+  onSyncMemberProfileChange,
   onCancel,
   onConfirm,
 }: {
   booking: SavedBooking;
   paymentMethod: PaymentMethod;
+  hairType: string;
+  conditions: string;
+  adminNotes: string;
+  syncMemberProfile: boolean;
   busy: boolean;
   onPaymentMethodChange: (method: PaymentMethod) => void;
+  onHairTypeChange: (value: string) => void;
+  onConditionsChange: (value: string) => void;
+  onAdminNotesChange: (value: string) => void;
+  onSyncMemberProfileChange: (value: boolean) => void;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -483,6 +612,40 @@ function CompletePaymentModal({
           </button>
         </div>
 
+        <div className="mt-4 grid gap-2">
+          <input
+            placeholder="Hair type"
+            value={hairType}
+            disabled={busy}
+            onChange={(e) => onHairTypeChange(e.target.value)}
+            className="h-10 rounded-xl border border-salon-beige/40 bg-salon-surface px-3 text-sm"
+          />
+          <textarea
+            placeholder="Conditions / allergies"
+            value={conditions}
+            disabled={busy}
+            onChange={(e) => onConditionsChange(e.target.value)}
+            rows={2}
+            className="rounded-xl border border-salon-beige/40 bg-salon-surface px-3 py-2 text-sm"
+          />
+          <textarea
+            placeholder="Admin notes"
+            value={adminNotes}
+            disabled={busy}
+            onChange={(e) => onAdminNotesChange(e.target.value)}
+            rows={2}
+            className="rounded-xl border border-salon-beige/40 bg-salon-surface px-3 py-2 text-sm"
+          />
+          <label className="flex items-center gap-2 text-xs text-salon-muted">
+            <input
+              type="checkbox"
+              checked={syncMemberProfile}
+              onChange={(e) => onSyncMemberProfileChange(e.target.checked)}
+            />
+            Save hair type & conditions to member profile
+          </label>
+        </div>
+
         <div className="mt-5 flex gap-2">
           <button
             type="button"
@@ -500,6 +663,59 @@ function CompletePaymentModal({
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CancelReasonModal({
+  booking,
+  reason,
+  busy,
+  onReasonChange,
+  onCancel,
+  onConfirm,
+}: {
+  booking: SavedBooking;
+  reason: string;
+  busy: boolean;
+  onReasonChange: (value: string) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center">
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-salon-beige/40 bg-salon-bg p-5">
+        <h2 className="text-lg font-semibold text-salon-ink">Cancel booking</h2>
+        <p className="mt-2 text-sm text-salon-muted">
+          #{booking.appointmentNumber ?? "—"} · {booking.serviceName}
+        </p>
+        <textarea
+          required
+          value={reason}
+          onChange={(e) => onReasonChange(e.target.value)}
+          placeholder="Reason (sent to client notification)"
+          rows={3}
+          className="mt-4 w-full rounded-xl border border-salon-beige/40 bg-salon-surface px-3 py-2 text-sm"
+        />
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onCancel}
+            className="h-11 flex-1 rounded-xl border border-salon-beige/40 text-sm"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            disabled={busy || !reason.trim()}
+            onClick={onConfirm}
+            className="h-11 flex-1 rounded-xl bg-red-500/20 text-sm font-semibold text-red-300"
+          >
+            Confirm cancel
           </button>
         </div>
       </div>
@@ -543,14 +759,33 @@ function GenderCell({
   );
 }
 
-function ClientCell({ booking }: { booking: SavedBooking }) {
+function ClientCell({
+  booking,
+  memberLookup,
+}: {
+  booking: SavedBooking;
+  memberLookup: {
+    byUid: Map<string, UserProfile>;
+    byPhone: Map<string, UserProfile>;
+  };
+}) {
   const name = booking.customerName?.trim() || "Client";
   const email = booking.customerEmail?.trim();
   const phone = booking.phoneNumber?.trim();
+  const member =
+    memberLookup.byUid.get(booking.userId) ??
+    (phone ? memberLookup.byPhone.get(phoneDocId(phone)) : undefined);
 
   return (
     <div>
-      <p className="font-medium text-salon-ink">{name}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="font-medium text-salon-ink">{name}</p>
+        {member?.isMember ? (
+          <span className="rounded-full bg-salon-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase text-salon-gold">
+            Member
+          </span>
+        ) : null}
+      </div>
       {email ? (
         <p className="mt-0.5 text-xs text-salon-ink0">{email}</p>
       ) : null}
@@ -564,11 +799,13 @@ function BookingActions({
   busy,
   onComplete,
   onCancel,
+  onCheckIn,
 }: {
   booking: SavedBooking;
   busy: boolean;
   onComplete: () => void;
   onCancel: () => void;
+  onCheckIn: () => void;
 }) {
   const whatsappUrl = booking.phoneNumber
     ? buildWhatsAppUrl(booking.phoneNumber, bookingStatusMessage(booking))
@@ -598,6 +835,16 @@ function BookingActions({
 
       {booking.status === "confirmed" ? (
         <>
+          {!booking.checkedInAt ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onCheckIn}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500/15 px-3 py-2 text-xs font-semibold text-sky-300"
+            >
+              Check in
+            </button>
+          ) : null}
           <button
             type="button"
             disabled={busy}

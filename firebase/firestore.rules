@@ -152,5 +152,26 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if isStaff();
     }
+
+    match /appointmentCounters/{dateKey} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isMaster();
+    }
+
+    match /staffProfiles/{staffId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+      allow create: if isStaff()
+        || (isSignedIn() && request.resource.data.userId == request.auth.uid);
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+      allow delete: if isMaster();
+    }
   }
 }

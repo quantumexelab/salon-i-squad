@@ -7,6 +7,7 @@ import { ArrowLeft, ClipboardList, Loader2 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
 import { BookingFlow } from "@/components/booking-flow";
 import { useAuth } from "@/contexts/auth-context";
+import { isProfileRegistrationComplete } from "@/lib/users";
 import {
   canBootstrapMaster,
   ensureMasterRole,
@@ -59,6 +60,14 @@ export function BookingPageContent() {
     void redirectStaffAwayFromBooking();
   }, [loading, user, profile, router, refreshProfile]);
 
+  useEffect(() => {
+    if (loading || !user || !profile) return;
+    if (profile.role !== "client") return;
+    if (!isProfileRegistrationComplete(profile)) {
+      router.replace("/register");
+    }
+  }, [loading, user, profile, router]);
+
   if (canBootstrapMaster(user) || redirecting) {
     return (
       <AuthGuard>
@@ -95,7 +104,7 @@ export function BookingPageContent() {
                 Book Your Appointment
               </h1>
               <p className="mt-1 text-sm text-salon-muted">
-                Select one or more services, then continue to date & time.
+                Select a service, then continue to date & time.
               </p>
             </div>
             <div className="flex items-center gap-2">

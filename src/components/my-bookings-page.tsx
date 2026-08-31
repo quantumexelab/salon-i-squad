@@ -9,6 +9,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { AuthGuard } from "@/components/auth-guard";
+import { BookingQueueStatus } from "@/components/booking-queue-status";
 import { ReschedulePicker } from "@/components/reschedule-picker";
 import { useAuth, readRememberedGuestPhone } from "@/contexts/auth-context";
 import { formatLkr } from "@/lib/booking/dummy-services";
@@ -78,6 +79,8 @@ export function MyBookingsPage() {
   const upcoming = useMemo(() => {
     return bookings.filter((booking) => isUpcomingBooking(booking, nowTick));
   }, [bookings, nowTick]);
+
+  const primaryUpcoming = upcoming[0] ?? null;
 
   async function handleCancel(booking: SavedBooking) {
     if (!canClientModifyBooking(booking, nowTick)) return;
@@ -173,6 +176,8 @@ export function MyBookingsPage() {
               {error}
             </p>
           ) : null}
+
+          <BookingQueueStatus userBooking={primaryUpcoming} />
 
           {loading ? (
             <div className="flex justify-center gap-2 py-16 text-salon-muted">
@@ -287,7 +292,12 @@ function BookingCard({
     <li className="rounded-2xl border border-salon-gold/15 bg-salon-surface/50 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-semibold text-salon-ink">{booking.serviceName}</p>
+          <p className="font-semibold text-salon-ink">
+            {booking.appointmentNumber != null
+              ? `#${booking.appointmentNumber} · `
+              : ""}
+            {booking.serviceName}
+          </p>
           <p className="mt-1 text-xs text-salon-muted">
             {formatBookingWhen(booking)}
           </p>

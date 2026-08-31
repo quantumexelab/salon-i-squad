@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { syncFcmTokenForUser } from "@/lib/fcm";
+import { syncFcmTokenForUser, bindForegroundMessaging } from "@/lib/fcm";
 
 /**
  * On client app open: request notification permission when still "default",
@@ -23,6 +23,15 @@ export function PushNotificationBootstrap() {
     ranForUid.current = uid;
 
     void syncFcmTokenForUser(uid);
+
+    let unsub: (() => void) | null = null;
+    void bindForegroundMessaging(uid).then((fn) => {
+      unsub = fn;
+    });
+
+    return () => {
+      unsub?.();
+    };
   }, [user?.uid, loading]);
 
   return null;

@@ -100,3 +100,31 @@ export async function syncFcmTokenForUser(
     console.warn("[FCM] sync failed:", error);
   }
 }
+
+/** Foreground push — show notification + save inbox row. */
+export async function bindForegroundMessaging(
+  userId: string | null | undefined,
+): Promise<(() => void) | null> {
+  if (typeof window === "undefined" || !userId) return null;
+
+  const messaging = await getMessagingIfSupported();
+  if (!messaging) return null;
+
+  const { onMessage } = await import("firebase/messaging");
+  const { createLocalNotification } = await import("@/lib/notifications");
+
+  return onMessage(messaging, (payload) => {
+    const title = payload.notification?.title ?? "Salon I Squad";
+    const body = payload.notification?.body ?? "";
+    void createLocalNotification({
+      userId,
+      title,
+      body,
+      type: payload.data?.type ?? "general",
+      bookingId: payload.data?.bookingId,
+    });
+    if (Notification.permission === "granted") {
+      new Notification(title, { body });
+    }
+  });
+}

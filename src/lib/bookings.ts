@@ -2,9 +2,11 @@ import {
   addDoc,
   collection,
   doc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   updateDoc,
   where,
   type Unsubscribe,
@@ -13,10 +15,16 @@ import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
 import { toDateKey, parseSlotMinutes } from "@/lib/calendar-utils";
 import type { DummyService } from "@/lib/booking/dummy-services";
-import type { Service, BookingGender } from "@/types/firestore";
+import type {
+  BookingGender,
+  BookingStatus,
+  PaymentMethod,
+  Service,
+} from "@/types/firestore";
 
-export type BookingStatusUpdate = "completed" | "cancelled";
-export type PaymentMethod = "cash" | "card";
+export type { PaymentMethod };
+
+export type BookingStatusUpdate = "completed" | "cancelled" | "no_show";
 
 export type CreateBookingInput = {
   userId: string;
@@ -29,7 +37,6 @@ export type CreateBookingInput = {
   customerName?: string;
   customerEmail?: string;
   customerGender?: BookingGender;
-  /** Optional note stored on the booking (e.g. consultation). */
   notes?: string;
   isConsultation?: boolean;
 };
@@ -44,6 +51,7 @@ export type SavedBooking = {
   selectedDate: string;
   selectedTime: string;
   dateKey?: string;
+  appointmentNumber?: number;
   phoneNumber?: string;
   customerName?: string;
   customerEmail?: string;
@@ -51,11 +59,51 @@ export type SavedBooking = {
   paymentMethod?: PaymentMethod;
   notes?: string;
   isConsultation?: boolean;
-  /** Google Calendar event id when synced. */
   googleCalendarEventId?: string;
   status: string;
+  cancelReason?: string;
+  cancelledBy?: "client" | "admin" | "system";
+  adminNotes?: string;
+  hairType?: string;
+  conditions?: string;
+  checkedInAt?: string;
+  noShowDeadlineAt?: string;
+  reminderSentAt?: string;
+  completedAt?: string;
   createdAt: string;
+  updatedAt?: string;
 };
+
+export type CompleteBookingInput = {
+  paymentMethod: PaymentMethod;
+  adminNotes?: string;
+  hairType?: string;
+  conditions?: string;
+  syncToUserProfile?: boolean;
+};
+
+export type CancelBookingInput = {
+  cancelReason?: string;
+  cancelledBy: "client" | "admin" | "system";
+};
+
+async function nextAppointmentNumber(dateKey: string): Promise<number> {
+  initFirebase();
+  const db = getFirebaseDb();
+  const counterRef = doc(db, COLLECTIONS.appointmentCounters, dateKey);
+
+  return runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(counterRef);
+    const current = snap.exists() ? Number(snap.data()?.lastNumber ?? 0) : 0;
+    const next = current + 1;
+    transaction.set(
+      counterRef,
+      { lastNumber: next, updatedAt: new Date().toISOString() },
+      { merge: true },
+    );
+    return next;
+  });
+}
 
 function assertBookingSlotNotInPast(
   selectedDate: Date,
@@ -81,7 +129,6 @@ function bookingSortKey(booking: SavedBooking): number {
   return dateMs + parseSlotMinutes(booking.selectedTime) * 60_000;
 }
 
-/** Upcoming first; if equal, newest createdAt first. */
 export function sortBookingsChronologically(
   bookings: SavedBooking[],
 ): SavedBooking[] {
@@ -92,16 +139,26 @@ export function sortBookingsChronologically(
   });
 }
 
-/** Same-day admin list: earliest appointment time first. */
-export function sortBookingsByTimeAsc(
+/** Admin list: appointment number first, then time. */
+export function sortBookingsByAppointmentNumber(
   bookings: SavedBooking[],
 ): SavedBooking[] {
   return [...bookings].sort((a, b) => {
+    const aNum = a.appointmentNumber ?? Number.MAX_SAFE_INTEGER;
+    const bNum = b.appointmentNumber ?? Number.MAX_SAFE_INTEGER;
+    if (aNum !== bNum) return aNum - bNum;
     const byTime =
       parseSlotMinutes(a.selectedTime) - parseSlotMinutes(b.selectedTime);
     if (!Number.isNaN(byTime) && byTime !== 0) return byTime;
     return (a.createdAt ?? "").localeCompare(b.createdAt ?? "");
   });
+}
+
+/** Same-day admin list: earliest appointment time first. */
+export function sortBookingsByTimeAsc(
+  bookings: SavedBooking[],
+): SavedBooking[] {
+  return sortBookingsByAppointmentNumber(bookings);
 }
 
 function mapBookingDoc(
@@ -115,6 +172,14 @@ function mapBookingDoc(
   const paymentMethod: PaymentMethod | undefined =
     paymentRaw === "cash" || paymentRaw === "card" ? paymentRaw : undefined;
 
+  const cancelledByRaw = String(data.cancelledBy ?? "");
+  const cancelledBy =
+    cancelledByRaw === "client" ||
+    cancelledByRaw === "admin" ||
+    cancelledByRaw === "system"
+      ? cancelledByRaw
+      : undefined;
+
   return {
     id,
     userId: String(data.userId ?? ""),
@@ -125,6 +190,10 @@ function mapBookingDoc(
     selectedDate: String(data.selectedDate ?? ""),
     selectedTime: String(data.selectedTime ?? ""),
     dateKey: data.dateKey ? String(data.dateKey) : undefined,
+    appointmentNumber:
+      data.appointmentNumber != null
+        ? Number(data.appointmentNumber)
+        : undefined,
     phoneNumber: phoneNumber || undefined,
     customerName: data.customerName
       ? String(data.customerName)
@@ -143,7 +212,21 @@ function mapBookingDoc(
       ? String(data.googleCalendarEventId)
       : undefined,
     status: String(data.status ?? "confirmed"),
+    cancelReason: data.cancelReason ? String(data.cancelReason) : undefined,
+    cancelledBy,
+    adminNotes: data.adminNotes ? String(data.adminNotes) : undefined,
+    hairType: data.hairType ? String(data.hairType) : undefined,
+    conditions: data.conditions ? String(data.conditions) : undefined,
+    checkedInAt: data.checkedInAt ? String(data.checkedInAt) : undefined,
+    noShowDeadlineAt: data.noShowDeadlineAt
+      ? String(data.noShowDeadlineAt)
+      : undefined,
+    reminderSentAt: data.reminderSentAt
+      ? String(data.reminderSentAt)
+      : undefined,
+    completedAt: data.completedAt ? String(data.completedAt) : undefined,
     createdAt: String(data.createdAt ?? ""),
+    updatedAt: data.updatedAt ? String(data.updatedAt) : undefined,
   };
 }
 
@@ -157,6 +240,7 @@ export async function createBooking(
   const now = new Date().toISOString();
   const selectedDate = input.selectedDate.toISOString();
   const dateKey = toDateKey(input.selectedDate);
+  const appointmentNumber = await nextAppointmentNumber(dateKey);
 
   const payload = {
     userId: input.userId,
@@ -167,6 +251,7 @@ export async function createBooking(
     selectedDate,
     selectedTime: input.selectedTime,
     dateKey,
+    appointmentNumber,
     phoneNumber: input.phoneNumber,
     customerName: input.customerName ?? "",
     customerEmail: input.customerEmail ?? "",
@@ -197,40 +282,75 @@ export async function createBooking(
 export async function updateBookingStatus(
   bookingId: string,
   status: BookingStatusUpdate,
+  extra?: Partial<CancelBookingInput>,
 ): Promise<void> {
   initFirebase();
   const db = getFirebaseDb();
 
   await updateDoc(doc(db, COLLECTIONS.bookings, bookingId), {
     status,
+    ...(extra?.cancelReason ? { cancelReason: extra.cancelReason } : {}),
+    ...(extra?.cancelledBy ? { cancelledBy: extra.cancelledBy } : {}),
     updatedAt: new Date().toISOString(),
   });
 }
 
-/** Mark booking completed and record how the client paid. */
 export async function completeBookingWithPayment(
   bookingId: string,
-  paymentMethod: PaymentMethod,
+  input: CompleteBookingInput,
 ): Promise<void> {
   initFirebase();
   const db = getFirebaseDb();
+  const now = new Date().toISOString();
 
   await updateDoc(doc(db, COLLECTIONS.bookings, bookingId), {
     status: "completed",
-    paymentMethod,
+    paymentMethod: input.paymentMethod,
+    adminNotes: input.adminNotes?.trim() || "",
+    hairType: input.hairType?.trim() || "",
+    conditions: input.conditions?.trim() || "",
+    completedAt: now,
+    updatedAt: now,
+  });
+}
+
+export async function cancelBookingWithReason(
+  bookingId: string,
+  input: CancelBookingInput,
+): Promise<void> {
+  initFirebase();
+  await updateDoc(doc(getFirebaseDb(), COLLECTIONS.bookings, bookingId), {
+    status: "cancelled",
+    cancelReason: input.cancelReason?.trim() || "",
+    cancelledBy: input.cancelledBy,
     updatedAt: new Date().toISOString(),
   });
 }
 
 export async function cancelBooking(bookingId: string): Promise<void> {
+  await cancelBookingWithReason(bookingId, { cancelledBy: "client" });
+}
+
+export async function checkInBooking(bookingId: string): Promise<void> {
   initFirebase();
   await updateDoc(doc(getFirebaseDb(), COLLECTIONS.bookings, bookingId), {
-    status: "cancelled",
+    checkedInAt: new Date().toISOString(),
+    noShowDeadlineAt: "",
     updatedAt: new Date().toISOString(),
   });
 }
 
-/** Persist Google Calendar event id after sync (create/update/delete). */
+export async function setBookingNoShowDeadline(
+  bookingId: string,
+  deadlineIso: string,
+): Promise<void> {
+  initFirebase();
+  await updateDoc(doc(getFirebaseDb(), COLLECTIONS.bookings, bookingId), {
+    noShowDeadlineAt: deadlineIso,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
 export async function setBookingCalendarEventId(
   bookingId: string,
   eventId: string | null,
@@ -251,14 +371,31 @@ export async function rescheduleBooking(
   initFirebase();
   const selectedDate = input.selectedDate.toISOString();
   const dateKey = toDateKey(input.selectedDate);
+  const appointmentNumber = await nextAppointmentNumber(dateKey);
 
   await updateDoc(doc(getFirebaseDb(), COLLECTIONS.bookings, bookingId), {
     selectedDate,
     selectedTime: input.selectedTime,
     dateKey,
+    appointmentNumber,
     status: "confirmed",
+    checkedInAt: "",
+    noShowDeadlineAt: "",
     updatedAt: new Date().toISOString(),
   });
+}
+
+/** Currently serving = highest completed appointment number today, or in-progress confirmed with check-in. */
+export function getCurrentlyServingNumber(
+  bookings: SavedBooking[],
+): number | null {
+  const todayKey = toDateKey(new Date());
+  const today = bookings.filter((b) => b.dateKey === todayKey);
+  const completed = today
+    .filter((b) => b.status === "completed" && b.appointmentNumber != null)
+    .map((b) => b.appointmentNumber!);
+  if (completed.length === 0) return null;
+  return Math.max(...completed);
 }
 
 export function subscribeToBookings(
@@ -284,7 +421,6 @@ export function subscribeToBookings(
   );
 }
 
-/** Admin dashboard — only bookings for one calendar day (fewer Firestore reads). */
 export function subscribeToAdminBookingsByDate(
   dateKey: string,
   onData: (bookings: SavedBooking[]) => void,
@@ -303,13 +439,12 @@ export function subscribeToAdminBookingsByDate(
       const bookings = snapshot.docs.map((docSnap) =>
         mapBookingDoc(docSnap.id, docSnap.data()),
       );
-      onData(sortBookingsByTimeAsc(bookings));
+      onData(sortBookingsByAppointmentNumber(bookings));
     },
     (error) => onError?.(error),
   );
 }
 
-/** Bookings for the signed-in client (own history). */
 export function subscribeToUserBookings(
   userId: string,
   onData: (bookings: SavedBooking[]) => void,
@@ -345,14 +480,6 @@ export function clientOwnsBooking(
   return false;
 }
 
-/**
- * Guest sessions get a new anonymous uid each login — also match bookings
- * saved under the same phone number on the user's profile.
- *
- * Phone query is limited to confirmed bookings so it satisfies the public
- * signed-in read rule (status == confirmed). Current-uid query covers all
- * statuses for this session.
- */
 export function subscribeToClientBookings(
   userId: string,
   profilePhone: string | undefined,
@@ -400,7 +527,6 @@ export function subscribeToClientBookings(
       mergeAndEmit();
     },
     (error) => {
-      // Rules / indexes may block this query — keep uid bookings visible.
       const code = (error as { code?: string }).code;
       if (code === "permission-denied" || code === "failed-precondition") {
         phoneBookings = [];
@@ -417,7 +543,29 @@ export function subscribeToClientBookings(
   };
 }
 
-/** Confirmed bookings for client-side slot availability. */
+export function subscribeToBookingsByUserId(
+  userId: string,
+  onData: (bookings: SavedBooking[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeToUserBookings(userId, onData, onError);
+}
+
+export async function fetchBookingsByPhone(
+  phone: string,
+): Promise<SavedBooking[]> {
+  initFirebase();
+  const snap = await getDocs(
+    query(
+      collection(getFirebaseDb(), COLLECTIONS.bookings),
+      where("phoneNumber", "==", phone),
+    ),
+  );
+  return snap.docs
+    .map((d) => mapBookingDoc(d.id, d.data()))
+    .sort((a, b) => bookingSortKey(b) - bookingSortKey(a));
+}
+
 export function subscribeToConfirmedBookings(
   onData: (bookings: SavedBooking[]) => void,
   onError?: (error: Error) => void,
@@ -439,4 +587,12 @@ export function subscribeToConfirmedBookings(
     },
     (error) => onError?.(error),
   );
+}
+
+export function subscribeToTodayBookingsForQueue(
+  onData: (bookings: SavedBooking[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  const dateKey = toDateKey(new Date());
+  return subscribeToAdminBookingsByDate(dateKey, onData, onError);
 }

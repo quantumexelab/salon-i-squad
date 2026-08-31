@@ -96,9 +96,18 @@ function mapUserDoc(uid: string, data: Record<string, unknown>): UserProfile {
     email: data.email ? String(data.email) : undefined,
     phoneNumber: phoneNumber || undefined,
     mobile: mobile || phoneNumber,
+    whatsappNumber: data.whatsappNumber
+      ? String(data.whatsappNumber)
+      : undefined,
     gender: data.gender as UserProfile["gender"],
     role: normalizeRole(data.role),
     isGuest: Boolean(data.isGuest),
+    isMember: data.isMember === true,
+    memberSince: data.memberSince ? String(data.memberSince) : undefined,
+    memberNotes: data.memberNotes ? String(data.memberNotes) : undefined,
+    hairType: data.hairType ? String(data.hairType) : undefined,
+    conditions: data.conditions ? String(data.conditions) : undefined,
+    registrationComplete: data.registrationComplete === true,
     fcmToken: data.fcmToken ? String(data.fcmToken) : undefined,
     createdAt: String(data.createdAt ?? new Date().toISOString()),
     updatedAt: String(data.updatedAt ?? new Date().toISOString()),
@@ -368,6 +377,162 @@ export async function updateUserFcmToken(
     },
     { merge: true },
   );
+}
+
+export function subscribeToMemberUsers(
+  onData: (members: UserProfile[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  initFirebase();
+  const q = query(
+    collection(getFirebaseDb(), COLLECTIONS.users),
+    where("role", "==", "client"),
+    where("isMember", "==", true),
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const members = snapshot.docs
+        .map((docSnap) => mapUserDoc(docSnap.id, docSnap.data()))
+        .sort((a, b) =>
+          (b.memberSince ?? b.createdAt).localeCompare(
+            a.memberSince ?? a.createdAt,
+          ),
+        );
+      onData(members);
+    },
+    (error) => onError?.(error),
+  );
+}
+
+export async function setUserMemberStatus(
+  uid: string,
+  isMember: boolean,
+  memberNotes?: string,
+): Promise<void> {
+  initFirebase();
+  const now = new Date().toISOString();
+  await setDoc(
+    doc(getFirebaseDb(), COLLECTIONS.users, uid),
+    {
+      isMember,
+      memberSince: isMember ? now : "",
+      memberNotes: memberNotes?.trim() || "",
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+}
+
+export async function updateMemberProfileFields(
+  uid: string,
+  fields: {
+    hairType?: string;
+    conditions?: string;
+    memberNotes?: string;
+  },
+): Promise<void> {
+  initFirebase();
+  await setDoc(
+    doc(getFirebaseDb(), COLLECTIONS.users, uid),
+    {
+      ...(fields.hairType !== undefined ? { hairType: fields.hairType } : {}),
+      ...(fields.conditions !== undefined
+        ? { conditions: fields.conditions }
+        : {}),
+      ...(fields.memberNotes !== undefined
+        ? { memberNotes: fields.memberNotes }
+        : {}),
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true },
+  );
+}
+
+export type RegisterProfileInput = {
+  uid: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  whatsappNumber: string;
+  gender?: UserProfile["gender"];
+};
+
+export function isProfileRegistrationComplete(
+  profile: UserProfile | null | undefined,
+): boolean {
+  if (!profile) return false;
+  if (profile.registrationComplete) return true;
+  return Boolean(
+    profile.firstName.trim() &&
+      profile.email?.trim() &&
+      getProfilePhone(profile) &&
+      profile.whatsappNumber?.trim(),
+  );
+}
+
+export async function completeClientRegistration(
+  input: RegisterProfileInput,
+): Promise<UserProfile> {
+  if (!input.firstName.trim()) throw new Error("Name is required.");
+  if (!input.email.trim()) throw new Error("Email is required.");
+  if (!isValidMobile(input.phoneNumber)) {
+    throw new Error("Please enter a valid phone number.");
+  }
+  if (!isValidMobile(input.whatsappNumber)) {
+    throw new Error("Please enter a valid WhatsApp number.");
+  }
+
+  initFirebase();
+  const now = new Date().toISOString();
+  const phone = normalizeMobile(input.phoneNumber);
+  const whatsapp = normalizeMobile(input.whatsappNumber);
+  const ref = doc(getFirebaseDb(), COLLECTIONS.users, input.uid);
+  const existing = await getDoc(ref);
+
+  const profile: UserProfile = {
+    uid: input.uid,
+    firstName: input.firstName.trim(),
+    lastName: input.lastName.trim(),
+    email: input.email.trim().toLowerCase(),
+    phoneNumber: phone,
+    mobile: phone,
+    whatsappNumber: whatsapp,
+    gender: input.gender,
+    role: "client",
+    isGuest: existing.exists() ? Boolean(existing.data()?.isGuest) : false,
+    isMember: existing.exists() ? existing.data()?.isMember === true : false,
+    memberSince: existing.exists()
+      ? existing.data()?.memberSince
+        ? String(existing.data()?.memberSince)
+        : undefined
+      : undefined,
+    registrationComplete: true,
+    createdAt: existing.exists()
+      ? String(existing.data()?.createdAt ?? now)
+      : now,
+    updatedAt: now,
+  };
+
+  await setDoc(ref, toFirestoreData(profile), { merge: true });
+
+  const phoneKey = phoneDocId(phone);
+  await setDoc(
+    doc(getFirebaseDb(), COLLECTIONS.customerPhones, phoneKey),
+    {
+      phoneNumber: phone,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      whatsappNumber: whatsapp,
+      lastAuthUid: input.uid,
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+
+  return profile;
 }
 
 export function subscribeToClientUsers(

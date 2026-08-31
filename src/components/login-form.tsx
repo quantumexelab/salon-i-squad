@@ -22,6 +22,7 @@ import { homeForRole } from "@/lib/routing";
 import { isMasterRole, isStaffRole } from "@/lib/roles";
 import {
   createGuestUserProfile,
+  isProfileRegistrationComplete,
   isValidMobile,
   normalizeMobile,
   upsertEmailUserProfile,
@@ -83,7 +84,12 @@ export function LoginForm() {
           return;
         }
       }
-      router.replace(homeForRole(currentProfile.role));
+      router.replace(
+        currentProfile.role === "client" &&
+          !isProfileRegistrationComplete(currentProfile)
+          ? "/register"
+          : homeForRole(currentProfile.role),
+      );
     }
 
     void routeSignedInUser();
@@ -111,7 +117,12 @@ export function LoginForm() {
     }
 
     await refreshProfile();
-    router.replace(homeForRole(nextProfile.role));
+    router.replace(
+      nextProfile.role === "client" &&
+        !isProfileRegistrationComplete(nextProfile)
+        ? "/register"
+        : homeForRole(nextProfile.role),
+    );
   }
 
   async function handleGoogleSignIn() {
@@ -194,7 +205,7 @@ export function LoginForm() {
       rememberGuestPhone(phone);
       await refreshProfile();
       setGuestModalOpen(false);
-      router.push("/booking");
+      router.push("/register");
     } finally {
       setLoading(null);
     }

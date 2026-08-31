@@ -1,0 +1,73 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Award } from "lucide-react";
+import { subscribeToStaffProfiles } from "@/lib/staff-profiles";
+import type { StaffProfile } from "@/types/firestore";
+
+export function TeamSection() {
+  const [team, setTeam] = useState<StaffProfile[]>([]);
+
+  useEffect(() => {
+    return subscribeToStaffProfiles(setTeam, undefined, { activeOnly: true });
+  }, []);
+
+  if (team.length === 0) return null;
+
+  return (
+    <section id="team" className="scroll-mt-20 border-t border-salon-beige/30 bg-salon-white py-16">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mb-10 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-salon-gold">
+            Our team
+          </p>
+          <h2 className="mt-2 font-serif text-3xl font-semibold text-salon-ink">
+            Expert stylists
+          </h2>
+        </div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {team.map((member) => (
+            <article
+              key={member.id}
+              className="overflow-hidden rounded-2xl border border-salon-beige/35 bg-salon-bg shadow-sm"
+            >
+              {member.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={member.photoUrl}
+                  alt={member.name}
+                  className="aspect-[4/3] w-full object-cover"
+                />
+              ) : (
+                <div className="flex aspect-[4/3] items-center justify-center bg-salon-surface text-salon-muted">
+                  <Award className="h-10 w-10 text-salon-gold/50" />
+                </div>
+              )}
+              <div className="p-5">
+                <h3 className="text-lg font-semibold text-salon-ink">
+                  {member.name}
+                </h3>
+                <p className="text-sm text-salon-gold">{member.role}</p>
+                {member.yearsExperience ? (
+                  <p className="mt-1 text-xs text-salon-muted">
+                    {member.yearsExperience}+ years experience
+                  </p>
+                ) : null}
+                {member.qualifications.length > 0 ? (
+                  <ul className="mt-3 space-y-1 text-xs text-salon-muted">
+                    {member.qualifications.map((q) => (
+                      <li key={q}>· {q}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                {member.bio ? (
+                  <p className="mt-3 text-sm text-salon-muted">{member.bio}</p>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

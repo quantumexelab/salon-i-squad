@@ -1,7 +1,7 @@
 import { dateKeyFromIso, parseSlotMinutes } from "@/lib/calendar-utils";
 import type { SavedBooking } from "@/lib/bookings";
 
-export const CLIENT_MODIFY_CUTOFF_HOURS = 12;
+export const CLIENT_MODIFY_CUTOFF_HOURS = 2;
 
 /** Local appointment start from dateKey (preferred) + selectedTime. */
 export function getBookingStartDate(booking: SavedBooking): Date | null {
@@ -26,7 +26,7 @@ export function getHoursUntilAppointment(
   return (start.getTime() - now.getTime()) / (1000 * 60 * 60);
 }
 
-/** Confirmed bookings more than 12 hours away can be cancelled/rescheduled. */
+/** Confirmed bookings more than cutoff hours away can be cancelled/rescheduled. */
 export function canClientModifyBooking(
   booking: SavedBooking,
   now = new Date(),

@@ -20,6 +20,7 @@ import { ClientMobileNav } from "@/components/client-mobile-nav";
 import { CustomerLogo } from "@/components/logo";
 import { SalonHeroSection } from "@/components/salon-zoom-carousel";
 import { SocialLinks } from "@/components/social-links";
+import { TeamSection } from "@/components/team-section";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { serviceImageFor } from "@/lib/service-images";
 import {
@@ -325,6 +326,8 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      <TeamSection />
 
       {/* About + Contact */}
       <section
