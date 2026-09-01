@@ -21,6 +21,7 @@ import {
   cancelBookingWithReason,
   checkInBooking,
   completeBookingWithPayment,
+  formatBookingServicesLabel,
   subscribeToAdminBookingsByDate,
   type PaymentMethod,
   type SavedBooking,
@@ -381,8 +382,15 @@ export function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-medium text-salon-ink">
-                            {booking.serviceName}
+                            {formatBookingServicesLabel(booking)}
                           </p>
+                          {booking.services && booking.services.length > 1 ? (
+                            <p className="mt-0.5 text-xs text-salon-muted">
+                              {booking.services
+                                .map((service) => service.name)
+                                .join(", ")}
+                            </p>
+                          ) : null}
                           <p className="mt-0.5 text-xs text-salon-ink0">
                             {booking.duration} mins
                           </p>
@@ -429,7 +437,7 @@ export function AdminDashboard() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-salon-ink">
-                          {booking.serviceName}
+                          {formatBookingServicesLabel(booking)}
                         </p>
                         <div className="mt-2">
                           <ClientCell

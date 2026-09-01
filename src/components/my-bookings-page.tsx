@@ -21,6 +21,7 @@ import {
 } from "@/lib/booking-policy";
 import {
   cancelBooking,
+  formatBookingServicesLabel,
   rescheduleBooking,
   subscribeToClientBookings,
   type SavedBooking,
@@ -86,7 +87,7 @@ export function MyBookingsPage() {
     if (!canClientModifyBooking(booking, nowTick)) return;
     if (
       !window.confirm(
-        `Cancel ${booking.serviceName} on ${formatBookingWhen(booking)}?`,
+        `Cancel ${formatBookingServicesLabel(booking)} on ${formatBookingWhen(booking)}?`,
       )
     ) {
       return;
@@ -296,8 +297,18 @@ function BookingCard({
             {booking.appointmentNumber != null
               ? `#${booking.appointmentNumber} · `
               : ""}
-            {booking.serviceName}
+            {formatBookingServicesLabel(booking)}
           </p>
+          {booking.services && booking.services.length > 1 ? (
+            <ul className="mt-1 list-inside list-disc text-xs text-salon-muted">
+              {booking.services.map((service) => (
+                <li key={service.serviceId}>
+                  {service.name} · {service.duration} mins ·{" "}
+                  {formatLkr(service.price)}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <p className="mt-1 text-xs text-salon-muted">
             {formatBookingWhen(booking)}
           </p>

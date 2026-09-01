@@ -14,12 +14,11 @@ import {
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
 import { toDateKey, parseSlotMinutes } from "@/lib/calendar-utils";
-import type { DummyService } from "@/lib/booking/dummy-services";
 import type {
   BookingGender,
+  BookingLineItem,
   BookingStatus,
   PaymentMethod,
-  Service,
 } from "@/types/firestore";
 
 export type { PaymentMethod };
@@ -28,9 +27,7 @@ export type BookingStatusUpdate = "completed" | "cancelled" | "no_show";
 
 export type CreateBookingInput = {
   userId: string;
-  service:
-    | Pick<Service, "id" | "name" | "durationMinutes" | "price">
-    | DummyService;
+  services: BookingLineItem[];
   selectedDate: Date;
   selectedTime: string;
   phoneNumber: string;
@@ -45,6 +42,8 @@ export type SavedBooking = {
   id: string;
   userId: string;
   serviceId: string;
+  serviceIds?: string[];
+  services?: BookingLineItem[];
   serviceName: string;
   duration: number;
   price: number;
@@ -86,6 +85,38 @@ export type CancelBookingInput = {
   cancelReason?: string;
   cancelledBy: "client" | "admin" | "system";
 };
+
+export function formatBookingServicesLabel(booking: {
+  serviceName: string;
+  services?: BookingLineItem[];
+}): string {
+  if (booking.services?.length) {
+    return booking.services.map((service) => service.name).join(" + ");
+  }
+  return booking.serviceName;
+}
+
+function mapBookingLineItems(
+  data: Record<string, unknown>,
+): BookingLineItem[] | undefined {
+  const raw = data.services;
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+
+  const items = raw
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const item = entry as Record<string, unknown>;
+      const serviceId = String(item.serviceId ?? "");
+      const name = String(item.name ?? "");
+      const duration = Number(item.duration ?? 0);
+      const price = Number(item.price ?? 0);
+      if (!serviceId || !name) return null;
+      return { serviceId, name, duration, price };
+    })
+    .filter((item): item is BookingLineItem => item != null);
+
+  return items.length > 0 ? items : undefined;
+}
 
 async function nextAppointmentNumber(dateKey: string): Promise<number> {
   initFirebase();
@@ -184,6 +215,10 @@ function mapBookingDoc(
     id,
     userId: String(data.userId ?? ""),
     serviceId: String(data.serviceId ?? ""),
+    serviceIds: Array.isArray(data.serviceIds)
+      ? data.serviceIds.map((id) => String(id)).filter(Boolean)
+      : undefined,
+    services: mapBookingLineItems(data),
     serviceName: String(data.serviceName ?? "Service"),
     duration: Number(data.duration ?? 0),
     price: Number(data.price ?? 0),
@@ -230,9 +265,20 @@ function mapBookingDoc(
   };
 }
 
+export function parseBookingDoc(
+  id: string,
+  data: Record<string, unknown>,
+): SavedBooking {
+  return mapBookingDoc(id, data);
+}
+
 export async function createBooking(
   input: CreateBookingInput,
 ): Promise<SavedBooking> {
+  if (input.services.length === 0) {
+    throw new Error("Select at least one service.");
+  }
+
   assertBookingSlotNotInPast(input.selectedDate, input.selectedTime);
 
   initFirebase();
@@ -242,12 +288,25 @@ export async function createBooking(
   const dateKey = toDateKey(input.selectedDate);
   const appointmentNumber = await nextAppointmentNumber(dateKey);
 
+  const totalDuration = input.services.reduce(
+    (sum, service) => sum + service.duration,
+    0,
+  );
+  const totalPrice = input.services.reduce(
+    (sum, service) => sum + service.price,
+    0,
+  );
+  const serviceName = input.services.map((service) => service.name).join(" + ");
+  const serviceIds = input.services.map((service) => service.serviceId);
+
   const payload = {
     userId: input.userId,
-    serviceId: input.service.id,
-    serviceName: input.service.name,
-    duration: input.service.durationMinutes,
-    price: input.service.price,
+    serviceId: serviceIds[0] ?? "",
+    serviceIds,
+    services: input.services,
+    serviceName,
+    duration: totalDuration,
+    price: totalPrice,
     selectedDate,
     selectedTime: input.selectedTime,
     dateKey,

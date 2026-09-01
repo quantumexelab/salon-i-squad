@@ -12,36 +12,12 @@ import {
   CLIENT_MODIFY_CUTOFF_HOURS,
   canClientModifyBooking,
 } from "@/lib/booking-policy";
-import { rescheduleBooking, clientOwnsBooking, type SavedBooking } from "@/lib/bookings";
+import { rescheduleBooking, clientOwnsBooking, parseBookingDoc, type SavedBooking } from "@/lib/bookings";
 import { toDateKey } from "@/lib/calendar-utils";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getFirebaseDb, initFirebase } from "@/lib/firebase";
 import { applyBookingCalendarSync } from "@/lib/request-calendar-sync";
 import { getProfilePhone } from "@/lib/users";
-
-function mapBooking(id: string, data: Record<string, unknown>): SavedBooking {
-  return {
-    id,
-    userId: String(data.userId ?? ""),
-    serviceId: String(data.serviceId ?? ""),
-    serviceName: String(data.serviceName ?? "Service"),
-    duration: Number(data.duration ?? 0),
-    price: Number(data.price ?? 0),
-    selectedDate: String(data.selectedDate ?? ""),
-    selectedTime: String(data.selectedTime ?? ""),
-    dateKey: data.dateKey ? String(data.dateKey) : undefined,
-    phoneNumber: data.phoneNumber ? String(data.phoneNumber) : undefined,
-    customerName: data.customerName ? String(data.customerName) : undefined,
-    customerEmail: data.customerEmail
-      ? String(data.customerEmail)
-      : undefined,
-    googleCalendarEventId: data.googleCalendarEventId
-      ? String(data.googleCalendarEventId)
-      : undefined,
-    status: String(data.status ?? "confirmed"),
-    createdAt: String(data.createdAt ?? ""),
-  };
-}
 
 export function ReschedulePageContent() {
   const params = useParams<{ bookingId: string }>();
@@ -72,7 +48,7 @@ export function ReschedulePageContent() {
           setError("Booking not found.");
           setBooking(null);
         } else {
-          const mapped = mapBooking(snap.id, snap.data());
+          const mapped = parseBookingDoc(snap.id, snap.data());
           const profilePhone = getProfilePhone(profile);
           if (
             !clientOwnsBooking(

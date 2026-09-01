@@ -40,7 +40,7 @@ export function generateTimeSlots(
   closeTime: string,
   options?: { intervalMinutes?: number; durationMinutes?: number },
 ): string[] {
-  const interval = Math.max(options?.intervalMinutes ?? 30, 1);
+  const interval = Math.max(options?.intervalMinutes ?? 15, 1);
   const duration = Math.max(options?.durationMinutes ?? interval, 1);
   const open = parseSlotMinutes(openTime);
   const close = parseSlotMinutes(closeTime);

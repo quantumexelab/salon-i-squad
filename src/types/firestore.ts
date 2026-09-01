@@ -16,6 +16,13 @@ export type ConsultationStatus = "not_required" | "pending" | "completed";
 
 export type PaymentMethod = "cash" | "card";
 
+export type BookingLineItem = {
+  serviceId: string;
+  name: string;
+  duration: number;
+  price: number;
+};
+
 export type UserProfile = {
   uid: string;
   firstName: string;
@@ -58,6 +65,8 @@ export type Booking = {
   id: string;
   userId: string;
   serviceId: string;
+  serviceIds?: string[];
+  services?: BookingLineItem[];
   serviceName: string;
   duration: number;
   price: number;

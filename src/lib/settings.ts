@@ -9,6 +9,7 @@ export const DEFAULT_BUSINESS_HOURS = {
   openTime: "09:00 AM",
   closeTime: "07:00 PM",
   cleanupPadding: 0,
+  slotIntervalMinutes: 15,
 } as const;
 
 export type BusinessHours = {
@@ -16,6 +17,8 @@ export type BusinessHours = {
   closeTime: string;
   /** Minutes of cleanup between appointments; applied from tomorrow onward. */
   cleanupPadding: number;
+  /** Start-time grid step for bookable slots. */
+  slotIntervalMinutes: number;
   updatedAt?: string;
 };
 
@@ -23,6 +26,12 @@ function normalizeCleanupPadding(value: unknown): number {
   const n = Number(value);
   if (!Number.isFinite(n) || n < 0) return 0;
   return Math.min(Math.floor(n), 180);
+}
+
+function normalizeSlotInterval(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 5) return DEFAULT_BUSINESS_HOURS.slotIntervalMinutes;
+  return Math.min(Math.floor(n), 60);
 }
 
 export function subscribeToBusinessHours(
@@ -50,6 +59,9 @@ export function subscribeToBusinessHours(
         cleanupPadding: normalizeCleanupPadding(
           data.cleanupPadding ?? DEFAULT_BUSINESS_HOURS.cleanupPadding,
         ),
+        slotIntervalMinutes: normalizeSlotInterval(
+          data.slotIntervalMinutes ?? DEFAULT_BUSINESS_HOURS.slotIntervalMinutes,
+        ),
         updatedAt: data.updatedAt ? String(data.updatedAt) : undefined,
       });
     },
@@ -61,6 +73,7 @@ export async function saveBusinessHours(input: {
   openTime: string;
   closeTime: string;
   cleanupPadding?: number;
+  slotIntervalMinutes?: number;
 }): Promise<BusinessHours> {
   initFirebase();
 
@@ -74,11 +87,15 @@ export async function saveBusinessHours(input: {
   }
 
   const cleanupPadding = normalizeCleanupPadding(input.cleanupPadding ?? 0);
+  const slotIntervalMinutes = normalizeSlotInterval(
+    input.slotIntervalMinutes ?? DEFAULT_BUSINESS_HOURS.slotIntervalMinutes,
+  );
 
   const payload: BusinessHours = {
     openTime: input.openTime,
     closeTime: input.closeTime,
     cleanupPadding,
+    slotIntervalMinutes,
     updatedAt: new Date().toISOString(),
   };
 

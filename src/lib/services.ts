@@ -54,6 +54,40 @@ export function getBookableServiceLabel(service: {
   return `Consultation for ${service.name}`;
 }
 
+export function getCombinedBookableDuration(
+  services: Array<{
+    durationMinutes: number;
+    requiresConsultation?: boolean;
+  }>,
+): number {
+  return services.reduce(
+    (sum, service) => sum + getBookableDurationMinutes(service),
+    0,
+  );
+}
+
+export function getCombinedPrice(
+  services: Array<{ price: number }>,
+): number {
+  return services.reduce((sum, service) => sum + service.price, 0);
+}
+
+export function getCombinedServiceLabel(
+  services: Array<{ name: string; requiresConsultation?: boolean }>,
+): string {
+  return services.map((service) => getBookableServiceLabel(service)).join(" + ");
+}
+
+/** Consultation services must be booked alone. */
+export function canCombineServices(
+  current: Service[],
+  next: Service,
+): boolean {
+  if (next.requiresConsultation) return current.length === 0;
+  if (current.some((service) => service.requiresConsultation)) return false;
+  return true;
+}
+
 function normalizeImageUrl(value: unknown): string | undefined {
   const url = String(value ?? "").trim();
   return url || undefined;

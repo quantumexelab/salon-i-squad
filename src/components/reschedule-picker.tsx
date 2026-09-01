@@ -26,6 +26,7 @@ import {
 } from "@/lib/calendar-utils";
 import {
   subscribeToConfirmedBookings,
+  formatBookingServicesLabel,
   type SavedBooking,
 } from "@/lib/bookings";
 import {
@@ -102,7 +103,10 @@ export function ReschedulePicker({
     const slots = generateTimeSlots(
       businessHours.openTime,
       businessHours.closeTime,
-      { durationMinutes },
+      {
+        durationMinutes,
+        intervalMinutes: businessHours.slotIntervalMinutes,
+      },
     );
     const others = confirmedBookings.filter((b) => b.id !== booking.id);
     return filterAvailableSlots(slots, {
@@ -142,11 +146,11 @@ export function ReschedulePicker({
     <div className="space-y-4">
       <div>
         <p className="text-sm font-medium text-salon-ink">
-          Reschedule {booking.serviceName}
+          Reschedule {formatBookingServicesLabel(booking)}
         </p>
         <p className="mt-1 text-xs text-salon-muted">
-          Pick a new date and time. Closed days, buffers, and taken slots are
-          hidden.
+          Total visit time: {booking.duration} mins. Pick a new date and time.
+          Closed days, buffers, and taken slots are hidden.
         </p>
       </div>
 

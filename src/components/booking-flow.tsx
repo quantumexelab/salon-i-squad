@@ -49,8 +49,12 @@ import {
 } from "@/lib/settings";
 import {
   CONSULTATION_DURATION_MINUTES,
+  canCombineServices,
   getBookableDurationMinutes,
   getBookableServiceLabel,
+  getCombinedBookableDuration,
+  getCombinedPrice,
+  getCombinedServiceLabel,
   getSampleCatalogServices,
   resolveBookableServices,
   subscribeToServices,
@@ -64,7 +68,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { serviceImageFor } from "@/lib/service-images";
 import { siteConfig } from "@/lib/site";
 import type { ClosedDay, TimeBuffer } from "@/types/calendar";
-import type { BookingGender, Service } from "@/types/firestore";
+import type { BookingGender, BookingLineItem, Service } from "@/types/firestore";
 
 type Step = "service" | "date" | "time";
 
@@ -86,7 +90,7 @@ export function BookingFlow() {
   const [confirmedBookings, setConfirmedBookings] = useState<SavedBooking[]>(
     [],
   );
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [selectedGender, setSelectedGender] = useState<BookingGender | null>(
@@ -153,7 +157,7 @@ export function BookingFlow() {
   const step = activeStep;
 
   function goToNextStep() {
-    if (activeStep === "service" && selectedService) {
+    if (activeStep === "service" && selectedServices.length > 0) {
       setActiveStep("date");
       setError(null);
       return;
@@ -166,7 +170,7 @@ export function BookingFlow() {
 
   const canGoNext =
     !saving &&
-    ((activeStep === "service" && Boolean(selectedService)) ||
+    ((activeStep === "service" && selectedServices.length > 0) ||
       (activeStep === "date" && Boolean(selectedDate)));
 
   const calendarDays = useMemo(() => {
@@ -179,25 +183,26 @@ export function BookingFlow() {
   }, [monthCursor]);
 
   const bookableDuration = useMemo(
-    () =>
-      selectedService ? getBookableDurationMinutes(selectedService) : 0,
-    [selectedService],
+    () => getCombinedBookableDuration(selectedServices),
+    [selectedServices],
   );
 
   const totalPrice = useMemo(
-    () => selectedService?.price ?? 0,
-    [selectedService],
+    () => getCombinedPrice(selectedServices),
+    [selectedServices],
   );
 
-  const needsConsultation = Boolean(selectedService?.requiresConsultation);
+  const needsConsultation = selectedServices.some(
+    (service) => service.requiresConsultation,
+  );
 
   const serviceLabel = useMemo(() => {
-    if (!selectedService) return "";
-    return getBookableServiceLabel(selectedService);
-  }, [selectedService]);
+    if (selectedServices.length === 0) return "";
+    return getCombinedServiceLabel(selectedServices);
+  }, [selectedServices]);
 
   const availableSlots = useMemo(() => {
-    if (!selectedService || !selectedDate) return [];
+    if (selectedServices.length === 0 || !selectedDate) return [];
     const padding = effectiveCleanupPaddingMinutes(
       selectedDate,
       businessHours.cleanupPadding,
@@ -206,7 +211,10 @@ export function BookingFlow() {
     const slots = generateTimeSlots(
       businessHours.openTime,
       businessHours.closeTime,
-      { durationMinutes },
+      {
+        durationMinutes,
+        intervalMinutes: businessHours.slotIntervalMinutes,
+      },
     );
     return filterAvailableSlots(slots, {
       dateKey: toDateKey(selectedDate),
@@ -217,7 +225,7 @@ export function BookingFlow() {
       now: new Date(nowTick),
     });
   }, [
-    selectedService,
+    selectedServices,
     selectedDate,
     bookableDuration,
     businessHours,
@@ -232,24 +240,25 @@ export function BookingFlow() {
     }
   }, [availableSlots, selectedSlot]);
 
-  function selectService(service: Service) {
-    setSelectedService((prev) => (prev?.id === service.id ? null : service));
+  function toggleService(service: Service) {
+    setSelectedServices((prev) => {
+      const exists = prev.some((item) => item.id === service.id);
+      if (exists) {
+        return prev.filter((item) => item.id !== service.id);
+      }
+      if (!canCombineServices(prev, service)) {
+        return [service];
+      }
+      return [...prev, service];
+    });
     setSelectedDate(null);
-    setSelectedSlot(null);
-    setError(null);
-  }
-
-  function selectDate(day: Date) {
-    if (isBefore(day, today)) return;
-    if (closedDateKeys.has(toDateKey(day))) return;
-    setSelectedDate(day);
     setSelectedSlot(null);
     setError(null);
   }
 
   function resetFrom(stepToReset: Step) {
     if (stepToReset === "service") {
-      setSelectedService(null);
+      setSelectedServices([]);
       setSelectedDate(null);
       setSelectedSlot(null);
       setSelectedGender(null);
@@ -264,12 +273,20 @@ export function BookingFlow() {
     }
   }
 
+  function selectDate(day: Date) {
+    if (isBefore(day, today)) return;
+    if (closedDateKeys.has(toDateKey(day))) return;
+    setSelectedDate(day);
+    setSelectedSlot(null);
+    setError(null);
+  }
+
   const profilePhone = getProfilePhone(profile);
   const needsPhone = Boolean(user && !profilePhone);
   const resolvedPhone = profilePhone || phoneInput.trim();
 
   const hasSelection = Boolean(
-    selectedService && selectedDate && selectedSlot && user,
+    selectedServices.length > 0 && selectedDate && selectedSlot && user,
   );
   const canConfirm =
     hasSelection &&
@@ -281,7 +298,7 @@ export function BookingFlow() {
   async function handleConfirmBooking() {
     if (
       !user ||
-      !selectedService ||
+      selectedServices.length === 0 ||
       !selectedDate ||
       !selectedSlot ||
       !selectedGender
@@ -307,18 +324,26 @@ export function BookingFlow() {
         ? `${profile.firstName} ${profile.lastName}`.trim()
         : user.displayName ?? "";
 
-      const consultationNote = selectedService.requiresConsultation
-        ? `Prior consultation for ${selectedService.name} (full service ${selectedService.durationMinutes} mins).`
+      const consultationNote = needsConsultation
+        ? selectedServices
+            .filter((service) => service.requiresConsultation)
+            .map(
+              (service) =>
+                `Prior consultation for ${service.name} (full service ${service.durationMinutes} mins).`,
+            )
+            .join(" ")
         : "";
+
+      const lineItems: BookingLineItem[] = selectedServices.map((service) => ({
+        serviceId: service.id,
+        name: getBookableServiceLabel(service),
+        duration: getBookableDurationMinutes(service),
+        price: service.price,
+      }));
 
       const booking = await createBooking({
         userId: user.uid,
-        service: {
-          id: selectedService.id,
-          name: serviceLabel,
-          durationMinutes: bookableDuration,
-          price: totalPrice,
-        },
+        services: lineItems,
         selectedDate,
         selectedTime: selectedSlot,
         phoneNumber,
@@ -390,7 +415,7 @@ export function BookingFlow() {
               title="Choose Your Service"
             />
             <p className="text-xs text-salon-muted">
-              Select one service for this appointment.
+              Select one or more services for this appointment.
             </p>
 
             {servicesLoading ? (
@@ -406,7 +431,9 @@ export function BookingFlow() {
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {services.map((service) => {
-                  const selected = selectedService?.id === service.id;
+                  const selected = selectedServices.some(
+                    (item) => item.id === service.id,
+                  );
                   return (
                     <button
                       key={service.id}
@@ -415,7 +442,7 @@ export function BookingFlow() {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        selectService(service);
+                        toggleService(service);
                       }}
                       disabled={saving}
                       className={`relative overflow-hidden rounded-2xl border bg-salon-white text-left transition active:scale-[0.99] disabled:opacity-60 ${
@@ -456,7 +483,7 @@ export function BookingFlow() {
                 })}
               </div>
             )}
-            {selectedService ? (
+            {selectedServices.length > 0 ? (
               <p className="rounded-xl border border-salon-gold/25 bg-salon-gold/10 px-3 py-2 text-xs text-salon-ink">
                 Selected: {serviceLabel} · {bookableDuration} mins ·{" "}
                 <span className="font-semibold text-salon-gold">
@@ -467,7 +494,7 @@ export function BookingFlow() {
           </section>
         ) : null}
 
-        {activeStep !== "service" && selectedService ? (
+        {activeStep !== "service" && selectedServices.length > 0 ? (
           <section className="space-y-3">
             <SectionLabel
               icon={<Scissors className="h-3.5 w-3.5" />}
@@ -489,7 +516,7 @@ export function BookingFlow() {
           </section>
         ) : null}
 
-        {activeStep === "date" && selectedService ? (
+        {activeStep === "date" && selectedServices.length > 0 ? (
           <section className="space-y-3">
             {needsConsultation ? (
               <div
@@ -592,7 +619,7 @@ export function BookingFlow() {
           </section>
         ) : null}
 
-        {activeStep === "time" && selectedService && selectedDate ? (
+        {activeStep === "time" && selectedServices.length > 0 && selectedDate ? (
           <section className="space-y-3">
             <SectionLabel
               icon={<CalendarDays className="h-3.5 w-3.5" />}
@@ -614,7 +641,7 @@ export function BookingFlow() {
           </section>
         ) : null}
 
-        {activeStep === "time" && selectedService && selectedDate ? (
+        {activeStep === "time" && selectedServices.length > 0 && selectedDate ? (
           <section className="space-y-3">
             <SectionLabel
               icon={<Clock className="h-3.5 w-3.5" />}
@@ -653,7 +680,7 @@ export function BookingFlow() {
         ) : null}
 
         {activeStep === "time" &&
-        selectedService &&
+        selectedServices.length > 0 &&
         selectedDate &&
         selectedSlot ? (
           <section className="space-y-3">
@@ -690,7 +717,7 @@ export function BookingFlow() {
         ) : null}
 
         {activeStep === "time" &&
-        selectedService &&
+        selectedServices.length > 0 &&
         selectedDate &&
         needsPhone ? (
           <section className="space-y-3">
