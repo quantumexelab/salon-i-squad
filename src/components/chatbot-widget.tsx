@@ -18,6 +18,8 @@ const FAB_BOTTOM_MOBILE_SIDE = 20;
 const FAB_POS_KEY = "sis-chat-fab-pos";
 const DRAG_THRESHOLD = 6;
 const SNAP_TRANSITION_MS = 320;
+/** How far from a corner anchor the FAB can rest within that corner zone. */
+const CORNER_ZONE = 72;
 
 type FabPosition = { x: number; y: number };
 type FabCorner = "tl" | "tr" | "bl" | "br";
@@ -97,20 +99,65 @@ function cornerPositions(): Record<FabCorner, FabPosition> {
   };
 }
 
-function nearestCorner(pos: FabPosition): FabPosition {
+function nearestCornerId(pos: FabPosition): FabCorner {
   const corners = cornerPositions();
-  let best: FabPosition = corners.br;
+  let best: FabCorner = "br";
   let bestDist = Number.POSITIVE_INFINITY;
 
-  for (const corner of Object.values(corners)) {
+  for (const [id, corner] of Object.entries(corners) as [FabCorner, FabPosition][]) {
     const dist = (corner.x - pos.x) ** 2 + (corner.y - pos.y) ** 2;
     if (dist < bestDist) {
       bestDist = dist;
-      best = corner;
+      best = id;
     }
   }
 
   return best;
+}
+
+function cornerZone(corner: FabCorner) {
+  const anchor = cornerPositions()[corner];
+
+  switch (corner) {
+    case "tl":
+      return {
+        minX: anchor.x,
+        maxX: anchor.x + CORNER_ZONE,
+        minY: anchor.y,
+        maxY: anchor.y + CORNER_ZONE,
+      };
+    case "tr":
+      return {
+        minX: anchor.x - CORNER_ZONE,
+        maxX: anchor.x,
+        minY: anchor.y,
+        maxY: anchor.y + CORNER_ZONE,
+      };
+    case "bl":
+      return {
+        minX: anchor.x,
+        maxX: anchor.x + CORNER_ZONE,
+        minY: anchor.y - CORNER_ZONE,
+        maxY: anchor.y,
+      };
+    case "br":
+      return {
+        minX: anchor.x - CORNER_ZONE,
+        maxX: anchor.x,
+        minY: anchor.y - CORNER_ZONE,
+        maxY: anchor.y,
+      };
+  }
+}
+
+function snapToCornerZone(pos: FabPosition): FabPosition {
+  const corner = nearestCornerId(pos);
+  const zone = cornerZone(corner);
+
+  return {
+    x: clamp(pos.x, zone.minX, zone.maxX),
+    y: clamp(pos.y, zone.minY, zone.maxY),
+  };
 }
 
 function defaultFabPosition(): FabPosition {
@@ -144,17 +191,17 @@ function readSavedFabPosition(): FabPosition | null {
       | FabPosition
       | { corner?: FabCorner; x?: number; y?: number };
 
-    if (parsed && typeof parsed === "object" && "corner" in parsed && parsed.corner) {
-      return cornerPositions()[parsed.corner];
-    }
-
     if (
       typeof parsed.x === "number" &&
       typeof parsed.y === "number" &&
       Number.isFinite(parsed.x) &&
       Number.isFinite(parsed.y)
     ) {
-      return nearestCorner({ x: parsed.x, y: parsed.y });
+      return snapToCornerZone({ x: parsed.x, y: parsed.y });
+    }
+
+    if (parsed && typeof parsed === "object" && "corner" in parsed && parsed.corner) {
+      return snapToCornerZone(cornerPositions()[parsed.corner]);
     }
 
     return null;
@@ -164,18 +211,7 @@ function readSavedFabPosition(): FabPosition | null {
 }
 
 function cornerForPosition(pos: FabPosition): FabCorner {
-  const corners = cornerPositions();
-  for (const [id, corner] of Object.entries(corners) as [FabCorner, FabPosition][]) {
-    if (corner.x === pos.x && corner.y === pos.y) return id;
-  }
-
-  return pos.x < window.innerWidth / 2
-    ? pos.y < window.innerHeight / 2
-      ? "tl"
-      : "bl"
-    : pos.y < window.innerHeight / 2
-      ? "tr"
-      : "br";
+  return nearestCornerId(pos);
 }
 
 type FabLayout = {
@@ -184,51 +220,18 @@ type FabLayout = {
   style: React.CSSProperties;
 };
 
-function getFabLayout(
-  pos: FabPosition,
-  viewport: { w: number; h: number },
-  dragging: boolean,
-): FabLayout {
+function getFabLayout(pos: FabPosition): FabLayout {
   const corner = cornerForPosition(pos);
   const isBottomCorner = corner === "bl" || corner === "br";
   const isRightCorner = corner === "tr" || corner === "br";
-  const flexDirection = isBottomCorner ? "column" : "column-reverse";
-  const alignItems = isRightCorner ? "flex-end" : "flex-start";
-
-  if (!dragging) {
-    const side = sideMargin(corner);
-    return {
-      flexDirection,
-      alignItems,
-      style: isBottomCorner
-        ? {
-            bottom: bottomFabInset(),
-            ...(isRightCorner ? { right: side } : { left: side }),
-          }
-        : {
-            top: FAB_MARGIN,
-            ...(isRightCorner ? { right: side } : { left: side }),
-          },
-    };
-  }
-
-  const centerX = pos.x + FAB_SIZE / 2;
-  const centerY = pos.y + FAB_SIZE / 2;
-  const isBottom = centerY >= viewport.h / 2;
-  const isRight = centerX >= viewport.w / 2;
 
   return {
-    flexDirection: isBottom ? "column" : "column-reverse",
-    alignItems: isRight ? "flex-end" : "flex-start",
-    style: isBottom
-      ? {
-          bottom: viewport.h - pos.y - FAB_SIZE,
-          left: pos.x,
-        }
-      : {
-          top: pos.y,
-          left: pos.x,
-        },
+    flexDirection: isBottomCorner ? "column" : "column-reverse",
+    alignItems: isRightCorner ? "flex-end" : "flex-start",
+    style: {
+      left: pos.x,
+      top: pos.y,
+    },
   };
 }
 
@@ -272,7 +275,9 @@ export function ChatbotWidget() {
   }, []);
 
   const persistFabPosition = useCallback((pos: FabPosition, snap = true) => {
-    const next = snap ? nearestCorner(clampFabPosition(pos)) : clampFabPosition(pos);
+    const next = snap
+      ? snapToCornerZone(clampFabPosition(pos))
+      : clampFabPosition(pos);
     setFabPos(next);
     try {
       localStorage.setItem(
@@ -289,7 +294,7 @@ export function ChatbotWidget() {
 
     function handleResize() {
       setFabPos((current) =>
-        current ? nearestCorner(current) : defaultFabPosition(),
+        current ? snapToCornerZone(current) : defaultFabPosition(),
       );
     }
 
@@ -413,15 +418,18 @@ export function ChatbotWidget() {
   }
 
   const layout =
-    viewport.w > 0 && viewport.h > 0
-      ? getFabLayout(fabPos, viewport, dragging)
+    viewport.w > 0
+      ? getFabLayout(fabPos)
       : {
           flexDirection: "column-reverse" as const,
           alignItems: "flex-end" as const,
-          style: { bottom: bottomFabInset(), right: sideMargin("br") },
+          style: {
+            left: defaultFabPosition().x,
+            top: defaultFabPosition().y,
+          },
         };
 
-  const snapTransition = `left ${SNAP_TRANSITION_MS}ms ease, top ${SNAP_TRANSITION_MS}ms ease, right ${SNAP_TRANSITION_MS}ms ease, bottom ${SNAP_TRANSITION_MS}ms ease`;
+  const snapTransition = `left ${SNAP_TRANSITION_MS}ms ease, top ${SNAP_TRANSITION_MS}ms ease`;
 
   return (
     <div
@@ -518,7 +526,7 @@ export function ChatbotWidget() {
         }`}
         aria-label={open ? "Close chat" : "Open chat"}
         aria-expanded={open}
-        title="Drag to a corner · Tap to open chat"
+        title="Drag to a corner · Adjust position · Tap to open chat"
       >
         {open ? (
           <X className="h-6 w-6" strokeWidth={2.25} />

@@ -35,6 +35,7 @@ export type UserProfile = {
   conditions?: string;
   registrationComplete?: boolean;
   fcmToken?: string;
+  photoUrl?: string;
   createdAt: string;
   updatedAt: string;
 };

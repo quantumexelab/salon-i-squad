@@ -10,9 +10,15 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import type { User } from "firebase/auth";
+import {
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
 import { MASTER_BOOTSTRAP_EMAIL } from "@/lib/bootstrap-master";
 import { COLLECTIONS } from "@/lib/firebase/collections";
-import { getFirebaseDb, initFirebase } from "@/lib/firebase";
+import { getClientStorage, initFirebaseClient } from "@/lib/firebase/client";
+import { getFirebaseAuth, getFirebaseDb, initFirebase } from "@/lib/firebase";
 import { normalizeRole } from "@/lib/roles";
 import type { UserProfile, UserRole } from "@/types/firestore";
 
@@ -109,6 +115,7 @@ function mapUserDoc(uid: string, data: Record<string, unknown>): UserProfile {
     conditions: data.conditions ? String(data.conditions) : undefined,
     registrationComplete: data.registrationComplete === true,
     fcmToken: data.fcmToken ? String(data.fcmToken) : undefined,
+    photoUrl: data.photoUrl ? String(data.photoUrl) : undefined,
     createdAt: String(data.createdAt ?? new Date().toISOString()),
     updatedAt: String(data.updatedAt ?? new Date().toISOString()),
   };
@@ -533,6 +540,161 @@ export async function completeClientRegistration(
   );
 
   return profile;
+}
+
+export type ClientProfileInput = RegisterProfileInput & {
+  photoUrl?: string;
+};
+
+export async function updateClientProfile(
+  input: ClientProfileInput,
+): Promise<UserProfile> {
+  if (!input.firstName.trim()) throw new Error("Name is required.");
+  if (!input.email.trim()) throw new Error("Email is required.");
+  if (!isValidMobile(input.phoneNumber)) {
+    throw new Error("Please enter a valid phone number.");
+  }
+  if (!isValidMobile(input.whatsappNumber)) {
+    throw new Error("Please enter a valid WhatsApp number.");
+  }
+
+  initFirebase();
+  const now = new Date().toISOString();
+  const phone = normalizeMobile(input.phoneNumber);
+  const whatsapp = normalizeMobile(input.whatsappNumber);
+  const ref = doc(getFirebaseDb(), COLLECTIONS.users, input.uid);
+  const existing = await getDoc(ref);
+
+  if (!existing.exists()) {
+    throw new Error("Profile not found.");
+  }
+
+  const existingData = existing.data()!;
+  const existingPhone = getProfilePhone({
+    phoneNumber: existingData.phoneNumber
+      ? String(existingData.phoneNumber)
+      : undefined,
+    mobile: String(existingData.mobile ?? ""),
+  });
+
+  if (phone !== existingPhone) {
+    const conflict = await findClientProfileByPhone(phone);
+    if (conflict && conflict.uid !== input.uid) {
+      throw new Error("This phone number is already registered to another account.");
+    }
+  }
+
+  const profile: UserProfile = {
+    uid: input.uid,
+    firstName: input.firstName.trim(),
+    lastName: input.lastName.trim(),
+    email: input.email.trim().toLowerCase(),
+    phoneNumber: phone,
+    mobile: phone,
+    whatsappNumber: whatsapp,
+    gender: input.gender,
+    photoUrl:
+      input.photoUrl !== undefined
+        ? input.photoUrl || undefined
+        : existingData.photoUrl
+          ? String(existingData.photoUrl)
+          : undefined,
+    role: normalizeRole(existingData.role),
+    isGuest: Boolean(existingData.isGuest),
+    isMember: existingData.isMember === true,
+    memberSince: existingData.memberSince
+      ? String(existingData.memberSince)
+      : undefined,
+    memberNotes: existingData.memberNotes
+      ? String(existingData.memberNotes)
+      : undefined,
+    hairType: existingData.hairType ? String(existingData.hairType) : undefined,
+    conditions: existingData.conditions
+      ? String(existingData.conditions)
+      : undefined,
+    registrationComplete: true,
+    fcmToken: existingData.fcmToken ? String(existingData.fcmToken) : undefined,
+    createdAt: String(existingData.createdAt ?? now),
+    updatedAt: now,
+  };
+
+  await setDoc(ref, toFirestoreData(profile), { merge: true });
+
+  const phoneKey = phoneDocId(phone);
+  await setDoc(
+    doc(getFirebaseDb(), COLLECTIONS.customerPhones, phoneKey),
+    {
+      phoneNumber: phone,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      whatsappNumber: whatsapp,
+      lastAuthUid: input.uid,
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+
+  return profile;
+}
+
+export async function uploadProfilePhoto(
+  uid: string,
+  file: File,
+): Promise<string> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Please choose an image file.");
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    throw new Error("Image must be 2MB or smaller.");
+  }
+
+  initFirebase();
+  initFirebaseClient();
+
+  const user = getFirebaseAuth().currentUser;
+  if (!user || user.uid !== uid) {
+    throw new Error("Sign in again to upload your profile photo.");
+  }
+
+  const ext =
+    file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") ||
+    "jpg";
+  const path = `profiles/${uid}/avatar.${ext}`;
+  const storageRef = ref(getClientStorage(), path);
+
+  try {
+    await uploadBytes(storageRef, file, { contentType: file.type });
+    const photoUrl = await getDownloadURL(storageRef);
+    await setDoc(
+      doc(getFirebaseDb(), COLLECTIONS.users, uid),
+      {
+        photoUrl,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true },
+    );
+    return photoUrl;
+  } catch (err) {
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? String((err as { code?: string }).code)
+        : "";
+    if (code === "storage/unauthorized") {
+      throw new Error(
+        "Upload blocked by storage rules. Please try again later.",
+      );
+    }
+    if (
+      code === "storage/unknown" ||
+      code === "storage/bucket-not-found" ||
+      code === "storage/object-not-found"
+    ) {
+      throw new Error(
+        "Firebase Storage is not set up yet. Please try again later.",
+      );
+    }
+    throw err instanceof Error ? err : new Error("Image upload failed.");
+  }
 }
 
 export function subscribeToClientUsers(

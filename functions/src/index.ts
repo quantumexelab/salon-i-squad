@@ -8,8 +8,10 @@ import { setGlobalOptions } from "firebase-functions/v2";
 
 setGlobalOptions({ region: "asia-south1" });
 
-admin.initializeApp();
-const db = admin.firestore();
+function getDb() {
+  if (!admin.apps.length) admin.initializeApp();
+  return admin.firestore();
+}
 
 type BookingDoc = {
   userId?: string;
@@ -27,7 +29,7 @@ type BookingDoc = {
 
 async function getUserFcmToken(userId: string): Promise<string | null> {
   if (!userId) return null;
-  const snap = await db.collection("users").doc(userId).get();
+  const snap = await getDb().collection("users").doc(userId).get();
   const token = snap.data()?.fcmToken;
   return typeof token === "string" && token.trim() ? token.trim() : null;
 }
@@ -39,7 +41,7 @@ async function saveNotification(input: {
   type: string;
   bookingId?: string;
 }) {
-  await db.collection("notifications").add({
+  await getDb().collection("notifications").add({
     userId: input.userId,
     title: input.title,
     body: input.body,
@@ -114,7 +116,7 @@ export const onBookingUpdated = onDocumentUpdated(
       const currentNum = after.appointmentNumber;
       if (!dateKey || currentNum == null) return;
 
-      const nextSnap = await db
+      const nextSnap = await getDb()
         .collection("bookings")
         .where("dateKey", "==", dateKey)
         .where("appointmentNumber", "==", currentNum + 1)
@@ -148,7 +150,7 @@ export const sendAppointmentReminders = onSchedule(
     const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);
     const todayKey = now.toISOString().slice(0, 10);
 
-    const snap = await db
+    const snap = await getDb()
       .collection("bookings")
       .where("dateKey", "==", todayKey)
       .where("status", "==", "confirmed")
@@ -192,7 +194,7 @@ export const processNoShows = onSchedule("every 1 minutes", async () => {
   const nowIso = new Date().toISOString();
   const todayKey = new Date().toISOString().slice(0, 10);
 
-  const snap = await db
+  const snap = await getDb()
     .collection("bookings")
     .where("dateKey", "==", todayKey)
     .where("status", "==", "confirmed")

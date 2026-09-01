@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/auth-context";
 const clientNav = [
   { href: "/booking", label: "Book" },
   { href: "/my-bookings", label: "My bookings" },
+  { href: "/profile", label: "Profile" },
 ] as const;
 
 export function ClientShell({ children }: { children: ReactNode }) {
@@ -23,6 +24,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
   const showNav =
     pathname.startsWith("/booking") ||
     pathname.startsWith("/my-bookings") ||
+    pathname.startsWith("/profile") ||
     pathname.startsWith("/reschedule");
 
   const hideChromeHeader = pathname === "/login";
