@@ -285,11 +285,34 @@ export function BookingFlow() {
   const needsPhone = Boolean(user && !profilePhone);
   const resolvedPhone = profilePhone || phoneInput.trim();
 
-  const hasSelection = Boolean(
-    selectedServices.length > 0 && selectedDate && selectedSlot && user,
-  );
+  const footerSummary = useMemo(() => {
+    if (selectedServices.length === 0) return null;
+
+    const parts = [serviceLabel];
+    if (selectedDate) parts.push(format(selectedDate, "MMM d"));
+    if (selectedSlot) parts.push(selectedSlot);
+    parts.push(`${bookableDuration} min`, formatLkr(totalPrice));
+    return parts.join(" · ");
+  }, [
+    selectedServices.length,
+    serviceLabel,
+    selectedDate,
+    selectedSlot,
+    bookableDuration,
+    totalPrice,
+  ]);
+
+  const footerHint = useMemo(() => {
+    if (needsPhone && !phoneInput.trim()) return " · add phone to confirm";
+    if (activeStep === "time" && selectedDate && !selectedSlot) {
+      return " · select time";
+    }
+    return "";
+  }, [needsPhone, phoneInput, activeStep, selectedDate, selectedSlot]);
   const canConfirm =
-    hasSelection &&
+    Boolean(
+      selectedServices.length > 0 && selectedDate && selectedSlot && user,
+    ) &&
     !saving &&
     Boolean(resolvedPhone) &&
     (!needsPhone || isValidMobile(phoneInput));
@@ -759,15 +782,10 @@ export function BookingFlow() {
               <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-center text-xs text-red-600 lg:text-left">
                 {error}
               </p>
-            ) : hasSelection ? (
+            ) : footerSummary ? (
               <p className="truncate text-center text-xs text-salon-muted lg:text-left">
-                {serviceLabel} ·{" "}
-                {selectedDate ? format(selectedDate, "MMM d") : ""} ·{" "}
-                {selectedSlot}
-                {needsPhone && !phoneInput.trim()
-                  ? " · add phone to confirm"
-                  : ""}
-                {` · ${bookableDuration} min · ${formatLkr(totalPrice)}`}
+                {footerSummary}
+                {footerHint}
               </p>
             ) : (
               <p className="text-center text-xs text-salon-muted lg:text-left">

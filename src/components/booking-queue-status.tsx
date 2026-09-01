@@ -21,7 +21,7 @@ export function BookingQueueStatus({ userBooking }: Props) {
   }, []);
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 1000);
+    const id = window.setInterval(() => setNow(new Date()), 15_000);
     return () => window.clearInterval(id);
   }, []);
 

@@ -46,6 +46,15 @@ function isStaffPath(pathname: string): boolean {
   );
 }
 
+function isBookingFlowPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/booking") ||
+    pathname.startsWith("/my-bookings") ||
+    pathname.startsWith("/bookings/") ||
+    pathname.startsWith("/reschedule")
+  );
+}
+
 function wasDismissedRecently(): boolean {
   try {
     const raw = localStorage.getItem(DISMISS_KEY);
@@ -79,8 +88,15 @@ export function InstallAppPrompt() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (isStandalone() || wasDismissedRecently() || isStaffPath(pathname)) {
+    if (
+      isStandalone() ||
+      wasDismissedRecently() ||
+      isStaffPath(pathname) ||
+      isBookingFlowPath(pathname)
+    ) {
       setVisible(false);
+      setDeferred(null);
+      setIosHint(false);
       return;
     }
 
@@ -97,9 +113,6 @@ export function InstallAppPrompt() {
       if (isStandalone() || wasDismissedRecently()) return;
       if (isIosSafari()) {
         setIosHint(true);
-        setVisible(true);
-      } else {
-        // Show tip even before Chrome fires the event (engagement heuristics).
         setVisible(true);
       }
     }, 1600);
@@ -127,7 +140,14 @@ export function InstallAppPrompt() {
     }
   }
 
-  if (!visible || isStaffPath(pathname) || pathname === "/login") return null;
+  if (
+    !visible ||
+    isStaffPath(pathname) ||
+    isBookingFlowPath(pathname) ||
+    pathname === "/login"
+  ) {
+    return null;
+  }
 
   return (
     <div
