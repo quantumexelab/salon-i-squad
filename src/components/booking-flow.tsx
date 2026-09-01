@@ -292,7 +292,6 @@ export function BookingFlow() {
     hasSelection &&
     !saving &&
     Boolean(resolvedPhone) &&
-    Boolean(selectedGender) &&
     (!needsPhone || isValidMobile(phoneInput));
 
   async function handleConfirmBooking() {
@@ -300,8 +299,7 @@ export function BookingFlow() {
       !user ||
       selectedServices.length === 0 ||
       !selectedDate ||
-      !selectedSlot ||
-      !selectedGender
+      !selectedSlot
     ) {
       return;
     }
@@ -684,7 +682,7 @@ export function BookingFlow() {
         selectedDate &&
         selectedSlot ? (
           <section className="space-y-3">
-            <SectionLabel title="Gender" />
+            <SectionLabel title="Gender (optional)" />
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
@@ -699,7 +697,9 @@ export function BookingFlow() {
                     type="button"
                     disabled={saving}
                     onClick={() => {
-                      setSelectedGender(option.id);
+                      setSelectedGender((current) =>
+                        current === option.id ? null : option.id,
+                      );
                       setError(null);
                     }}
                     className={`h-11 rounded-xl border text-sm font-semibold transition active:scale-[0.98] disabled:opacity-60 ${
@@ -767,7 +767,6 @@ export function BookingFlow() {
                 {needsPhone && !phoneInput.trim()
                   ? " · add phone to confirm"
                   : ""}
-                {!selectedGender ? " · select gender" : ""}
                 {` · ${bookableDuration} min · ${formatLkr(totalPrice)}`}
               </p>
             ) : (
