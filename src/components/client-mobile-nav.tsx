@@ -36,17 +36,17 @@ const tabs: Tab[] = [
     icon: CalendarDays,
   },
   {
-    id: "profile",
-    href: "/profile",
-    label: "Profile",
-    icon: User,
-  },
-  {
     id: "contact",
     href: "/#contact",
     label: "Contact",
     icon: Phone,
     sectionId: "contact",
+  },
+  {
+    id: "profile",
+    href: "/profile",
+    label: "Profile",
+    icon: User,
   },
 ];
 
