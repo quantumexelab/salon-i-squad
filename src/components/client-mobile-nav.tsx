@@ -5,10 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import {
   CalendarDays,
-  ClipboardList,
   Home,
   Phone,
   Scissors,
+  User,
 } from "lucide-react";
 
 type Tab = {
@@ -36,10 +36,10 @@ const tabs: Tab[] = [
     icon: CalendarDays,
   },
   {
-    id: "my-bookings",
-    href: "/my-bookings",
-    label: "Bookings",
-    icon: ClipboardList,
+    id: "profile",
+    href: "/profile",
+    label: "Profile",
+    icon: User,
   },
   {
     id: "contact",
@@ -99,10 +99,8 @@ export function ClientMobileNav() {
         pathname.startsWith("/booking") || pathname.startsWith("/reschedule")
       );
     }
-    if (tab.id === "my-bookings") {
-      return (
-        pathname.startsWith("/my-bookings") || pathname.startsWith("/bookings")
-      );
+    if (tab.id === "profile") {
+      return pathname.startsWith("/profile");
     }
     if (pathname !== "/") return false;
     if (tab.id === "home") {
