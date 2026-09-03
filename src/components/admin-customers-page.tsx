@@ -3,7 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Users } from "lucide-react";
 import { subscribeToBookings } from "@/lib/bookings";
-import { getProfilePhone, phoneDocId, subscribeToClientUsers } from "@/lib/users";
+import {
+  getProfilePhone,
+  phoneDocId,
+  setUserMemberStatus,
+  subscribeToClientUsers,
+} from "@/lib/users";
 import {
   buildWhatsAppUrl,
   customerGreetingMessage,
@@ -15,6 +20,13 @@ type CustomerRow = {
   totalBookings: number;
 };
 
+function pickDisplayUser(users: UserProfile[]): UserProfile {
+  return [...users].sort((a, b) => {
+    if (a.isMember !== b.isMember) return a.isMember ? -1 : 1;
+    return b.updatedAt.localeCompare(a.updatedAt);
+  })[0]!;
+}
+
 export function AdminCustomersPage() {
   const [clients, setClients] = useState<UserProfile[]>([]);
   const [bookingCounts, setBookingCounts] = useState<Record<string, number>>(
@@ -23,6 +35,7 @@ export function AdminCustomersPage() {
   const [loadingClients, setLoadingClients] = useState(true);
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionUid, setActionUid] = useState<string | null>(null);
 
   useEffect(() => {
     return subscribeToClientUsers(
@@ -77,20 +90,29 @@ export function AdminCustomersPage() {
       byPhone.set(key, entry);
     }
 
-    const merged: CustomerRow[] = [...byPhone.values()].map(({ users, totalBookings }) => {
-      const sorted = [...users].sort((a, b) =>
-        b.updatedAt.localeCompare(a.updatedAt),
-      );
-      return {
-        user: sorted[0]!,
+    const merged: CustomerRow[] = [...byPhone.values()].map(
+      ({ users, totalBookings }) => ({
+        user: pickDisplayUser(users),
         totalBookings,
-      };
-    });
+      }),
+    );
 
     return [...merged, ...withoutPhone].sort(
       (a, b) => b.totalBookings - a.totalBookings,
     );
   }, [clients, bookingCounts]);
+
+  async function promote(uid: string) {
+    setActionUid(uid);
+    setError(null);
+    try {
+      await setUserMemberStatus(uid, true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not promote member.");
+    } finally {
+      setActionUid(null);
+    }
+  }
 
   const loading = loadingClients || loadingBookings;
 
@@ -143,6 +165,7 @@ export function AdminCustomersPage() {
                     <th className="px-6 py-3 font-medium">Email</th>
                     <th className="px-6 py-3 font-medium">Phone</th>
                     <th className="px-6 py-3 font-medium">Total bookings</th>
+                    <th className="px-6 py-3 font-medium">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-salon-beige/30">
@@ -172,6 +195,13 @@ export function AdminCustomersPage() {
                         <td className="px-6 py-4 font-semibold text-salon-ink">
                           {totalBookings}
                         </td>
+                        <td className="px-6 py-4">
+                          <MemberAction
+                            user={user}
+                            actionUid={actionUid}
+                            onPromote={promote}
+                          />
+                        </td>
                       </tr>
                     );
                   })}
@@ -195,13 +225,18 @@ export function AdminCustomersPage() {
                         <div className="mt-1 text-xs">
                           <CustomerPhoneLink name={name} phone={phone} />
                         </div>
+                        <p className="mt-2 text-sm font-semibold text-salon-ink">
+                          {totalBookings}{" "}
+                          <span className="text-xs font-normal text-salon-ink0">
+                            bookings
+                          </span>
+                        </p>
                       </div>
-                      <p className="text-sm font-semibold text-salon-ink">
-                        {totalBookings}{" "}
-                        <span className="text-xs font-normal text-salon-ink0">
-                          bookings
-                        </span>
-                      </p>
+                      <MemberAction
+                        user={user}
+                        actionUid={actionUid}
+                        onPromote={promote}
+                      />
                     </div>
                   </li>
                 );
@@ -211,6 +246,35 @@ export function AdminCustomersPage() {
         )}
       </section>
     </div>
+  );
+}
+
+function MemberAction({
+  user,
+  actionUid,
+  onPromote,
+}: {
+  user: UserProfile;
+  actionUid: string | null;
+  onPromote: (uid: string) => void;
+}) {
+  if (user.isMember) {
+    return (
+      <span className="inline-flex rounded-full border border-salon-gold/40 bg-salon-gold/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-salon-gold">
+        Member
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={actionUid === user.uid}
+      onClick={() => void onPromote(user.uid)}
+      className="rounded-lg border border-salon-gold/40 px-2.5 py-1 text-xs font-semibold text-salon-gold disabled:opacity-60"
+    >
+      {actionUid === user.uid ? "…" : "Make member"}
+    </button>
   );
 }
 
