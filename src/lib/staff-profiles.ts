@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   onSnapshot,
   orderBy,
   query,
@@ -71,6 +72,15 @@ export function subscribeToStaffProfiles(
     },
     (error) => onError?.(error),
   );
+}
+
+export async function getStaffProfile(
+  id: string,
+): Promise<StaffProfile | null> {
+  initFirebase();
+  const snap = await getDoc(doc(getFirebaseDb(), COLLECTIONS.staffProfiles, id));
+  if (!snap.exists()) return null;
+  return mapStaff(snap.id, snap.data());
 }
 
 export async function createStaffProfile(

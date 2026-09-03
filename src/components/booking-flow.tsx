@@ -25,6 +25,7 @@ import {
   Phone,
   Scissors,
 } from "lucide-react";
+import { BookingQueueStatus } from "@/components/booking-queue-status";
 import { formatLkr } from "@/lib/booking/dummy-services";
 import {
   createBooking,
@@ -96,6 +97,7 @@ export function BookingFlow() {
   const [selectedGender, setSelectedGender] = useState<BookingGender | null>(
     null,
   );
+  const [justBooked, setJustBooked] = useState<SavedBooking | null>(null);
   const [activeStep, setActiveStep] = useState<Step>("service");
   const [phoneInput, setPhoneInput] = useState("");
   const [monthCursor, setMonthCursor] = useState(() =>
@@ -303,17 +305,19 @@ export function BookingFlow() {
   ]);
 
   const footerHint = useMemo(() => {
+    if (!selectedGender) return " · select gender";
     if (needsPhone && !phoneInput.trim()) return " · add phone to confirm";
     if (activeStep === "time" && selectedDate && !selectedSlot) {
       return " · select time";
     }
     return "";
-  }, [needsPhone, phoneInput, activeStep, selectedDate, selectedSlot]);
+  }, [selectedGender, needsPhone, phoneInput, activeStep, selectedDate, selectedSlot]);
   const canConfirm =
     Boolean(
       selectedServices.length > 0 && selectedDate && selectedSlot && user,
     ) &&
     !saving &&
+    Boolean(selectedGender) &&
     Boolean(resolvedPhone) &&
     (!needsPhone || isValidMobile(phoneInput));
 
@@ -362,6 +366,10 @@ export function BookingFlow() {
         price: service.price,
       }));
 
+      if (!selectedGender) {
+        throw new Error("Please select gender before confirming.");
+      }
+
       const booking = await createBooking({
         userId: user.uid,
         services: lineItems,
@@ -370,14 +378,14 @@ export function BookingFlow() {
         phoneNumber,
         customerName: customerName || undefined,
         customerEmail: profile?.email ?? user.email ?? undefined,
-        customerGender: selectedGender ?? undefined,
+        customerGender: selectedGender,
         isConsultation: needsConsultation,
         notes: consultationNote || undefined,
       });
 
       void applyBookingCalendarSync("create", booking);
 
-      router.push("/my-bookings");
+      setJustBooked(booking);
     } catch (err) {
       setError(
         err instanceof Error
@@ -387,6 +395,48 @@ export function BookingFlow() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (justBooked) {
+    return (
+      <div className="mx-auto flex w-full max-w-lg flex-col gap-5 px-1 py-6">
+        <div className="rounded-2xl border border-salon-gold/35 bg-salon-gold/10 px-5 py-6 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-salon-gold text-black">
+            <Check className="h-6 w-6" strokeWidth={2.5} />
+          </div>
+          <h2 className="text-xl font-semibold text-salon-ink">Booking confirmed</h2>
+          <p className="mt-2 text-sm text-salon-muted">
+            #{justBooked.appointmentNumber ?? "—"} · {justBooked.serviceName}
+            <br />
+            {justBooked.selectedDate} at {justBooked.selectedTime}
+          </p>
+        </div>
+
+        <BookingQueueStatus userBooking={justBooked} />
+
+        <button
+          type="button"
+          onClick={() => router.push("/my-bookings")}
+          className="salon-gold-btn h-12 rounded-xl text-sm font-bold text-black"
+        >
+          View my bookings
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setJustBooked(null);
+            setSelectedServices([]);
+            setSelectedDate(null);
+            setSelectedSlot(null);
+            setSelectedGender(null);
+            setActiveStep("service");
+          }}
+          className="h-11 rounded-xl border border-salon-beige/40 text-sm font-semibold text-salon-muted"
+        >
+          Book another
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -705,7 +755,8 @@ export function BookingFlow() {
         selectedDate &&
         selectedSlot ? (
           <section className="space-y-3">
-            <SectionLabel title="Gender (optional)" />
+            <SectionLabel title="Gender" />
+            <p className="text-xs text-salon-muted">Required to confirm.</p>
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
@@ -720,9 +771,7 @@ export function BookingFlow() {
                     type="button"
                     disabled={saving}
                     onClick={() => {
-                      setSelectedGender((current) =>
-                        current === option.id ? null : option.id,
-                      );
+                      setSelectedGender(option.id);
                       setError(null);
                     }}
                     className={`h-11 rounded-xl border text-sm font-semibold transition active:scale-[0.98] disabled:opacity-60 ${

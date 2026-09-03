@@ -162,7 +162,7 @@ export function ClientMobileNav() {
                   strokeWidth={active ? 2.25 : 1.75}
                 />
               )}
-              <span className="h-3 max-w-full truncate text-center text-[10px] font-medium leading-none tracking-normal">
+              <span className="h-3.5 max-w-full truncate text-center text-[11px] font-medium leading-none tracking-normal">
                 {tab.label}
               </span>
             </Link>

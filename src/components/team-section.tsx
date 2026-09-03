@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Award } from "lucide-react";
+import Link from "next/link";
+import { Award, ChevronRight } from "lucide-react";
 import { subscribeToStaffProfiles } from "@/lib/staff-profiles";
 import type { StaffProfile } from "@/types/firestore";
 
@@ -27,16 +28,17 @@ export function TeamSection() {
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {team.map((member) => (
-            <article
+            <Link
               key={member.id}
-              className="overflow-hidden rounded-2xl border border-salon-beige/35 bg-salon-bg shadow-sm"
+              href={`/team/${member.id}`}
+              className="group overflow-hidden rounded-2xl border border-salon-beige/35 bg-salon-bg shadow-sm transition hover:border-salon-gold/40"
             >
               {member.photoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={member.photoUrl}
                   alt={member.name}
-                  className="aspect-[4/3] w-full object-cover"
+                  className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
                 />
               ) : (
                 <div className="flex aspect-[4/3] items-center justify-center bg-salon-surface text-salon-muted">
@@ -44,10 +46,15 @@ export function TeamSection() {
                 </div>
               )}
               <div className="p-5">
-                <h3 className="text-lg font-semibold text-salon-ink">
-                  {member.name}
-                </h3>
-                <p className="text-sm text-salon-gold">{member.role}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-lg font-semibold text-salon-ink">
+                      {member.name}
+                    </h3>
+                    <p className="text-sm text-salon-gold">{member.role}</p>
+                  </div>
+                  <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-salon-muted transition group-hover:text-salon-gold" />
+                </div>
                 {member.yearsExperience ? (
                   <p className="mt-1 text-xs text-salon-muted">
                     {member.yearsExperience}+ years experience
@@ -55,16 +62,13 @@ export function TeamSection() {
                 ) : null}
                 {member.qualifications.length > 0 ? (
                   <ul className="mt-3 space-y-1 text-xs text-salon-muted">
-                    {member.qualifications.map((q) => (
+                    {member.qualifications.slice(0, 3).map((q) => (
                       <li key={q}>· {q}</li>
                     ))}
                   </ul>
                 ) : null}
-                {member.bio ? (
-                  <p className="mt-3 text-sm text-salon-muted">{member.bio}</p>
-                ) : null}
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </div>

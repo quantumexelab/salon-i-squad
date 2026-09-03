@@ -1,34 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
+import { useEffect, useState } from "react";
 
-/** Salon atmosphere images for the landing hero — bright, well-lit action shots. */
-export const SALON_HERO_SLIDES = [
-  {
-    src: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=1920&q=85",
-    alt: "Haircut",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1920&q=85",
-    alt: "Classic shave",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&w=1920&q=85",
-    alt: "Beard grooming",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=1920&q=85",
-    alt: "Hair styling",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&w=1920&q=85",
-    alt: "Salon studio",
-  },
-] as const;
-
-const INTERVAL_MS = 5000;
+const HERO_VIDEO_SRC = "/videos/hero.mp4";
+const HERO_POSTER_SRC = "/videos/hero-poster.jpg";
 const HERO_TITLE = "Salon I Squad";
 const HERO_TAGLINE = "Premium grooming & styling in Colombo";
 const TITLE_CHAR_MS = 90;
@@ -137,80 +114,36 @@ function HeroTypewriterHeadline() {
 }
 
 /**
- * Full-bleed hero like BuddyBerlin — zooming salon photos + centered brand CTA.
+ * Full-bleed hero with looping salon video + centered brand CTA.
+ * Place file at public/videos/hero.mp4 (optional poster: hero-poster.jpg).
  */
 export function SalonHeroSection() {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const img = new Image();
-    img.src = SALON_HERO_SLIDES[0].src;
-  }, []);
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % SALON_HERO_SLIDES.length);
-    }, INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, []);
-
   return (
     <section
       id="gallery"
       className="relative flex min-h-[min(100svh,900px)] flex-col overflow-hidden bg-black"
       aria-label="Salon hero"
     >
-      {/* Background slides */}
       <div className="absolute inset-0" aria-hidden>
-        {SALON_HERO_SLIDES.map((slide, i) => {
-          const active = i === index;
-          return (
-            <div
-              key={slide.src}
-              className={`absolute inset-0 transition-opacity duration-[1200ms] ease-out ${
-                active ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={slide.src}
-                alt=""
-                decoding={i === 0 ? "sync" : "async"}
-                loading={i === 0 ? "eager" : "lazy"}
-                fetchPriority={i === 0 ? "high" : "auto"}
-                className={`h-full w-full object-cover brightness-105 contrast-105 ${
-                  active ? "salon-zoom-kenburns-hero" : ""
-                }`}
-              />
-            </div>
-          );
-        })}
+        <video
+          className="h-full w-full object-cover brightness-105 contrast-105"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster={HERO_POSTER_SRC}
+        >
+          <source src={HERO_VIDEO_SRC} type="video/mp4" />
+        </video>
         <div className="absolute inset-0 bg-black/35" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-black/30" />
       </div>
 
-      {/* Centered brand + CTA */}
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 py-24 text-center md:px-8">
         <HeroTypewriterHeadline />
       </div>
 
-      {/* Slide dots */}
-      <div className="relative z-10 flex justify-center gap-1.5 pb-6">
-        {SALON_HERO_SLIDES.map((slide, i) => (
-          <button
-            key={slide.src}
-            type="button"
-            onClick={() => setIndex(i)}
-            className={`h-1.5 rounded-full transition-all ${
-              i === index ? "w-6 bg-salon-gold" : "w-1.5 bg-white/45 hover:bg-white/70"
-            }`}
-            aria-label={`Show image ${i + 1}`}
-            aria-current={i === index ? "true" : undefined}
-          />
-        ))}
-      </div>
-
-      {/* Soft handoff into the next section */}
       <div
         aria-hidden
         className="salon-hero-bottom-blur pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-20 md:h-28"

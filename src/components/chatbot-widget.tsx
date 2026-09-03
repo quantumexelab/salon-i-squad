@@ -9,17 +9,17 @@ import {
   type ChatMessage,
 } from "@/lib/chatbot";
 
-const FAB_SIZE = 56;
+const FAB_SIZE = 72;
 const FAB_MARGIN = 12;
 /** Extra lift on mobile so the FAB clears the bottom nav bar. */
-const FAB_BOTTOM_MOBILE_LIFT = 24;
+const FAB_BOTTOM_MOBILE_LIFT = 28;
 /** Extra inward offset on mobile bottom corners so nav tabs stay tappable. */
-const FAB_BOTTOM_MOBILE_SIDE = 20;
+const FAB_BOTTOM_MOBILE_SIDE = 24;
 const FAB_POS_KEY = "sis-chat-fab-pos";
 const DRAG_THRESHOLD = 6;
 const SNAP_TRANSITION_MS = 320;
 /** How far from a corner anchor the FAB can rest within that corner zone. */
-const CORNER_ZONE = 72;
+const CORNER_ZONE = 88;
 
 type FabPosition = { x: number; y: number };
 type FabCorner = "tl" | "tr" | "bl" | "br";
@@ -458,10 +458,10 @@ export function ChatbotWidget() {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-lg p-1.5 text-salon-muted transition hover:bg-salon-beige/40 hover:text-salon-ink"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-salon-beige/50 bg-salon-white text-salon-ink transition hover:border-salon-gold/50 hover:text-salon-gold"
               aria-label="Close chat"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" strokeWidth={2.5} />
             </button>
           </div>
 
@@ -521,17 +521,22 @@ export function ChatbotWidget() {
         onPointerMove={handleFabPointerMove}
         onPointerUp={handleFabPointerUp}
         onPointerCancel={handleFabPointerUp}
-        className={`pointer-events-auto flex h-14 w-14 touch-none items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/25 transition hover:brightness-105 ${
+        className={`pointer-events-auto flex touch-none items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/25 transition hover:brightness-105 ${
           dragging ? "scale-105 cursor-grabbing" : "cursor-grab hover:scale-[1.04]"
         }`}
+        style={{ width: FAB_SIZE, height: FAB_SIZE }}
         aria-label={open ? "Close chat" : "Open chat"}
         aria-expanded={open}
-        title="Drag to a corner · Adjust position · Tap to open chat"
+        title={
+          open
+            ? "Tap to close chat"
+            : "Drag to a corner · Tap to open chat"
+        }
       >
         {open ? (
-          <X className="h-6 w-6" strokeWidth={2.25} />
+          <X className="h-8 w-8" strokeWidth={2.5} />
         ) : (
-          <MessageCircle className="h-7 w-7" strokeWidth={2} fill="currentColor" />
+          <MessageCircle className="h-9 w-9" strokeWidth={2} fill="currentColor" />
         )}
       </button>
     </div>
