@@ -5,12 +5,24 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 const DISMISS_KEY = "sis-install-dismissed-at";
-const DISMISS_DAYS = 14;
+const DISMISS_DAYS = 7;
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
+
+/** Capture BIP early — it can fire before React hydrates. */
+let earlyDeferred: BeforeInstallPromptEvent | null = null;
+
+function captureBeforeInstall(e: Event) {
+  e.preventDefault();
+  earlyDeferred = e as BeforeInstallPromptEvent;
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", captureBeforeInstall);
+}
 
 function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
@@ -38,6 +50,8 @@ function isStaffPath(pathname: string): boolean {
     pathname.startsWith("/master") ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/customers") ||
+    pathname.startsWith("/members") ||
+    pathname.startsWith("/team") ||
     pathname.startsWith("/services") ||
     pathname.startsWith("/buffers") ||
     pathname.startsWith("/day-close") ||
@@ -46,6 +60,7 @@ function isStaffPath(pathname: string): boolean {
   );
 }
 
+/** Hide only during active booking steps — still show on home / profile / login. */
 function isBookingFlowPath(pathname: string): boolean {
   return (
     pathname.startsWith("/booking") ||
@@ -67,6 +82,16 @@ function wasDismissedRecently(): boolean {
   }
 }
 
+function shouldOfferInstall(pathname: string): boolean {
+  if (typeof window === "undefined") return false;
+  if (isStandalone()) return false;
+  if (wasDismissedRecently()) return false;
+  if (isStaffPath(pathname)) return false;
+  if (isBookingFlowPath(pathname)) return false;
+  if (pathname === "/login" || pathname === "/register") return false;
+  return true;
+}
+
 export function InstallAppPrompt() {
   const pathname = usePathname();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(
@@ -84,38 +109,46 @@ export function InstallAppPrompt() {
     }
     setVisible(false);
     setDeferred(null);
+    setIosHint(false);
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (
-      isStandalone() ||
-      wasDismissedRecently() ||
-      isStaffPath(pathname) ||
-      isBookingFlowPath(pathname)
-    ) {
+    if (!shouldOfferInstall(pathname)) {
       setVisible(false);
-      setDeferred(null);
       setIosHint(false);
       return;
     }
 
-    const onBeforeInstall = (e: Event) => {
-      e.preventDefault();
-      setDeferred(e as BeforeInstallPromptEvent);
+    const applyDeferred = (event: BeforeInstallPromptEvent) => {
+      setDeferred(event);
       setIosHint(false);
       setVisible(true);
     };
 
+    if (earlyDeferred) {
+      applyDeferred(earlyDeferred);
+    }
+
+    const onBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      const event = e as BeforeInstallPromptEvent;
+      earlyDeferred = event;
+      applyDeferred(event);
+    };
+
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
 
+    // Fallback for browsers that never fire BIP (iOS, desktop Safari, etc.)
     const timer = window.setTimeout(() => {
-      if (isStandalone() || wasDismissedRecently()) return;
-      if (isIosSafari()) {
-        setIosHint(true);
-        setVisible(true);
+      if (!shouldOfferInstall(pathname)) return;
+      if (earlyDeferred) {
+        applyDeferred(earlyDeferred);
+        return;
       }
-    }, 1600);
+      setDeferred(null);
+      setIosHint(isIosSafari());
+      setVisible(true);
+    }, 900);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
@@ -129,6 +162,7 @@ export function InstallAppPrompt() {
     try {
       await deferred.prompt();
       const choice = await deferred.userChoice;
+      earlyDeferred = null;
       if (choice.outcome === "accepted") {
         setVisible(false);
         setDeferred(null);
@@ -140,12 +174,7 @@ export function InstallAppPrompt() {
     }
   }
 
-  if (
-    !visible ||
-    isStaffPath(pathname) ||
-    isBookingFlowPath(pathname) ||
-    pathname === "/login"
-  ) {
+  if (!visible || !shouldOfferInstall(pathname)) {
     return null;
   }
 
@@ -192,7 +221,7 @@ export function InstallAppPrompt() {
             <button
               type="button"
               disabled={busy}
-              onClick={handleInstall}
+              onClick={() => void handleInstall()}
               className="salon-gold-btn flex h-10 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-semibold text-black disabled:opacity-60"
             >
               <Download className="h-4 w-4" />

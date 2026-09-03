@@ -127,8 +127,8 @@ export function AdminMembersPage() {
         </p>
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        <div className="relative min-w-[200px] flex-1">
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <div className="relative min-w-0 flex-1 sm:min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-salon-muted" />
           <input
             value={query}
@@ -137,20 +137,22 @@ export function AdminMembersPage() {
             className="h-11 w-full rounded-xl border border-salon-beige/40 bg-salon-bg pl-9 pr-3 text-sm"
           />
         </div>
-        <input
-          type="date"
-          value={fromDate}
-          onChange={(e) => setFromDate(e.target.value)}
-          className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm"
-          title="Last visit from"
-        />
-        <input
-          type="date"
-          value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-          className="h-11 rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm"
-          title="Last visit to"
-        />
+        <div className="grid grid-cols-2 gap-2 sm:contents">
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="h-11 w-full rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm sm:w-auto"
+            title="Last visit from"
+          />
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="h-11 w-full rounded-xl border border-salon-beige/40 bg-salon-bg px-3 text-sm sm:w-auto"
+            title="Last visit to"
+          />
+        </div>
       </div>
 
       {error ? (

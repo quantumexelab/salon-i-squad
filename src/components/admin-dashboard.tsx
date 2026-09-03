@@ -435,7 +435,7 @@ export function AdminDashboard() {
                 {bookings.map((booking) => (
                   <li key={booking.id} className="px-4 py-4">
                     <div className="flex items-start justify-between gap-3">
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <p className="font-semibold text-salon-ink">
                           {formatBookingServicesLabel(booking)}
                         </p>
@@ -450,15 +450,15 @@ export function AdminDashboard() {
                           <GenderCell gender={booking.customerGender} inline />
                         </p>
                         <p className="mt-2 flex items-center gap-1.5 text-xs text-salon-muted">
-                          <CalendarDays className="h-3.5 w-3.5" />
+                          <CalendarDays className="h-3.5 w-3.5 shrink-0" />
                           {formatBookingDate(booking.selectedDate)}
                         </p>
                         <p className="mt-1 flex items-center gap-1.5 text-xs text-salon-muted">
-                          <Clock className="h-3.5 w-3.5" />
+                          <Clock className="h-3.5 w-3.5 shrink-0" />
                           {booking.selectedTime} · {booking.duration} mins
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="shrink-0 text-right">
                         <p className="text-sm font-semibold text-salon-gold">
                           {formatLkr(booking.price)}
                         </p>
@@ -785,9 +785,9 @@ function ClientCell({
     (phone ? memberLookup.byPhone.get(phoneDocId(phone)) : undefined);
 
   return (
-    <div>
+    <div className="min-w-0">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="font-medium text-salon-ink">{name}</p>
+        <p className="min-w-0 font-medium text-salon-ink">{name}</p>
         {member?.isMember ? (
           <span className="rounded-full bg-salon-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase text-salon-gold">
             Member
@@ -795,7 +795,7 @@ function ClientCell({
         ) : null}
       </div>
       {email ? (
-        <p className="mt-0.5 text-xs text-salon-ink0">{email}</p>
+        <p className="mt-0.5 truncate text-xs text-salon-ink0">{email}</p>
       ) : null}
       <p className="mt-0.5 text-xs text-salon-gold/90">{phone || "No phone"}</p>
     </div>
@@ -826,7 +826,7 @@ function BookingActions({
           href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[#25D366]/15 px-3 py-2 text-xs font-semibold text-[#25D366] transition hover:bg-[#25D366]/25"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#25D366]/15 px-3 py-2 text-xs font-semibold text-[#25D366] transition hover:bg-[#25D366]/25"
         >
           <WhatsAppIcon className="h-3.5 w-3.5" />
           WhatsApp
@@ -834,7 +834,7 @@ function BookingActions({
       ) : (
         <span
           title="No phone number on this booking"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-salon-surface px-3 py-2 text-xs font-semibold text-salon-ink0"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-salon-surface px-3 py-2 text-xs font-semibold text-salon-ink0"
         >
           <WhatsAppIcon className="h-3.5 w-3.5" />
           WhatsApp
@@ -848,7 +848,7 @@ function BookingActions({
               type="button"
               disabled={busy}
               onClick={onCheckIn}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500/15 px-3 py-2 text-xs font-semibold text-sky-300"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-sky-500/15 px-3 py-2 text-xs font-semibold text-sky-300"
             >
               Check in
             </button>
@@ -857,7 +857,7 @@ function BookingActions({
             type="button"
             disabled={busy}
             onClick={onComplete}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busy ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -870,7 +870,7 @@ function BookingActions({
             type="button"
             disabled={busy}
             onClick={onCancel}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/15 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-red-500/15 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busy ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
