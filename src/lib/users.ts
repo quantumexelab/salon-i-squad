@@ -1,17 +1,21 @@
 import {
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
   onSnapshot,
   query,
   setDoc,
+  updateDoc,
   where,
   type Unsubscribe,
 } from "firebase/firestore";
 import type { User } from "firebase/auth";
 import {
+  deleteObject,
   getDownloadURL,
+  listAll,
   ref,
   uploadBytes,
 } from "firebase/storage";
@@ -116,9 +120,24 @@ function mapUserDoc(uid: string, data: Record<string, unknown>): UserProfile {
     registrationComplete: data.registrationComplete === true,
     fcmToken: data.fcmToken ? String(data.fcmToken) : undefined,
     photoUrl: data.photoUrl ? String(data.photoUrl) : undefined,
+    memberImages: mapMemberImages(data.memberImages),
     createdAt: String(data.createdAt ?? new Date().toISOString()),
     updatedAt: String(data.updatedAt ?? new Date().toISOString()),
   };
+}
+
+export type MemberStyleKind = "hair" | "beard" | "facial";
+
+function mapMemberImages(
+  raw: unknown,
+): UserProfile["memberImages"] | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const obj = raw as Record<string, unknown>;
+  const hair = obj.hair ? String(obj.hair) : undefined;
+  const beard = obj.beard ? String(obj.beard) : undefined;
+  const facial = obj.facial ? String(obj.facial) : undefined;
+  if (!hair && !beard && !facial) return undefined;
+  return { hair, beard, facial };
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
@@ -695,6 +714,123 @@ export async function uploadProfilePhoto(
     }
     throw err instanceof Error ? err : new Error("Image upload failed.");
   }
+}
+
+async function assertStaffCaller(): Promise<void> {
+  const user = getFirebaseAuth().currentUser;
+  if (!user) {
+    throw new Error("Sign in again to manage member images.");
+  }
+  const snap = await getDoc(doc(getFirebaseDb(), COLLECTIONS.users, user.uid));
+  const role = normalizeRole(snap.data()?.role);
+  if (role !== "admin" && role !== "master") {
+    throw new Error("Only salon staff can manage member style images.");
+  }
+}
+
+function styleStoragePrefix(uid: string, kind: MemberStyleKind): string {
+  return `profiles/${uid}/style-${kind}`;
+}
+
+async function deleteStyleOrphans(
+  uid: string,
+  kind: MemberStyleKind,
+): Promise<void> {
+  const folderRef = ref(getClientStorage(), `profiles/${uid}`);
+  try {
+    const listing = await listAll(folderRef);
+    const prefix = `style-${kind}.`;
+    await Promise.all(
+      listing.items
+        .filter((item) => item.name.startsWith(prefix) || item.name === `style-${kind}`)
+        .map(async (item) => {
+          try {
+            await deleteObject(item);
+          } catch {
+            /* ignore missing */
+          }
+        }),
+    );
+  } catch {
+    /* folder may be empty */
+  }
+}
+
+function mapStorageError(err: unknown): Error {
+  const code =
+    err && typeof err === "object" && "code" in err
+      ? String((err as { code?: string }).code)
+      : "";
+  if (code === "storage/unauthorized") {
+    return new Error(
+      "Upload blocked by storage rules. Ask your master admin to deploy Firebase Storage rules.",
+    );
+  }
+  if (
+    code === "storage/unknown" ||
+    code === "storage/bucket-not-found" ||
+    code === "storage/object-not-found"
+  ) {
+    return new Error(
+      "Firebase Storage is not set up yet. Please try again later.",
+    );
+  }
+  return err instanceof Error ? err : new Error("Image upload failed.");
+}
+
+/** Staff-only: one overwriteable style image per kind (no history). */
+export async function uploadMemberStyleImage(
+  uid: string,
+  kind: MemberStyleKind,
+  file: File,
+): Promise<string> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Please choose an image file.");
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    throw new Error("Image must be 2MB or smaller.");
+  }
+
+  initFirebase();
+  initFirebaseClient();
+  await assertStaffCaller();
+
+  const path = `${styleStoragePrefix(uid, kind)}.jpg`;
+  const storageRef = ref(getClientStorage(), path);
+
+  try {
+    await deleteStyleOrphans(uid, kind);
+    await uploadBytes(storageRef, file, { contentType: file.type });
+    const url = await getDownloadURL(storageRef);
+    await updateDoc(doc(getFirebaseDb(), COLLECTIONS.users, uid), {
+      [`memberImages.${kind}`]: url,
+      updatedAt: new Date().toISOString(),
+    });
+    return url;
+  } catch (err) {
+    throw mapStorageError(err);
+  }
+}
+
+/** Staff-only: remove style image slot and clear Firestore URL. */
+export async function clearMemberStyleImage(
+  uid: string,
+  kind: MemberStyleKind,
+): Promise<void> {
+  initFirebase();
+  initFirebaseClient();
+  await assertStaffCaller();
+
+  try {
+    await deleteStyleOrphans(uid, kind);
+  } catch {
+    /* continue clearing firestore */
+  }
+
+  await updateDoc(doc(getFirebaseDb(), COLLECTIONS.users, uid), {
+    [`memberImages.${kind}`]: deleteField(),
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 export function subscribeToClientUsers(

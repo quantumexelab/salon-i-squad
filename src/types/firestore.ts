@@ -43,6 +43,12 @@ export type UserProfile = {
   registrationComplete?: boolean;
   fcmToken?: string;
   photoUrl?: string;
+  /** Admin-managed style references — one URL per kind, no history. */
+  memberImages?: {
+    hair?: string;
+    beard?: string;
+    facial?: string;
+  };
   createdAt: string;
   updatedAt: string;
 };

@@ -44,8 +44,12 @@ service cloud.firestore {
 
       // Owners can update their profile but cannot change role — except bootstrap.
       // Master can update any user (including assigning admin).
+      // Staff can update client profiles (members, style images) without changing role.
       allow update: if isMaster()
         || canBootstrapMaster(userId)
+        || (isStaff()
+          && resource.data.role == 'client'
+          && request.resource.data.role == resource.data.role)
         || (isOwner(userId)
           && request.resource.data.role == resource.data.role);
 
