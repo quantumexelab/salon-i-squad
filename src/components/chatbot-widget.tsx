@@ -9,17 +9,17 @@ import {
   type ChatMessage,
 } from "@/lib/chatbot";
 
-const FAB_SIZE = 30;
+const FAB_SIZE = 40;
 const FAB_MARGIN = 12;
 /** Extra lift on mobile so the FAB clears the bottom nav bar. */
 const FAB_BOTTOM_MOBILE_LIFT = 24;
 /** Extra inward offset on mobile bottom corners so nav tabs stay tappable. */
-const FAB_BOTTOM_MOBILE_SIDE = 16;
+const FAB_BOTTOM_MOBILE_SIDE = 18;
 const FAB_POS_KEY = "sis-chat-fab-pos";
 const DRAG_THRESHOLD = 6;
 const SNAP_TRANSITION_MS = 320;
 /** How far from a corner anchor the FAB can rest within that corner zone. */
-const CORNER_ZONE = 56;
+const CORNER_ZONE = 64;
 const DOUBLE_TAP_MS = 320;
 
 type FabPosition = { x: number; y: number };
@@ -550,18 +550,18 @@ export function ChatbotWidget() {
         }
       >
         {open ? (
-          <X className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden />
+          <X className="h-5 w-5" strokeWidth={2.75} aria-hidden />
         ) : (
           <MessageCircle
-            className="h-3.5 w-3.5"
+            className="h-5 w-5"
             strokeWidth={2}
             fill="currentColor"
             aria-hidden
           />
         )}
         {open ? (
-          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[#1f9d4f] shadow-md">
-            <X className="h-2 w-2" strokeWidth={3} aria-hidden />
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[#1f9d4f] shadow-md">
+            <X className="h-2.5 w-2.5" strokeWidth={3} aria-hidden />
           </span>
         ) : null}
       </button>
