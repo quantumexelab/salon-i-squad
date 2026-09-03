@@ -142,7 +142,7 @@ export function AdminCustomersPage() {
         </p>
       ) : null}
 
-      <section className="overflow-hidden rounded-2xl border border-salon-beige/30 bg-salon-surface">
+      <section className="rounded-2xl border border-salon-beige/30 bg-salon-surface">
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-salon-muted">
             <Loader2 className="h-5 w-5 animate-spin text-salon-gold" />
@@ -157,15 +157,15 @@ export function AdminCustomersPage() {
           </div>
         ) : (
           <>
-            <div className="hidden md:block">
-              <table className="w-full text-left text-sm">
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="bg-salon-bg/60 text-xs uppercase tracking-wide text-salon-ink0">
                   <tr>
                     <th className="px-6 py-3 font-medium">Name</th>
+                    <th className="px-6 py-3 font-medium">Action</th>
                     <th className="px-6 py-3 font-medium">Email</th>
                     <th className="px-6 py-3 font-medium">Phone</th>
                     <th className="px-6 py-3 font-medium">Total bookings</th>
-                    <th className="px-6 py-3 font-medium">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-salon-beige/30">
@@ -186,6 +186,13 @@ export function AdminCustomersPage() {
                             </span>
                           ) : null}
                         </td>
+                        <td className="px-6 py-4">
+                          <MemberAction
+                            user={user}
+                            actionUid={actionUid}
+                            onPromote={promote}
+                          />
+                        </td>
                         <td className="px-6 py-4 text-salon-muted">
                           {user.email || "—"}
                         </td>
@@ -194,13 +201,6 @@ export function AdminCustomersPage() {
                         </td>
                         <td className="px-6 py-4 font-semibold text-salon-ink">
                           {totalBookings}
-                        </td>
-                        <td className="px-6 py-4">
-                          <MemberAction
-                            user={user}
-                            actionUid={actionUid}
-                            onPromote={promote}
-                          />
                         </td>
                       </tr>
                     );
