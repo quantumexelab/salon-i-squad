@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Crown, Loader2 } from "lucide-react";
 import { ClientProfileForm } from "@/components/client-profile-form";
+import { EnableNotificationsCard } from "@/components/enable-notifications-card";
 import { useAuth } from "@/contexts/auth-context";
 import {
   isProfileRegistrationComplete,
@@ -55,6 +56,13 @@ export function ClientProfilePage() {
           </p>
         ) : null}
       </div>
+
+      {user ? (
+        <EnableNotificationsCard
+          uid={user.uid}
+          hasToken={Boolean(profile.fcmToken)}
+        />
+      ) : null}
 
       <ClientProfileForm
         mode="edit"

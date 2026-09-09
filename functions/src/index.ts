@@ -15,6 +15,7 @@ function getDb() {
 
 type BookingDoc = {
   userId?: string;
+  phoneNumber?: string;
   serviceName?: string;
   selectedTime?: string;
   dateKey?: string;
@@ -26,6 +27,37 @@ type BookingDoc = {
   checkedInAt?: string;
   noShowDeadlineAt?: string;
 };
+
+async function sendWhatsAppNotification(toPhone: string, text: string) {
+  const token = process.env.META_API_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || "1283961314800179";
+  if (!token) return;
+
+  let cleaned = toPhone.replace(/\D/g, "");
+  if (cleaned.startsWith("0") && cleaned.length === 10) {
+    cleaned = "94" + cleaned.slice(1);
+  }
+  if (!cleaned) return;
+
+  try {
+    await fetch(`https://graph.facebook.com/v22.0/${phoneId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: cleaned,
+        type: "text",
+        text: { preview_url: false, body: text },
+      }),
+    });
+  } catch (err) {
+    console.error("Failed to send WhatsApp notification", err);
+  }
+}
 
 async function getUserFcmToken(userId: string): Promise<string | null> {
   if (!userId) return null;
@@ -61,15 +93,29 @@ async function sendPush(input: {
 }) {
   await saveNotification(input);
   const token = await getUserFcmToken(input.userId);
-  if (!token) return;
-  await admin.messaging().send({
-    token,
-    notification: { title: input.title, body: input.body },
-    data: {
-      type: input.type,
-      bookingId: input.bookingId ?? "",
-    },
-  });
+  if (!token) {
+    console.info(
+      `[push] skipped FCM (no fcmToken) userId=${input.userId} type=${input.type}`,
+    );
+    return;
+  }
+  try {
+    await admin.messaging().send({
+      token,
+      notification: { title: input.title, body: input.body },
+      data: {
+        type: input.type,
+        bookingId: input.bookingId ?? "",
+      },
+      webpush: {
+        fcmOptions: {
+          link: input.bookingId ? "/my-bookings" : "/",
+        },
+      },
+    });
+  } catch (err) {
+    console.error("[push] FCM send failed", err);
+  }
 }
 
 export const onBookingCreated = onDocumentCreated(
@@ -86,6 +132,11 @@ export const onBookingCreated = onDocumentCreated(
       type: "booking_confirmed",
       bookingId,
     });
+
+    if (data.phoneNumber) {
+      const confirmText = `🎉 *Salon I Squad — Booking Confirmed!*\n\n• Appointment: #${data.appointmentNumber ?? "?"}\n• Service: ${data.serviceName ?? "Service"}\n• Time: ${data.selectedTime ?? ""}\n• Date: ${data.dateKey ?? ""}\n\n⏰ We will send a reminder 1 hour before your appointment. Thank you!`;
+      await sendWhatsAppNotification(data.phoneNumber, confirmText);
+    }
   },
 );
 
@@ -108,6 +159,11 @@ export const onBookingUpdated = onDocumentUpdated(
         type: "booking_cancelled",
         bookingId,
       });
+
+      if (after.phoneNumber) {
+        const cancelMsg = `Salon I Squad: Appointment #${after.appointmentNumber ?? "?"} has been cancelled.`;
+        await sendWhatsAppNotification(after.phoneNumber, cancelMsg);
+      }
       return;
     }
 
@@ -137,18 +193,59 @@ export const onBookingUpdated = onDocumentUpdated(
         bookingId: nextSnap.docs[0]!.id,
       });
 
+      if (next.phoneNumber) {
+        const queueAlert = `🚶‍♂️ *Salon I Squad — Your Turn is Next!*\n\nAppointment #${currentNum + 1} (${next.serviceName || "Service"}):\nWe are ready for you soon! Please arrive at the salon within 15 minutes. Thank you!`;
+        await sendWhatsAppNotification(next.phoneNumber, queueAlert);
+      }
+
+      if (after.phoneNumber) {
+        const reviewPrompt = `⭐ *How was your styling experience at Salon I Squad today?*\n\nThank you for visiting! We would love your feedback. Reply with 1 to 5 stars or let us know how we did! ✨`;
+        await sendWhatsAppNotification(after.phoneNumber, reviewPrompt);
+      }
+
       const deadline = new Date(Date.now() + 15 * 60 * 1000).toISOString();
       await nextSnap.docs[0]!.ref.update({ noShowDeadlineAt: deadline });
     }
   },
 );
 
+function getSriLankaNow(): Date {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Colombo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(now);
+  const p: Record<string, string> = {};
+  for (const item of parts) p[item.type] = item.value;
+  const hour = p.hour === "24" ? "00" : p.hour;
+  return new Date(`${p.year}-${p.month}-${p.day}T${hour}:${p.minute}:${p.second}`);
+}
+
+function toDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export const sendAppointmentReminders = onSchedule(
-  "every 5 minutes",
+  {
+    schedule: "every 5 minutes",
+    timeZone: "Asia/Colombo",
+  },
   async () => {
-    const now = new Date();
-    const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);
-    const todayKey = now.toISOString().slice(0, 10);
+    const slNow = getSriLankaNow();
+    const todayKey = toDateKey(slNow);
+    const nowMinutes = slNow.getHours() * 60 + slNow.getMinutes();
+    const windowStart = nowMinutes + 45;
+    const windowEnd = nowMinutes + 75;
 
     const snap = await getDb()
       .collection("bookings")
@@ -157,8 +254,8 @@ export const sendAppointmentReminders = onSchedule(
       .get();
 
     for (const docSnap of snap.docs) {
-      const data = docSnap.data() as BookingDoc;
-      if (data.reminderSentAt) continue;
+      const data = docSnap.data() as BookingDoc & { whatsappReminderSentAt?: string };
+      if (data.reminderSentAt || data.whatsappReminderSentAt) continue;
       if (!data.selectedTime) continue;
 
       const match = data.selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
@@ -168,23 +265,29 @@ export const sendAppointmentReminders = onSchedule(
       const ampm = match[3]!.toUpperCase();
       if (ampm === "PM" && hours !== 12) hours += 12;
       if (ampm === "AM" && hours === 12) hours = 0;
+      const slotMinutes = hours * 60 + mins;
 
-      const apptStart = new Date(now);
-      apptStart.setHours(hours, mins, 0, 0);
+      if (slotMinutes < windowStart || slotMinutes > windowEnd) continue;
 
-      if (apptStart <= now || apptStart > inOneHour) continue;
-      if (!data.userId) continue;
+      if (data.userId) {
+        await sendPush({
+          userId: data.userId,
+          title: "Appointment in 1 hour",
+          body: `#${data.appointmentNumber ?? "?"} · ${data.serviceName ?? "Service"} at ${data.selectedTime}`,
+          type: "reminder_1h",
+          bookingId: docSnap.id,
+        });
+      }
 
-      await sendPush({
-        userId: data.userId,
-        title: "Appointment in 1 hour",
-        body: `#${data.appointmentNumber ?? "?"} · ${data.serviceName ?? "Service"} at ${data.selectedTime}`,
-        type: "reminder_1h",
-        bookingId: docSnap.id,
-      });
+      if (data.phoneNumber) {
+        const reminderText = `⏰ *Salon I Squad — Appointment Reminder*\n\nHi! Your appointment is coming up in *1 hour*:\n\n• Appointment: #${data.appointmentNumber ?? "?"}\n• Service: ${data.serviceName ?? "Service"}\n• Time: ${data.selectedTime}\n• Location: Salon I Squad\n\nPlease arrive on time. We look forward to seeing you!`;
+        await sendWhatsAppNotification(data.phoneNumber, reminderText);
+      }
 
+      const stamp = new Date().toISOString();
       await docSnap.ref.update({
-        reminderSentAt: new Date().toISOString(),
+        reminderSentAt: stamp,
+        whatsappReminderSentAt: stamp,
       });
     }
   },

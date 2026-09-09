@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { CustomerLogo, useLogoSessionAnimation } from "@/components/logo";
 import { ClientMobileNav } from "@/components/client-mobile-nav";
+import { ClientNotificationsBell } from "@/components/client-notifications-bell";
 import { LogoutButton } from "@/components/logout-button";
 import { PushNotificationBootstrap } from "@/components/push-notification-bootstrap";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -50,6 +51,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
               <ThemeToggle size="compact" />
               {showNav ? (
                 <>
+                  {user ? <ClientNotificationsBell /> : null}
                   <nav className="flex gap-1">
                     {clientNav.map((item) => {
                       const active =
