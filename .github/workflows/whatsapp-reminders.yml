@@ -1,0 +1,24 @@
+name: WhatsApp Appointment Reminders
+
+# Vercel Hobby only allows 1 cron/day, so we schedule reminders here instead.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger reminders endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -e
+          URL="https://salon-i-squad.vercel.app/api/whatsapp/reminders"
+          if [ -n "$CRON_SECRET" ]; then
+            curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" "$URL"
+          else
+            curl -fsS "$URL"
+          fi
+          echo
