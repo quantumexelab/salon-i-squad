@@ -7,6 +7,7 @@ import { ClientProfileForm } from "@/components/client-profile-form";
 import {
   completeClientRegistration,
   isProfileRegistrationComplete,
+  uploadProfilePhoto,
 } from "@/lib/users";
 
 export function RegisterForm() {
@@ -35,6 +36,10 @@ export function RegisterForm() {
         setSaving(true);
         setError(null);
         try {
+          if (values.photoFile) {
+            await uploadProfilePhoto(user.uid, values.photoFile);
+          }
+
           await completeClientRegistration({
             uid: user.uid,
             firstName: values.firstName,
