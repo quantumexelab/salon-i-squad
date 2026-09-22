@@ -1,9 +1,10 @@
 name: WhatsApp Appointment Reminders
 
 # Vercel Hobby only allows 1 cron/day, so we schedule reminders here instead.
+# Every 5 minutes — GitHub schedule events are often delayed, so keep this frequent.
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:

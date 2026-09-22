@@ -1,181 +1,19 @@
 import { NextResponse } from "next/server";
-import { getApps, initializeApp, cert, type App } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-import { getMessaging } from "firebase-admin/messaging";
-import {
-  addDoc,
-  collection,
-  getDocs,
-  query,
-  where,
-  doc,
-  updateDoc,
-} from "firebase/firestore";
-import { signInAnonymously } from "firebase/auth";
-import { getClientAuth, getClientDb } from "@/lib/firebase/client";
-import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getSriLankaNow, parseSlotMinutes, toDateKey } from "@/lib/calendar-utils";
-import { sendWhatsAppText } from "@/lib/whatsapp/api";
-import { t } from "@/lib/whatsapp/i18n";
+import {
+  loadTodaysConfirmedBookings,
+  markProductionReminderSent,
+  markTestReminderSent,
+  sendReminderChannels,
+} from "@/lib/reminders/send";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-function getFirebaseAdminApp(): App | null {
-  if (getApps().length > 0) return getApps()[0]!;
-
-  const saRaw =
-    process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim() ||
-    process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
-  if (!saRaw) return null;
-
-  try {
-    const key = JSON.parse(saRaw);
-    if (!key.client_email || !key.private_key) return null;
-    return initializeApp({
-      credential: cert({
-        projectId: key.project_id || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        clientEmail: key.client_email,
-        privateKey: key.private_key.replace(/\\n/g, "\n"),
-      }),
-    });
-  } catch {
-    return null;
-  }
-}
-
-type ReminderBooking = {
-  id: string;
-  userId?: string;
-  phoneNumber?: string;
-  selectedTime?: string;
-  serviceName?: string;
-  staffName?: string;
-  appointmentNumber?: number;
-  reminderSentAt?: string;
-  whatsappReminderSentAt?: string;
-};
-
-function isAppUserId(userId?: string): boolean {
-  return Boolean(userId && !userId.startsWith("wa_"));
-}
-
-async function ensureClientAuth() {
-  const auth = getClientAuth();
-  if (!auth.currentUser) {
-    await signInAnonymously(auth);
-  }
-}
-
-async function loadTodaysConfirmedBookings(todayKey: string): Promise<ReminderBooking[]> {
-  const adminApp = getFirebaseAdminApp();
-  if (adminApp) {
-    const snap = await getFirestore(adminApp)
-      .collection(COLLECTIONS.bookings)
-      .where("dateKey", "==", todayKey)
-      .where("status", "==", "confirmed")
-      .get();
-
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ReminderBooking, "id">) }));
-  }
-
-  await ensureClientAuth();
-  const db = getClientDb();
-  const snap = await getDocs(
-    query(
-      collection(db, COLLECTIONS.bookings),
-      where("dateKey", "==", todayKey),
-      where("status", "==", "confirmed"),
-    ),
-  );
-
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ReminderBooking, "id">) }));
-}
-
-async function markReminderSent(bookingId: string): Promise<void> {
-  const stamp = new Date().toISOString();
-  const payload = {
-    reminderSentAt: stamp,
-    whatsappReminderSentAt: stamp,
-  };
-
-  const adminApp = getFirebaseAdminApp();
-  if (adminApp) {
-    await getFirestore(adminApp).collection(COLLECTIONS.bookings).doc(bookingId).update(payload);
-    return;
-  }
-
-  await ensureClientAuth();
-  await updateDoc(doc(getClientDb(), COLLECTIONS.bookings, bookingId), payload);
-}
-
-async function createAppInboxNotification(input: {
-  userId: string;
-  title: string;
-  body: string;
-  bookingId: string;
-}): Promise<boolean> {
-  const payload = {
-    userId: input.userId,
-    title: input.title,
-    body: input.body,
-    type: "reminder_1h",
-    bookingId: input.bookingId,
-    read: false,
-    createdAt: new Date().toISOString(),
-  };
-
-  const adminApp = getFirebaseAdminApp();
-  if (adminApp) {
-    await getFirestore(adminApp).collection(COLLECTIONS.notifications).add(payload);
-    return true;
-  }
-
-  await ensureClientAuth();
-  await addDoc(collection(getClientDb(), COLLECTIONS.notifications), payload);
-  return true;
-}
-
-async function sendAppPushIfPossible(input: {
-  userId: string;
-  title: string;
-  body: string;
-  bookingId: string;
-}): Promise<boolean> {
-  const adminApp = getFirebaseAdminApp();
-  if (!adminApp) return false;
-
-  try {
-    const userSnap = await getFirestore(adminApp)
-      .collection(COLLECTIONS.users)
-      .doc(input.userId)
-      .get();
-    const fcmToken = String(userSnap.data()?.fcmToken || "").trim();
-    if (!fcmToken) return false;
-
-    await getMessaging(adminApp).send({
-      token: fcmToken,
-      notification: { title: input.title, body: input.body },
-      data: {
-        type: "reminder_1h",
-        bookingId: input.bookingId,
-        url: "/my-bookings",
-      },
-    });
-    return true;
-  } catch (err) {
-    console.warn(`[Reminders] FCM push failed for ${input.userId}`, err);
-    return false;
-  }
-}
-
 /**
  * GET /api/whatsapp/reminders
- * Sends ~1 hour reminders via:
- * - In-app notification inbox (logged-in app users)
- * - FCM push (when Admin SDK + fcmToken available)
- * - WhatsApp (when phone number present)
+ * Sends ~1 hour reminders + due temporary test reminders.
  */
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -187,10 +25,12 @@ export async function GET(request: Request) {
   const slNow = getSriLankaNow();
   const todayKey = toDateKey(slNow);
   const currentMinutes = slNow.getHours() * 60 + slNow.getMinutes();
+  const nowIso = slNow.toISOString();
 
-  // ~1 hour ahead, 15-minute-wide window (matches GitHub Actions cron interval)
-  const windowStart = currentMinutes + 52;
-  const windowEnd = currentMinutes + 67;
+  // Minutes-until-appointment window. Wide on purpose: GitHub cron often lags
+  // past the ideal "60 min before" moment (*/5–*/15 schedules).
+  const minUntil = 10;
+  const maxUntil = 90;
 
   try {
     const bookings = await loadTodaysConfirmedBookings(todayKey);
@@ -198,10 +38,48 @@ export async function GET(request: Request) {
       id: string;
       appointmentNumber: number;
       channels: string[];
+      kind: "reminder_1h" | "reminder_test";
     }> = [];
     const skipped: Array<{ id: string; reason: string }> = [];
+    const testsSent: Array<{
+      id: string;
+      appointmentNumber: number;
+      channels: string[];
+    }> = [];
 
     for (const data of bookings) {
+      // Due temporary 2-min tests (does not touch production reminderSentAt)
+      const testAt = String(data.testReminderAt || "").trim();
+      if (
+        testAt &&
+        !data.testReminderSentAt &&
+        testAt <= nowIso
+      ) {
+        const result = await sendReminderChannels(data, {
+          kind: "reminder_test",
+        });
+        if (result.channels.length > 0) {
+          try {
+            await markTestReminderSent(data.id);
+          } catch (markErr) {
+            console.warn(
+              `[Reminders] Test sent but failed to mark ${data.id}`,
+              markErr,
+            );
+          }
+          testsSent.push({
+            id: data.id,
+            appointmentNumber: data.appointmentNumber || 1,
+            channels: result.channels,
+          });
+        } else {
+          skipped.push({
+            id: data.id,
+            reason: result.skippedReason || "test_no_channel",
+          });
+        }
+      }
+
       if (data.reminderSentAt || data.whatsappReminderSentAt) {
         skipped.push({ id: data.id, reason: "already_sent" });
         continue;
@@ -213,60 +91,26 @@ export async function GET(request: Request) {
         continue;
       }
 
-      if (timeMinutes < windowStart || timeMinutes > windowEnd) {
-        skipped.push({ id: data.id, reason: "outside_window" });
+      const minsUntil = timeMinutes - currentMinutes;
+      if (minsUntil < minUntil || minsUntil > maxUntil) {
+        skipped.push({
+          id: data.id,
+          reason: `outside_window(${minsUntil}m)`,
+        });
         continue;
       }
 
-      const channels: string[] = [];
-      const title = "Appointment in 1 hour";
-      const body = `#${data.appointmentNumber ?? "?"} · ${data.serviceName || "Service"} at ${data.selectedTime || ""}`;
-
-      if (isAppUserId(data.userId)) {
-        try {
-          await createAppInboxNotification({
-            userId: data.userId!,
-            title,
-            body,
-            bookingId: data.id,
-          });
-          channels.push("app_inbox");
-        } catch (err) {
-          console.warn(`[Reminders] App inbox failed for ${data.id}`, err);
-        }
-
-        try {
-          const pushed = await sendAppPushIfPossible({
-            userId: data.userId!,
-            title,
-            body,
-            bookingId: data.id,
-          });
-          if (pushed) channels.push("fcm");
-        } catch (err) {
-          console.warn(`[Reminders] Push failed for ${data.id}`, err);
-        }
-      }
-
-      const phone = String(data.phoneNumber || "").trim();
-      if (phone) {
-        const reminderMsg = t("reminder1Hour", "en", {
-          num: data.appointmentNumber || 1,
-          service: data.serviceName || "Service",
-          staff: data.staffName || "Stylist",
-          time: data.selectedTime || "",
+      const result = await sendReminderChannels(data, { kind: "reminder_1h" });
+      if (result.channels.length === 0) {
+        skipped.push({
+          id: data.id,
+          reason: result.skippedReason || "no_channel",
         });
-        const waOk = await sendWhatsAppText(phone, reminderMsg);
-        if (waOk) channels.push("whatsapp");
-      }
-
-      if (channels.length === 0) {
-        skipped.push({ id: data.id, reason: "no_channel" });
         continue;
       }
 
       try {
-        await markReminderSent(data.id);
+        await markProductionReminderSent(data.id);
       } catch (markErr) {
         console.warn(`[Reminders] Sent but failed to mark ${data.id}`, markErr);
       }
@@ -274,23 +118,33 @@ export async function GET(request: Request) {
       sent.push({
         id: data.id,
         appointmentNumber: data.appointmentNumber || 1,
-        channels,
+        channels: result.channels,
+        kind: "reminder_1h",
       });
     }
 
     console.log(
-      `[Reminders] today=${todayKey} nowMins=${currentMinutes} window=${windowStart}-${windowEnd} sent=${sent.length}`,
+      `[Reminders] today=${todayKey} nowMins=${currentMinutes} untilWindow=${minUntil}-${maxUntil}m sent=${sent.length} tests=${testsSent.length}`,
     );
 
     return NextResponse.json({
       ok: true,
       todayKey,
       currentMinutes,
-      windowStart,
-      windowEnd,
+      minUntil,
+      maxUntil,
       remindersCount: sent.length,
       sent,
+      testsSent,
+      testsSentCount: testsSent.length,
+      skipped,
       skippedCount: skipped.length,
+      adminSdk: Boolean(
+        process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim() ||
+          process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim(),
+      ),
+      resendConfigured: Boolean(process.env.RESEND_API_KEY?.trim()),
+      cronSecretConfigured: Boolean(cronSecret),
     });
   } catch (error) {
     console.error("[WhatsApp Reminders Cron Error]", error);
