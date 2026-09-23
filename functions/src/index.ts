@@ -3,6 +3,7 @@ import {
   onDocumentCreated,
   onDocumentUpdated,
 } from "firebase-functions/v2/firestore";
+import { onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { setGlobalOptions } from "firebase-functions/v2";
 
@@ -84,6 +85,58 @@ async function saveNotification(input: {
   });
 }
 
+async function sendFcmOnly(input: {
+  userId: string;
+  title: string;
+  body: string;
+  type: string;
+  bookingId?: string;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const token = await getUserFcmToken(input.userId);
+  if (!token) {
+    console.info(
+      `[push] skipped FCM (no fcmToken) userId=${input.userId} type=${input.type}`,
+    );
+    return { ok: false, reason: "no_fcm_token" };
+  }
+  const site =
+    (process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "")
+      .trim()
+      .replace(/\/$/, "") || "https://salon-i-squad.vercel.app";
+  const path = input.bookingId ? "/my-bookings" : "/";
+  const link = `${site}${path}`;
+  const icon = `${site}/icons/icon-192.png`;
+  try {
+    await admin.messaging().send({
+      token,
+      data: {
+        title: input.title,
+        body: input.body,
+        type: input.type,
+        bookingId: input.bookingId ?? "",
+        url: path,
+      },
+      webpush: {
+        headers: { Urgency: "high" },
+        notification: {
+          title: input.title,
+          body: input.body,
+          icon,
+          badge: icon,
+        },
+        fcmOptions: { link },
+      },
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error("[push] FCM send failed", err);
+    return {
+      ok: false,
+      reason: err instanceof Error ? err.message : "fcm_send_failed",
+    };
+  }
+}
+
 async function sendPush(input: {
   userId: string;
   title: string;
@@ -92,31 +145,80 @@ async function sendPush(input: {
   bookingId?: string;
 }) {
   await saveNotification(input);
-  const token = await getUserFcmToken(input.userId);
-  if (!token) {
-    console.info(
-      `[push] skipped FCM (no fcmToken) userId=${input.userId} type=${input.type}`,
-    );
+  await sendFcmOnly(input);
+}
+
+/**
+ * HTTP relay so Next.js (local/Vercel without service-account JSON) can still
+ * send OS push via Cloud Functions default credentials.
+ * Auth: Firebase ID token of admin/master.
+ */
+export const relayFcmPush = onRequest(
+  { cors: true, invoker: "public" },
+  async (req, res) => {
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
     return;
   }
-  try {
-    await admin.messaging().send({
-      token,
-      notification: { title: input.title, body: input.body },
-      data: {
-        type: input.type,
-        bookingId: input.bookingId ?? "",
-      },
-      webpush: {
-        fcmOptions: {
-          link: input.bookingId ? "/my-bookings" : "/",
-        },
-      },
-    });
-  } catch (err) {
-    console.error("[push] FCM send failed", err);
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "POST only" });
+    return;
   }
-}
+
+  const authHeader = String(req.headers.authorization || "");
+  const idToken = authHeader.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length).trim()
+    : "";
+  if (!idToken) {
+    res.status(401).json({ ok: false, error: "Missing auth token" });
+    return;
+  }
+
+  try {
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    const staffSnap = await getDb().collection("users").doc(decoded.uid).get();
+    const role = String(staffSnap.data()?.role || "");
+    if (role !== "admin" && role !== "master") {
+      res.status(403).json({ ok: false, error: "Staff only" });
+      return;
+    }
+
+    const body = (req.body || {}) as {
+      userId?: string;
+      title?: string;
+      body?: string;
+      type?: string;
+      bookingId?: string;
+    };
+    const userId = String(body.userId || "").trim();
+    const title = String(body.title || "").trim();
+    const text = String(body.body || "").trim();
+    if (!userId || !title) {
+      res.status(400).json({ ok: false, error: "userId and title required" });
+      return;
+    }
+
+    const result = await sendFcmOnly({
+      userId,
+      title,
+      body: text,
+      type: String(body.type || "reminder_test"),
+      bookingId: body.bookingId,
+    });
+
+    if (!result.ok) {
+      res.status(422).json({ ok: false, error: result.reason || "fcm_failed" });
+      return;
+    }
+    res.status(200).json({ ok: true, channel: "fcm" });
+  } catch (err) {
+    console.error("[relayFcmPush]", err);
+    res.status(500).json({
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+});
 
 export const onBookingCreated = onDocumentCreated(
   "bookings/{bookingId}",
@@ -209,86 +311,29 @@ export const onBookingUpdated = onDocumentUpdated(
   },
 );
 
-function getSriLankaNow(): Date {
-  const now = new Date();
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Colombo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-  const parts = formatter.formatToParts(now);
-  const p: Record<string, string> = {};
-  for (const item of parts) p[item.type] = item.value;
-  const hour = p.hour === "24" ? "00" : p.hour;
-  return new Date(`${p.year}-${p.month}-${p.day}T${hour}:${p.minute}:${p.second}`);
-}
-
-function toDateKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
+/**
+ * Reliable 5-minute tick (Asia/Colombo). GitHub Actions schedules often lag
+ * hours, so this Cloud Function pings the Next.js reminder endpoint.
+ */
 export const sendAppointmentReminders = onSchedule(
   {
     schedule: "every 5 minutes",
     timeZone: "Asia/Colombo",
   },
   async () => {
-    const slNow = getSriLankaNow();
-    const todayKey = toDateKey(slNow);
-    const nowMinutes = slNow.getHours() * 60 + slNow.getMinutes();
-    const windowStart = nowMinutes + 45;
-    const windowEnd = nowMinutes + 75;
-
-    const snap = await getDb()
-      .collection("bookings")
-      .where("dateKey", "==", todayKey)
-      .where("status", "==", "confirmed")
-      .get();
-
-    for (const docSnap of snap.docs) {
-      const data = docSnap.data() as BookingDoc & { whatsappReminderSentAt?: string };
-      if (data.reminderSentAt || data.whatsappReminderSentAt) continue;
-      if (!data.selectedTime) continue;
-
-      const match = data.selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
-      if (!match) continue;
-      let hours = parseInt(match[1]!, 10);
-      const mins = parseInt(match[2]!, 10);
-      const ampm = match[3]!.toUpperCase();
-      if (ampm === "PM" && hours !== 12) hours += 12;
-      if (ampm === "AM" && hours === 12) hours = 0;
-      const slotMinutes = hours * 60 + mins;
-
-      if (slotMinutes < windowStart || slotMinutes > windowEnd) continue;
-
-      if (data.userId) {
-        await sendPush({
-          userId: data.userId,
-          title: "Appointment in 1 hour",
-          body: `#${data.appointmentNumber ?? "?"} · ${data.serviceName ?? "Service"} at ${data.selectedTime}`,
-          type: "reminder_1h",
-          bookingId: docSnap.id,
-        });
-      }
-
-      if (data.phoneNumber) {
-        const reminderText = `⏰ *Salon I Squad — Appointment Reminder*\n\nHi! Your appointment is coming up in *1 hour*:\n\n• Appointment: #${data.appointmentNumber ?? "?"}\n• Service: ${data.serviceName ?? "Service"}\n• Time: ${data.selectedTime}\n• Location: Salon I Squad\n\nPlease arrive on time. We look forward to seeing you!`;
-        await sendWhatsAppNotification(data.phoneNumber, reminderText);
-      }
-
-      const stamp = new Date().toISOString();
-      await docSnap.ref.update({
-        reminderSentAt: stamp,
-        whatsappReminderSentAt: stamp,
-      });
+    const url =
+      process.env.REMINDERS_URL?.trim() ||
+      "https://salon-i-squad.vercel.app/api/whatsapp/reminders";
+    const secret = process.env.CRON_SECRET?.trim();
+    const res = await fetch(url, {
+      headers: secret ? { Authorization: `Bearer ${secret}` } : {},
+    });
+    const body = await res.text();
+    console.log(
+      `[sendAppointmentReminders] status=${res.status} body=${body.slice(0, 800)}`,
+    );
+    if (!res.ok) {
+      throw new Error(`Reminders endpoint failed: ${res.status}`);
     }
   },
 );

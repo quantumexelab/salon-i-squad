@@ -27,10 +27,10 @@ export async function GET(request: Request) {
   const currentMinutes = slNow.getHours() * 60 + slNow.getMinutes();
   const nowIso = slNow.toISOString();
 
-  // Minutes-until-appointment window. Wide on purpose: GitHub cron often lags
-  // past the ideal "60 min before" moment (*/5–*/15 schedules).
-  const minUntil = 10;
-  const maxUntil = 90;
+  // Minutes-until-appointment window. GitHub cron can lag hours; Firebase
+  // pings every 5m. Keep this wide so a late tick still delivers.
+  const minUntil = 5;
+  const maxUntil = 180;
 
   try {
     const bookings = await loadTodaysConfirmedBookings(todayKey);
@@ -39,6 +39,7 @@ export async function GET(request: Request) {
       appointmentNumber: number;
       channels: string[];
       kind: "reminder_1h" | "reminder_test";
+      whatsappOk?: boolean;
     }> = [];
     const skipped: Array<{ id: string; reason: string }> = [];
     const testsSent: Array<{
@@ -101,6 +102,16 @@ export async function GET(request: Request) {
       }
 
       const result = await sendReminderChannels(data, { kind: "reminder_1h" });
+      const hasPhone = Boolean(String(data.phoneNumber || "").trim());
+      // Never stamp "already sent" if WhatsApp still failed — otherwise we
+      // never retry after inbox/email-only success.
+      if (hasPhone && !result.whatsappOk) {
+        skipped.push({
+          id: data.id,
+          reason: result.skippedReason || "whatsapp_failed",
+        });
+        continue;
+      }
       if (result.channels.length === 0) {
         skipped.push({
           id: data.id,
@@ -120,11 +131,12 @@ export async function GET(request: Request) {
         appointmentNumber: data.appointmentNumber || 1,
         channels: result.channels,
         kind: "reminder_1h",
+        whatsappOk: result.whatsappOk,
       });
     }
 
     console.log(
-      `[Reminders] today=${todayKey} nowMins=${currentMinutes} untilWindow=${minUntil}-${maxUntil}m sent=${sent.length} tests=${testsSent.length}`,
+      `[Reminders] today=${todayKey} nowMins=${currentMinutes} untilWindow=${minUntil}-${maxUntil}m found=${bookings.length} sent=${sent.length} tests=${testsSent.length}`,
     );
 
     return NextResponse.json({
@@ -133,6 +145,7 @@ export async function GET(request: Request) {
       currentMinutes,
       minUntil,
       maxUntil,
+      bookingsFound: bookings.length,
       remindersCount: sent.length,
       sent,
       testsSent,

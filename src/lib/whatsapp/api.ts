@@ -98,6 +98,63 @@ export async function sendWhatsAppText(to: string, body: string): Promise<boolea
 }
 
 /**
+ * Utility/marketing template — works outside the 24-hour customer-care window.
+ * Template must already be approved in Meta (default name: appointment_reminder).
+ * Body params: {{1}} appointment #, {{2}} service, {{3}} time.
+ */
+export async function sendWhatsAppTemplate(
+  to: string,
+  params: {
+    templateName?: string;
+    languageCode?: string;
+    bodyParams: string[];
+  },
+): Promise<boolean> {
+  const recipient = normalizeWhatsAppNumber(to);
+  const name =
+    params.templateName?.trim() ||
+    process.env.WHATSAPP_REMINDER_TEMPLATE?.trim() ||
+    "appointment_reminder";
+  const language = params.languageCode?.trim() || "en";
+
+  const result = await callWhatsAppApi({
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: recipient,
+    type: "template",
+    template: {
+      name,
+      language: { code: language },
+      components: [
+        {
+          type: "body",
+          parameters: params.bodyParams.slice(0, 10).map((text) => ({
+            type: "text",
+            text: String(text || "-").slice(0, 1024),
+          })),
+        },
+      ],
+    },
+  });
+  if (!result.ok) {
+    console.warn(
+      `[sendWhatsAppTemplate Failed] to=${recipient} name=${name} error=${result.error}`,
+    );
+  }
+  return result.ok;
+}
+
+/** Text first; if Meta rejects (usually 24h window), fall back to utility template. */
+export async function sendWhatsAppTextOrTemplate(
+  to: string,
+  body: string,
+  templateParams: string[],
+): Promise<boolean> {
+  if (await sendWhatsAppText(to, body)) return true;
+  return sendWhatsAppTemplate(to, { bodyParams: templateParams });
+}
+
+/**
  * Sends an interactive Quick-Reply button message (up to 3 buttons).
  */
 export async function sendWhatsAppButtons(
@@ -193,16 +250,26 @@ export async function sendWhatsAppList(
  * Sends an urgent notification to the Salon Owner / Admin on WhatsApp.
  */
 export async function sendAdminWhatsAppNotification(messageText: string): Promise<boolean> {
-  const adminPhone =
-    process.env.SALON_OWNER_WHATSAPP?.trim() ||
-    "94752087304";
+  const adminPhone = normalizeWhatsAppNumber(
+    process.env.SALON_OWNER_WHATSAPP?.trim() || "94752087304",
+  );
+
+  if (!adminPhone || adminPhone.length < 9) {
+    console.error(
+      "[Admin Notification Failed] SALON_OWNER_WHATSAPP is missing or invalid.",
+    );
+    return false;
+  }
 
   console.log(`[Admin Notification] Sending alert to owner ${adminPhone}...`);
-  // Small delay to ensure Meta API processes prior message without rate throttling
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  // Small delay so Meta can finish prior customer messages before the owner alert
+  await new Promise((resolve) => setTimeout(resolve, 800));
   const success = await sendWhatsAppText(adminPhone, messageText);
   if (!success) {
-    console.error(`[Admin Notification Failed] Unable to send alert to ${adminPhone}`);
+    console.error(
+      `[Admin Notification Failed] Unable to send alert to ${adminPhone}. ` +
+        "If Meta returns a 24-hour window error, open WhatsApp on the owner phone and send any message to the Salon Business number once, then retry.",
+    );
   } else {
     console.log(`[Admin Notification Success] Alert delivered to ${adminPhone}`);
   }

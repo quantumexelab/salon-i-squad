@@ -1,10 +1,12 @@
 name: WhatsApp Appointment Reminders
 
-# Vercel Hobby only allows 1 cron/day, so we schedule reminders here instead.
-# Every 5 minutes — GitHub schedule events are often delayed, so keep this frequent.
+# Backup pinger. Primary tick is Firebase every 5 minutes.
+# GitHub often delays */5 jobs, so also fire on the hour and :30.
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/15 * * * *"
+    - cron: "0 * * * *"
+    - cron: "30 * * * *"
   workflow_dispatch:
 
 jobs:
